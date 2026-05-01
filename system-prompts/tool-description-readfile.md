@@ -10,7 +10,6 @@ variables:
   - CAN_READ_PDF_FILES_FN
   - HAS_ADDITIONAL_READ_NOTE_FN
   - ADDITIONAL_READ_NOTE
-  - ADDITIONAL_USAGE_NOTES_FN
 -->
 Reads a file from the local filesystem. You can access any file directly by using this tool.
 Assume this tool is able to read all files on the machine. If the User provides a path to a file assume that path is valid. It is okay to read a file that does not exist; an error will be returned.
@@ -25,4 +24,4 @@ ${READ_FULL_FILE_NOTE}
 - This tool can read Jupyter notebooks (.ipynb files) and returns all cells with their outputs, combining code, text, and visualizations.
 - This tool can only read files, not directories. To list files in a directory, use the registered shell tool.
 - For screenshots, use this tool to view the image at the path the user provides. It works with temporary file paths.
-- If you read a file that exists but has empty contents you will receive a system reminder warning in place of file contents.${HAS_ADDITIONAL_READ_NOTE_FN()?ADDITIONAL_READ_NOTE:""}${ADDITIONAL_USAGE_NOTES_FN()}
+- If you read a file that exists but has empty contents you will receive a system reminder warning in place of file contents.${HAS_ADDITIONAL_READ_NOTE_FN()?ADDITIONAL_READ_NOTE:""}
