@@ -7,13 +7,12 @@ variables:
   - BASH_TOOL_NAME
   - TASK_TOOL_NAME
 -->
-A powerful search tool built on ripgrep
+Search file contents with ripgrep.
 
-  Usage:
-  - Use ${GREP_TOOL_NAME} for search rather than \`grep\` or \`rg\` via ${BASH_TOOL_NAME} — it has correct permissions and access.
-  - Supports full regex syntax (e.g., "log.*Error", "function\\s+\\w+")
-  - Filter files with glob parameter (e.g., "*.js", "**/*.tsx") or type parameter (e.g., "js", "py", "rust")
-  - Output modes: "content" shows matching lines, "files_with_matches" shows only file paths (default), "count" shows match counts
-  - Use ${TASK_TOOL_NAME} for open-ended searches requiring multiple rounds
-  - Pattern syntax: Uses ripgrep (not grep) - literal braces need escaping (use \`interface\\{\\}\` to find \`interface{}\` in Go code)
-  - Multiline matching: patterns match within single lines by default. For cross-line patterns like \`struct \\{[\\s\\S]*?field\`, use \`multiline: true\`
+- Use ${GREP_TOOL_NAME} instead of bash rg/grep — correct permissions.
+- Full regex syntax. Filter with glob (e.g. "*.tsx") or type (e.g. "py").
+- Output modes: "content" (matching lines), "files_with_matches" (default), "count".
+- Literal braces need escaping in ripgrep: `interface\{\}`.
+- For multi-line patterns (e.g. `struct \{[\s\S]*?field`), set multiline: true.
+- Run independent greps for different patterns in parallel — one message, multiple calls.
+- Use ${TASK_TOOL_NAME} for open-ended, multi-round searches.

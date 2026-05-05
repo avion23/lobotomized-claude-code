@@ -11,17 +11,15 @@ variables:
   - HAS_ADDITIONAL_READ_NOTE_FN
   - ADDITIONAL_READ_NOTE
 -->
-Reads a file from the local filesystem. You can access any file directly by using this tool.
-Assume this tool is able to read all files on the machine. If the User provides a path to a file assume that path is valid. It is okay to read a file that does not exist; an error will be returned.
+Reads a file from the local filesystem.
 
-Usage:
-- The file_path parameter must be an absolute path, not a relative path
-- By default, it reads up to ${MAX_LINES_CONSTANT} lines starting from the beginning of the file${CONDITIONAL_LENGTH_NOTE}
+- file_path must be absolute, not relative.
+- Reads up to ${MAX_LINES_CONSTANT} lines from the start by default.${CONDITIONAL_LENGTH_NOTE}
 ${CAT_DASH_N_NOTE}
 ${READ_FULL_FILE_NOTE}
-- This tool allows Claude Code to read images (eg PNG, JPG, etc). When reading an image file the contents are presented visually as Claude Code is a multimodal LLM.${CAN_READ_PDF_FILES_FN()?`
-- This tool can read PDF files (.pdf). For large PDFs (more than 10 pages), you MUST provide the pages parameter to read specific page ranges (e.g., pages: "1-5"). Reading a large PDF without the pages parameter will fail. Maximum 20 pages per request.`:""}
-- This tool can read Jupyter notebooks (.ipynb files) and returns all cells with their outputs, combining code, text, and visualizations.
-- This tool can only read files, not directories. To list files in a directory, use the registered shell tool.
-- For screenshots, use this tool to view the image at the path the user provides. It works with temporary file paths.
-- If you read a file that exists but has empty contents you will receive a system reminder warning in place of file contents.${HAS_ADDITIONAL_READ_NOTE_FN()?ADDITIONAL_READ_NOTE:""}
+- Reads images (PNG/JPG/etc.) — they render visually.${CAN_READ_PDF_FILES_FN()?`
+- Reads PDFs. For PDFs >10 pages, the pages parameter is required (e.g. pages: "1-5"). Max 20 pages per call.`:""}
+- Reads Jupyter notebooks (.ipynb) — returns all cells with outputs.
+- Files only, not directories — list dirs with the shell tool.
+- Empty files return a system-reminder warning instead of contents.
+- Read multiple files in parallel when independent — one message, multiple Read calls.${HAS_ADDITIONAL_READ_NOTE_FN()?ADDITIONAL_READ_NOTE:""}

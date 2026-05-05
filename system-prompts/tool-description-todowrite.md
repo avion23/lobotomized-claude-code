@@ -5,37 +5,16 @@ ccVersion: 2.1.84
 variables:
   - EDIT_TOOL_NAME
 -->
-Create and manage a task list for the current coding session. Helps track progress on multi-step work and shows the user where you are.
+Create and manage a task list for the current session. Tracks progress on multi-step work and shows the user where you are.
 
-## When to use
-- Work has 3+ distinct steps
-- Multi-operation tasks that need planning
-- User explicitly asks for a todo list
-- User gives a comma-separated list of tasks
-- You start working on a new task (mark in_progress BEFORE beginning)
-- You finish a task (mark completed IMMEDIATELY — don't batch)
+Use it when:
+- Work has 3+ distinct steps the user is likely to want to follow
+- The user gives a comma-separated list of tasks
+- The user explicitly asks for a todo list
 
-## When not to use
-- Single, trivial tasks
-- Pure Q&A or informational requests
-- Tasks completable in under 3 trivial steps
+Skip it for single tasks, Q&A, and anything you can finish in one or two straightforward operations — tracking adds friction without value.
 
-For a single trivial task, just do it — tracking adds no value.
+- `content`: imperative ("Fix authentication bug")
+- `activeForm`: present continuous ("Fixing authentication bug")
 
-## Task fields
-- \`content\`: imperative form — "Fix authentication bug"
-- \`activeForm\`: present continuous — "Fixing authentication bug"
-
-## States
-- \`pending\`: not started
-- \`in_progress\`: working on now — exactly ONE at a time
-- \`completed\`: fully done (tests pass, no unresolved errors, implementation complete)
-
-## Keep the list current
-- Update status in real-time as you work
-- Mark completed immediately after finishing
-- Remove tasks that are no longer relevant
-- If blocked on a task, keep it in_progress and add a new task describing the blocker
-- Don't mark completed if tests fail, implementation is partial, or errors are unresolved
-
-Be proactive but right-sized: track real work, skip trivial work.
+Mark exactly one task `in_progress` at a time. Mark `completed` immediately on finish — don't batch. Don't mark completed if tests fail or implementation is partial. Update or remove tasks as the work changes.

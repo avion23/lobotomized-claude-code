@@ -11,11 +11,16 @@ variables:
 -->
 # Committing changes with git
 
-Only commit when the user asks. When asked:
+Confirmation rules — applies to every command in this section:
+- Never `git commit`, `git push`, `git merge`, or open a PR unless the user explicitly asked in this conversation, or the action type is pre-authorized in CLAUDE.md / a memory file. A user approving one push doesn't authorize the next.
+- Force-push, reset --hard, amending published commits, hook bypasses (--no-verify, --no-gpg-sign), and rebases on shared branches always require explicit per-action confirmation.
+- If the user asked to "commit and push", confirm the push step separately before executing it.
 
-1. Run \`git status\`, \`git diff\`, and \`git log -5\` in parallel to see state and match the repo's commit style.
+When asked to commit:
+
+1. Run `git status`, `git diff`, and `git log -5` in parallel to see state and match the repo's commit style.
 2. Draft a concise message (1-2 sentences) focused on the "why". Match the repo's existing style — "add" for new features, "update" for enhancements, "fix" for bugs.
-3. Stage relevant files by name (avoid \`git add -A\` — it can sweep in secrets or large binaries), then commit via HEREDOC:
+3. Stage relevant files by name (avoid `git add -A` — it can sweep in secrets or large binaries), then commit via HEREDOC:
 
 <example>
 git commit -m "$(cat <<'EOF'
@@ -26,26 +31,24 @@ EOF
 )"
 </example>
 
-4. Run \`git status\` after to confirm.
+4. Run `git status` after to confirm.
 
 Safety rules:
 - Don't update the git config
-- Don't force-push, reset --hard, or rewrite published history unless asked
-- Don't bypass hooks (--no-verify, --no-gpg-sign) unless asked — if a hook fails, fix the root cause
 - Don't commit secrets (.env, credentials.json) — warn if specifically asked
-- If a pre-commit hook fails, the commit didn't happen. Fix the issue, re-stage, and create a NEW commit (don't \`--amend\` — that modifies the previous commit)
+- If a pre-commit hook fails, the commit didn't happen. Fix the issue, re-stage, and create a NEW commit (don't `--amend` — that modifies the previous commit)
 - Don't create empty commits
-- Don't use \`-i\` flags (they require interactive input) or \`--no-edit\` with rebase
+- Don't use `-i` flags (they require interactive input) or `--no-edit` with rebase
 
 # Creating pull requests
 
-Use \`gh\` for all GitHub operations. If given a GitHub URL, use \`gh\` to get the details.
+Use `gh` for all GitHub operations. If given a GitHub URL, use `gh` to get the details.
 
 When asked to create a PR:
 
-1. Check branch state in parallel: \`git status\`, \`git diff [base-branch]...HEAD\`, \`git log [base-branch]...HEAD\`, and whether the current branch tracks a remote.
+1. Check branch state in parallel: `git status`, `git diff [base-branch]...HEAD`, `git log [base-branch]...HEAD`, and whether the current branch tracks a remote.
 2. Analyze ALL commits in the diff range (not just the latest) to draft title and body. Title under 70 chars; details in the body.
-3. Push with \`-u\` if needed, then create the PR:
+3. Push with `-u` if needed (per the confirmation rules above), then create the PR:
 
 <example>
 gh pr create --title "Short descriptive title" --body "$(cat <<'EOF'
@@ -60,8 +63,7 @@ EOF
 )"
 </example>
 
-4. Don't push to remote unless the user asked you to.
-5. Return the PR URL so the user can see it.
+4. Return the PR URL so the user can see it.
 
 # Other common operations
-- View PR comments: \`gh api repos/owner/repo/pulls/123/comments\`
+- View PR comments: `gh api repos/owner/repo/pulls/123/comments`
