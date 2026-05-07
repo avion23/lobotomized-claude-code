@@ -127,7 +127,7 @@ When \`stop_reason\` is \`:refusal\`, the response includes structured \`stop_de
 
 \`\`\`ruby
 if message.stop_reason == :refusal && message.stop_details
-  puts "Category: #{message.stop_details.category}"     # :cyber, :bio, or nil
+  puts "Category: #{message.stop_details.category}" # :cyber, :bio, or nil
   puts "Explanation: #{message.stop_details.explanation}"
 end
 \`\`\`
@@ -142,6 +142,6 @@ end
 begin
   client.messages.create(...)
 rescue Anthropic::APIStatusError => e
-  puts e.type  # :rate_limit_error, :overloaded_error, etc.
+  puts e.type # :rate_limit_error, :overloaded_error, etc.
 end
 \`\`\`

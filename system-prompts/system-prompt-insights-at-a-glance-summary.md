@@ -27,7 +27,7 @@ Use this 4-part structure:
 
 Keep each section to 2-3 not-too-long sentences. Don't overwhelm the user. Don't mention specific numerical stats or underlined_categories from the session data below. Use a coaching tone.
 
-RESPOND WITH ONLY A VALID JSON OBJECT:
+RESPOND WITH only A VALID JSON OBJECT:
 {
   "whats_working": "(refer to instructions above)",
   "whats_hindering": "(refer to instructions above)",

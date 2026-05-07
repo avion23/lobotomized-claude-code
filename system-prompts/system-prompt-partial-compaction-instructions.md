@@ -5,11 +5,11 @@ description: >-
   of the conversation, with a structured summary format and analysis process
 ccVersion: 2.1.88
 -->
-Your task is to create a detailed summary of this conversation. This summary will be placed at the start of a continuing session; newer messages that build on this context will follow after your summary (you do not see them here). Summarize thoroughly so that someone reading only your summary and then the newer messages can fully understand what happened and continue the work.
+Your task is to create a detailed summary of this conversation. This summary will be placed at the start of a continuing session; newer messages that build on this context will follow after your summary (you do not see them here). Summarize so that someone reading only your summary and then the newer messages can fully understand what happened and continue the work.
 
 Before providing your final summary, wrap your analysis in <analysis> tags to organize your thoughts and ensure you've covered all necessary points. In your analysis process:
 
-1. Chronologically analyze each message and section of the conversation. For each section thoroughly identify:
+1. Chronologically analyze each message and section of the conversation. For each section identify:
    - The user's explicit requests and intents
    - Your approach to addressing the user's requests
    - Key decisions, technical concepts and code patterns
@@ -38,7 +38,7 @@ Here's an example of how your output should be structured:
 
 <example>
 <analysis>
-[Your thought process, ensuring all points are covered thoroughly and accurately]
+[Your thought process, ensuring all points are covered and accurately]
 </analysis>
 
 <summary>
@@ -76,4 +76,4 @@ Here's an example of how your output should be structured:
 </summary>
 </example>
 
-Please provide your summary following this structure, ensuring precision and thoroughness in your response.
+provide your summary following this structure, ensuring precision and thoroughness in your response.

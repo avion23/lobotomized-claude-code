@@ -143,7 +143,7 @@ Use this when you need fine-grained control over the loop (e.g., custom logging,
 import anthropic
 
 client = anthropic.Anthropic()
-tools = [...]  # Your tool definitions
+tools = [...] # Your tool definitions
 messages = [{"role": "user", "content": user_input}]
 
 # Agentic loop: keep going until Claude stops calling tools
@@ -176,10 +176,10 @@ while True:
     # Execute each tool and collect results
     tool_results = []
     for tool in tool_use_blocks:
-        result = execute_tool(tool.name, tool.input)  # Your implementation
+        result = execute_tool(tool.name, tool.input) # Your implementation
         tool_results.append({
             "type": "tool_result",
-            "tool_use_id": tool.id,  # Must match the tool_use block's id
+            "tool_use_id": tool.id, # Must match the tool_use block's id
             "content": result
         })
 
@@ -267,7 +267,7 @@ if tool_results:
 tool_result = {
     "type": "tool_result",
     "tool_use_id": tool_use_id,
-    "content": "Error: Location 'xyz' not found. Please provide a valid city name.",
+    "content": "Error: Location 'xyz' not found. provide a valid city name.",
     "is_error": True
 }
 \`\`\`
@@ -281,7 +281,7 @@ response = client.messages.create(
     model="{{OPUS_ID}}",
     max_tokens=16000,
     tools=tools,
-    tool_choice={"type": "tool", "name": "get_weather"},  # Force specific tool
+    tool_choice={"type": "tool", "name": "get_weather"}, # Force specific tool
     messages=[{"role": "user", "content": "What's the weather in Paris?"}]
 )
 \`\`\`
@@ -395,9 +395,9 @@ response2 = client.messages.create(
 \`\`\`python
 for block in response.content:
     if block.type == "text":
-        print(block.text)  # Claude's explanation
+        print(block.text) # Claude's explanation
     elif block.type == "server_tool_use":
-        print(f"Running: {block.name} - {block.input}")  # What Claude is doing
+        print(f"Running: {block.name} - {block.input}") # What Claude is doing
     elif block.type == "bash_code_execution_tool_result":
         result = block.content
         if result.type == "bash_code_execution_result":
@@ -425,7 +425,7 @@ client = anthropic.Anthropic()
 response = client.messages.create(
     model="{{OPUS_ID}}",
     max_tokens=16000,
-    messages=[{"role": "user", "content": "Remember that my preferred language is Python."}],
+    messages=[{"role": "user", "content": "my preferred language is Python."}],
     tools=[{"type": "memory_20250818", "name": "memory"}],
 )
 \`\`\`
@@ -495,8 +495,8 @@ response = client.messages.parse(
 
 # response.parsed_output is a validated ContactInfo instance
 contact = response.parsed_output
-print(contact.name)           # "Jane Doe"
-print(contact.interests)      # ["API", "SDKs"]
+print(contact.name) # "Jane Doe"
+print(contact.interests) # ["API", "SDKs"]
 \`\`\`
 
 ### Raw Schema

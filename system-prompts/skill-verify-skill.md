@@ -28,9 +28,9 @@ a window. Go there.
 Establish the full range first — a branch may be many commits:
 
 \`\`\`bash
-git log --oneline @{u}..              # count commits
-git diff @{u}.. --stat                # full range, not HEAD~1
-gh pr diff                            # if in a PR context
+git log --oneline @{u}.. # count commits
+git diff @{u}.. --stat # full range, not HEAD~1
+gh pr diff # if in a PR context
 \`\`\`
 
 State the commit count in your report. Large diff truncating? Redirect:

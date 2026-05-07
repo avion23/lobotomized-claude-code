@@ -42,7 +42,7 @@ The Go SDK provides typed model constants: \`anthropic.ModelClaudeOpus4_7\`, \`a
 
 \`\`\`go
 response, err := client.Messages.New(context.Background(), anthropic.MessageNewParams{
-    Model:     anthropic.ModelClaudeOpus4_7,
+    Model: anthropic.ModelClaudeOpus4_7,
     MaxTokens: 16000,
     Messages: []anthropic.MessageParam{
         anthropic.NewUserMessage(anthropic.NewTextBlock("What is the capital of France?")),
@@ -65,7 +65,7 @@ for _, block := range response.Content {
 
 \`\`\`go
 stream := client.Messages.NewStreaming(context.Background(), anthropic.MessageNewParams{
-    Model:     anthropic.ModelClaudeOpus4_6,
+    Model: anthropic.ModelClaudeOpus4_6,
     MaxTokens: 64000,
     Messages: []anthropic.MessageParam{
         anthropic.NewUserMessage(anthropic.NewTextBlock("Write a haiku")),
@@ -144,7 +144,7 @@ runner := client.Beta.Messages.NewToolRunner(
     []anthropic.BetaTool{weatherTool},
     anthropic.BetaToolRunnerParams{
         BetaMessageNewParams: anthropic.BetaMessageNewParams{
-            Model:     anthropic.ModelClaudeOpus4_6,
+            Model: anthropic.ModelClaudeOpus4_6,
             MaxTokens: 16000,
             Messages: []anthropic.BetaMessageParam{
                 anthropic.NewBetaUserMessage(anthropic.NewBetaTextBlock("What's the weather in Paris?")),
@@ -202,7 +202,7 @@ func main() {
 
     // 1. Define tools. ToolParam.InputSchema uses a map, no struct tags needed.
     addTool := anthropic.ToolParam{
-        Name:        "add",
+        Name: "add",
         Description: anthropic.String("Add two integers"),
         InputSchema: anthropic.ToolInputSchemaParam{
             Properties: map[string]any{
@@ -220,21 +220,21 @@ func main() {
 
     for {
         resp, err := client.Messages.New(context.Background(), anthropic.MessageNewParams{
-            Model:     anthropic.ModelClaudeSonnet4_6,
+            Model: anthropic.ModelClaudeSonnet4_6,
             MaxTokens: 16000,
-            Messages:  messages,
-            Tools:     tools,
+            Messages: messages,
+            Tools: tools,
         })
         if err != nil {
             log.Fatal(err)
         }
 
         // 2. Append the assistant response to history BEFORE processing tool calls.
-        //    resp.ToParam() converts Message → MessageParam in one call.
+        // resp.ToParam() converts Message → MessageParam in one call.
         messages = append(messages, resp.ToParam())
 
         // 3. Walk content blocks. ContentBlockUnion is a flattened struct;
-        //    use block.AsAny().(type) to switch on the actual variant.
+        // use block.AsAny().(type) to switch on the actual variant.
         toolResults := []anthropic.ContentBlockParamUnion{}
         for _, block := range resp.Content {
             switch variant := block.AsAny().(type) {
@@ -242,7 +242,7 @@ func main() {
                 fmt.Println(variant.Text)
             case anthropic.ToolUseBlock:
                 // 4. Parse the tool input. Use variant.JSON.Input.Raw() to get the
-                //    raw JSON — block.Input is json.RawMessage, not the parsed value.
+                // raw JSON — block.Input is json.RawMessage, not the parsed value.
                 var in struct {
                     A int \`json:"a"\`
                     B int \`json:"b"\`
@@ -252,7 +252,7 @@ func main() {
                 }
                 result := fmt.Sprintf("%d", in.A+in.B)
                 // 5. NewToolResultBlock(toolUseID, content, isError) builds the
-                //    ContentBlockParamUnion for you. block.ID is the tool_use_id.
+                // ContentBlockParamUnion for you. block.ID is the tool_use_id.
                 toolResults = append(toolResults,
                     anthropic.NewToolResultBlock(block.ID, result, false))
             }
@@ -296,9 +296,9 @@ Derived from \`anthropic-sdk-go/message.go\` (\`ThinkingConfigParamUnion\`, \`Th
 // struct-literal directly and take the address of the variant.
 adaptive := anthropic.ThinkingConfigAdaptiveParam{}
 params := anthropic.MessageNewParams{
-    Model:     anthropic.ModelClaudeSonnet4_6,
+    Model: anthropic.ModelClaudeSonnet4_6,
     MaxTokens: 16000,
-    Thinking:  anthropic.ThinkingConfigParamUnion{OfAdaptive: &adaptive},
+    Thinking: anthropic.ThinkingConfigParamUnion{OfAdaptive: &adaptive},
     Messages: []anthropic.MessageParam{
         anthropic.NewUserMessage(anthropic.NewTextBlock("How many r's in strawberry?")),
     },
@@ -332,7 +332,7 @@ To disable: \`anthropic.ThinkingConfigParamUnion{OfDisabled: &anthropic.Thinking
 
 \`\`\`go
 System: []anthropic.TextBlockParam{{
-    Text:         longSystemPrompt,
+    Text: longSystemPrompt,
     CacheControl: anthropic.NewCacheControlEphemeralParam(), // default 5m TTL
 }},
 \`\`\`
@@ -399,7 +399,7 @@ f, _ := os.Open("./upload_me.txt")
 defer f.Close()
 
 meta, err := client.Beta.Files.Upload(ctx, anthropic.BetaFileUploadParams{
-    File:  anthropic.File(f, "upload_me.txt", "text/plain"),
+    File: anthropic.File(f, "upload_me.txt", "text/plain"),
     Betas: []anthropic.AnthropicBeta{anthropic.AnthropicBetaFilesAPI2025_04_14},
 })
 // meta.ID is the file_id to reference in subsequent message requests
@@ -415,9 +415,9 @@ Use \`Beta.Messages.New\` with \`ContextManagement\` on \`BetaMessageNewParams\`
 
 \`\`\`go
 params := anthropic.BetaMessageNewParams{
-    Model:     anthropic.ModelClaudeOpus4_6,  // also supported: ModelClaudeSonnet4_6
+    Model: anthropic.ModelClaudeOpus4_6, // also supported: ModelClaudeSonnet4_6
     MaxTokens: 16000,
-    Betas:     []anthropic.AnthropicBeta{"compact-2026-01-12"},
+    Betas: []anthropic.AnthropicBeta{"compact-2026-01-12"},
     ContextManagement: anthropic.BetaContextManagementConfigParam{
         Edits: []anthropic.BetaContextManagementConfigEditUnionParam{
             {OfCompact20260112: &anthropic.BetaCompact20260112EditParam{}},

@@ -21,7 +21,7 @@ After error or misunderstanding → silence (let them assess/correct)
 
 Be specific: "run the tests" beats "continue".
 
-NEVER SUGGEST:
+Never SUGGEST:
 - Evaluative ("looks good", "thanks")
 - Questions ("what about...?")
 - Claude-voice ("Let me...", "I'll...", "Here's...")
@@ -32,4 +32,4 @@ Stay silent if the next step isn't obvious from what the user said.
 
 Format: 2-12 words, match the user's style. Or nothing.
 
-Reply with ONLY the suggestion, no quotes or explanation.
+Reply with only the suggestion, no quotes or explanation.

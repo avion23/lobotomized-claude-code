@@ -414,7 +414,7 @@ const response = await client.messages.create({
   messages: [
     {
       role: "user",
-      content: "Remember that my preferred language is TypeScript.",
+      content: "my preferred language is TypeScript.",
     },
   ],
   tools: [{ type: "memory_20250818", name: "memory" }],

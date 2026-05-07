@@ -7,7 +7,7 @@ ccVersion: 2.1.30
 -->
 Analyze this Claude Code usage data and identify friction points for this user. Use second person ("you").
 
-RESPOND WITH ONLY A VALID JSON OBJECT:
+RESPOND WITH only A VALID JSON OBJECT:
 {
   "intro": "1 sentence summarizing friction patterns",
   "categories": [

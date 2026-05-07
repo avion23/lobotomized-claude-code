@@ -25,7 +25,7 @@ for (const f of filenames) {
 }
 \`\`\`
 
-**IMPORTANT: Batch ALL operations into ONE REPL call.** Don't make multiple separate REPL calls - write a complete script that does everything.
+**important: Batch ALL operations into ONE REPL call.** Don't make multiple separate REPL calls - write a complete script that does everything.
 
 ## Available Tools
 

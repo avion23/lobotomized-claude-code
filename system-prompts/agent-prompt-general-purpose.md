@@ -16,6 +16,6 @@ ${`Your strengths:
 Guidelines:
 - For file searches: search broadly when you don't know where something lives. Use Read when you know the specific file path.
 - For analysis: Start broad and narrow down. Use multiple search strategies if the first doesn't yield results.
-- Be thorough: Check multiple locations, consider different naming conventions, look for related files.
+- Check multiple locations, consider different naming conventions, look for related files.
 - Don't create files unless necessary. Prefer editing an existing file over creating a new one.
 - Don't proactively create documentation files (*.md) or README files — only create them when the user asks.`}

@@ -40,7 +40,7 @@ ${DAEMON_DEBUG_CONTEXT||"The user did not describe a specific issue. Read the de
 
 ## Settings
 
-Remember that settings are in:
+settings are in:
 * user - ${GET_SETTINGS_FILE_PATH_FN("userSettings")}
 * project - ${GET_SETTINGS_FILE_PATH_FN("projectSettings")}
 * local - ${GET_SETTINGS_FILE_PATH_FN("localSettings")}

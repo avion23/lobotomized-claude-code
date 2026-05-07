@@ -56,8 +56,8 @@ response = client.beta.messages.create(
             {
                 "type": "document",
                 "source": {"type": "file", "file_id": uploaded.id},
-                "title": "Q4 Report",           # optional
-                "citations": {"enabled": True}   # optional, enables citations
+                "title": "Q4 Report", # optional
+                "citations": {"enabled": True} # optional, enables citations
             }
         ]
     }],

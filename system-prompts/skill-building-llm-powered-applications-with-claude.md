@@ -30,7 +30,7 @@ Never mix the two — don't reach for `requests`/`fetch` in a Python or TypeScri
 
 Unless the user requests otherwise:
 
-For the Claude model version, please use {{OPUS_NAME}}, which you can access via the exact model string `{{OPUS_ID}}`. Please default to using adaptive thinking (`thinking: {type: \"adaptive\"}`) for anything remotely complicated. And finally, please default to streaming for any request that may involve long input, long output, or high `max_tokens` — it prevents hitting request timeouts. Use the SDK's `.get_final_message()` / `.finalMessage()` helper to get the complete response if you don't need to handle individual stream events
+For the Claude model version, use {{OPUS_NAME}}, which you can access via the exact model string `{{OPUS_ID}}`. default to using adaptive thinking (`thinking: {type: \"adaptive\"}`) for anything remotely complicated. And finally, default to streaming for any request that may involve long input, long output, or high `max_tokens` — it prevents hitting request timeouts. Use the SDK's `.get_final_message()` / `.finalMessage()` helper to get the complete response if you don't need to handle individual stream events
 
 ---
 

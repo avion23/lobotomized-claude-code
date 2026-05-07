@@ -53,7 +53,7 @@ EOF
 \`\`\`
 3. Push the branch to origin
 4. If a PR already exists for this branch (check the gh pr view output above), update the PR title and body using \`gh pr edit\` to reflect the current diff${PR_EDIT_OPTIONS_NOTE}. Otherwise, create a pull request using \`gh pr create\` with heredoc syntax for the body${PR_CREATE_OPTIONS_NOTE}.
-   - IMPORTANT: Keep PR titles short (under 70 characters). Use the body for details.
+   - Keep PR titles short (under 70 characters). Use the body for details.
 \`\`\`
 gh pr create --title "Short, descriptive title" --body "$(cat <<'EOF'
 ## Summary
@@ -67,6 +67,6 @@ EOF
 )"
 \`\`\`
 
-You have the capability to call multiple tools in a single response. You MUST do all of the above in a single message.${ADDITIONAL_INSTRUCTIONS_NOTE}
+You have the capability to call multiple tools in a single response. You must do all of the above in a single message.${ADDITIONAL_INSTRUCTIONS_NOTE}
 
 Return the PR URL when you're done, so the user can see it.

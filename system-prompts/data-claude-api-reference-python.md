@@ -80,7 +80,7 @@ Use \`DefaultHttpxClient\` / \`DefaultAsyncHttpxClient\` — not raw \`httpx.Cli
 from anthropic import Anthropic, DefaultHttpxClient
 
 client = Anthropic(
-    base_url="http://my.test.server.example.com:8083",  # or ANTHROPIC_BASE_URL env var
+    base_url="http://my.test.server.example.com:8083", # or ANTHROPIC_BASE_URL env var
     http_client=DefaultHttpxClient(proxy="http://my.test.proxy.example.com"),
 )
 \`\`\`
@@ -189,7 +189,7 @@ Use top-level \`cache_control\` to automatically cache the last cacheable block 
 response = client.messages.create(
     model="{{OPUS_ID}}",
     max_tokens=16000,
-    cache_control={"type": "ephemeral"},  # auto-caches the last cacheable block
+    cache_control={"type": "ephemeral"}, # auto-caches the last cacheable block
     system="You are an expert on this large document...",
     messages=[{"role": "user", "content": "Summarize the key points"}]
 )
@@ -206,7 +206,7 @@ response = client.messages.create(
     system=[{
         "type": "text",
         "text": "You are an expert on this large document...",
-        "cache_control": {"type": "ephemeral"}  # default TTL is 5 minutes
+        "cache_control": {"type": "ephemeral"} # default TTL is 5 minutes
     }],
     messages=[{"role": "user", "content": "Summarize the key points"}]
 )
@@ -218,7 +218,7 @@ response = client.messages.create(
     system=[{
         "type": "text",
         "text": "You are an expert on this large document...",
-        "cache_control": {"type": "ephemeral", "ttl": "1h"}  # 1 hour TTL
+        "cache_control": {"type": "ephemeral", "ttl": "1h"} # 1 hour TTL
     }],
     messages=[{"role": "user", "content": "Summarize the key points"}]
 )
@@ -227,9 +227,9 @@ response = client.messages.create(
 ### Verifying Cache Hits
 
 \`\`\`python
-print(response.usage.cache_creation_input_tokens)  # tokens written to cache (~1.25x cost)
-print(response.usage.cache_read_input_tokens)      # tokens served from cache (~0.1x cost)
-print(response.usage.input_tokens)                 # uncached tokens (full cost)
+print(response.usage.cache_creation_input_tokens) # tokens written to cache (~1.25x cost)
+print(response.usage.cache_read_input_tokens) # tokens served from cache (~0.1x cost)
+print(response.usage.input_tokens) # uncached tokens (full cost)
 \`\`\`
 
 If \`cache_read_input_tokens\` is zero across repeated identical-prefix requests, a silent invalidator is at work — \`datetime.now()\` or a UUID in the system prompt, unsorted \`json.dumps()\`, or a varying tool set. See \`shared/prompt-caching.md\` for the full audit table.
@@ -296,9 +296,9 @@ Every response object exposes \`_request_id\` (populated from the \`request-id\`
 
 \`\`\`python
 message = client.messages.create(...)
-print(message._request_id)       # req_018EeWyXxfu5pfWkrYcMdjWG
-print(message.to_json())          # serialize the Pydantic model
-print(message.to_dict())          # plain dict
+print(message._request_id) # req_018EeWyXxfu5pfWkrYcMdjWG
+print(message.to_json()) # serialize the Pydantic model
+print(message.to_dict()) # plain dict
 \`\`\`
 
 To access raw headers or other response metadata, use \`.with_raw_response\`:
@@ -310,7 +310,7 @@ raw = client.messages.with_raw_response.create(
     messages=[{"role": "user", "content": "Hello"}],
 )
 print(raw.headers.get("request-id"))
-message = raw.parse()  # the Message object messages.create() would have returned
+message = raw.parse() # the Message object messages.create() would have returned
 \`\`\`
 
 ---
@@ -356,7 +356,7 @@ conversation = ConversationManager(
 )
 
 response1 = conversation.send("My name is Alice.")
-response2 = conversation.send("What's my name?")  # Claude remembers "Alice"
+response2 = conversation.send("What's my name?") # Claude remembers "Alice"
 \`\`\`
 
 **Rules:**
@@ -437,7 +437,7 @@ response = client.messages.create(
     model="{{OPUS_ID}}",
     max_tokens=16000,
     cache_control={"type": "ephemeral"},
-    system=large_document_text,  # e.g., 50KB of context
+    system=large_document_text, # e.g., 50KB of context
     messages=[{"role": "user", "content": "Summarize the key points"}]
 )
 
@@ -450,21 +450,21 @@ response = client.messages.create(
 \`\`\`python
 # Default to Opus for most tasks
 response = client.messages.create(
-    model="{{OPUS_ID}}",  # $5.00/$25.00 per 1M tokens
+    model="{{OPUS_ID}}", # $5.00/$25.00 per 1M tokens
     max_tokens=16000,
     messages=[{"role": "user", "content": "Explain quantum computing"}]
 )
 
 # Use Sonnet for high-volume production workloads
 standard_response = client.messages.create(
-    model="{{SONNET_ID}}",  # $3.00/$15.00 per 1M tokens
+    model="{{SONNET_ID}}", # $3.00/$15.00 per 1M tokens
     max_tokens=16000,
     messages=[{"role": "user", "content": "Summarize this document"}]
 )
 
 # Use Haiku only for simple, speed-critical tasks
 simple_response = client.messages.create(
-    model="{{HAIKU_ID}}",  # $1.00/$5.00 per 1M tokens
+    model="{{HAIKU_ID}}", # $1.00/$5.00 per 1M tokens
     max_tokens=256,
     messages=[{"role": "user", "content": "Classify this as positive or negative"}]
 )
@@ -479,7 +479,7 @@ count_response = client.messages.count_tokens(
     system=system
 )
 
-estimated_input_cost = count_response.input_tokens * 0.000005  # $5/1M tokens
+estimated_input_cost = count_response.input_tokens * 0.000005 # $5/1M tokens
 print(f"Estimated input cost: \${estimated_input_cost:.4f}")
 \`\`\`
 
@@ -513,7 +513,7 @@ def call_with_retry(
             if e.status_code >= 500:
                 last_exception = e
             else:
-                raise  # Client errors (4xx except 429) should not be retried
+                raise # Client errors (4xx except 429) should not be retried
 
         delay = min(base_delay * (2 ** attempt) + random.uniform(0, 1), max_delay)
         print(f"Retry {attempt + 1}/{max_retries} after {delay:.1f}s")

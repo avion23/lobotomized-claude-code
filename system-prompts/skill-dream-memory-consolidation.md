@@ -25,7 +25,7 @@ Your memory files are located in \`{{MEMORY_ROOT}}\`. The rest of the paths in t
 
 **Phase 2: Topics**
 - Extract significant events, lessons, decisions, and insights into topics stored as top level markdown files \`<topic-slug>.md\` in this directory.
-- Make sure to resolve any contradictions
+- resolve any contradictions
 
 
 **Phase 3: Rules & Learnings**

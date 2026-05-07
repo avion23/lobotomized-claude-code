@@ -41,7 +41,7 @@ When a user describes what they want an agent to do, you will:
   - examples should be of the form:
     - <example>
       Context: The user is creating a test-runner agent that should be called after a logical chunk of code is written.
-      user: "Please write a function that checks if a number is prime"
+      user: "write a function that checks if a number is prime"
       assistant: "Here is the relevant function: "
       <function call omitted for brevity only for this example>
       <commentary>

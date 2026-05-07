@@ -36,7 +36,7 @@ Here's an example of how your output should be structured:
 
 <example>
 <analysis>
-[Your thought process, ensuring all points are covered thoroughly and accurately]
+[Your thought process, ensuring all points are covered and accurately]
 </analysis>
 
 <summary>
@@ -74,4 +74,4 @@ Here's an example of how your output should be structured:
 </summary>
 </example>
 
-Please provide your summary based on the RECENT messages only (after the retained earlier context), following this structure and ensuring precision and thoroughness in your response.
+provide your summary based on the RECENT messages only (after the retained earlier context), following this structure and ensuring precision and thoroughness in your response.

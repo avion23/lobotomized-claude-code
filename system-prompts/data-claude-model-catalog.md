@@ -15,16 +15,16 @@ For **live** capability data — context window, max output tokens, feature supp
 
 \`\`\`python
 m = client.models.retrieve("claude-opus-4-7")
-m.id                 # "claude-opus-4-7"
-m.display_name       # "Claude Opus 4.7"
-m.max_input_tokens   # context window (int)
-m.max_tokens         # max output tokens (int)
+m.id # "claude-opus-4-7"
+m.display_name # "Claude Opus 4.7"
+m.max_input_tokens # context window (int)
+m.max_tokens # max output tokens (int)
 
 # capabilities is an untyped nested dict — bracket access, check ["supported"] at the leaf
 caps = m.capabilities
-caps["image_input"]["supported"]                       # vision
-caps["thinking"]["types"]["adaptive"]["supported"]     # adaptive thinking
-caps["effort"]["max"]["supported"]                     # effort: max (also low/medium/high)
+caps["image_input"]["supported"] # vision
+caps["thinking"]["types"]["adaptive"]["supported"] # adaptive thinking
+caps["effort"]["max"]["supported"] # effort: max (also low/medium/high)
 caps["structured_outputs"]["supported"]
 caps["context_management"]["compact_20260112"]["supported"]
 

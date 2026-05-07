@@ -114,7 +114,7 @@ Based on the areas detected in Phase 1, you may need to create multiple verifier
 
    The \`<project>\` portion should be a short identifier for the subdirectory or project area (e.g., the folder name or package name).
 
-   Custom names are allowed but MUST include "verifier" in the name — the Verify agent discovers skills by looking for "verifier" in the folder name.
+   Custom names are allowed but must include "verifier" in the name — the Verify agent discovers skills by looking for "verifier" in the folder name.
 
 2. **Project-specific questions** based on type:
 

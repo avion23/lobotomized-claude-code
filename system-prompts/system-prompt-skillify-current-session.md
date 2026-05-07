@@ -36,7 +36,7 @@ You will use the AskUserQuestion to understand what the user wants to automate. 
 
 **Round 2: More details**
 - Present the high-level steps you identified as a numbered list. Tell the user you will dig into the detail in the next round.
-- If you think the skill will require arguments, suggest arguments based on what you observed. Make sure you understand what someone would need to provide.
+- If you think the skill will require arguments, suggest arguments based on what you observed. understand what someone would need to provide.
 - If it's not clear, ask if this skill should run inline (in the current conversation) or forked (as a sub-agent with its own context). Forked is better for self-contained tasks that don't need mid-process user input; inline is better when the user wants to steer mid-process.
 - Ask where the skill should be saved. Suggest a default based on context (repo-specific workflows → repo, cross-repo personal workflows → user). Options:
   - **This repo** (\`.claude/skills/<name>/SKILL.md\`) — for workflows specific to this project
@@ -48,18 +48,18 @@ For each major step, if it's not glaringly obvious, ask:
 - What proves that this step succeeded, and that we can move on?
 - Should the user be asked to confirm before proceeding? (especially for irreversible actions like merging, sending messages, or destructive operations)
 - Are any steps independent and could run in parallel? (e.g., posting to Slack and monitoring CI at the same time)
-- How should the skill be executed? (e.g. always use a Task agent to conduct code review, or invoke an agent team for a set of concurrent steps)
+- How should the skill be executed? (e.g. Always use a Task agent to conduct code review, or invoke an agent team for a set of concurrent steps)
 - What are the hard constraints or hard preferences? Things that must or must not happen?
 
 You may do multiple rounds of AskUserQuestion here, one round per step, especially if there are more than 3 steps or many clarification questions. Iterate as much as needed.
 
-IMPORTANT: Pay special attention to places where the user corrected you during the session, to help inform your design.
+Pay special attention to places where the user corrected you during the session, to help inform your design.
 
 **Round 4: Final questions**
 - Confirm when this skill should be invoked, and suggest/confirm trigger phrases too. (e.g. For a cherrypick workflow you could say: Use when the user wants to cherry-pick a PR to a release branch. Examples: 'cherry-pick to release', 'CP this PR', 'hotfix.')
 - You can also ask for any other gotchas or things to watch out for, if it's still unclear.
 
-Stop interviewing once you have enough information. IMPORTANT: Don't over-ask for simple processes!
+Stop interviewing once you have enough information. Don't over-ask for simple processes!
 
 ### Step 3: Write the SKILL.md
 
@@ -94,15 +94,15 @@ Clearly stated goal for this workflow. Best if you have clearly defined artifact
 ### 1. Step Name
 What to do in this step. Be specific and actionable. Include commands when appropriate.
 
-**Success criteria**: ALWAYS include this! This shows that the step is done and we can move on. Can be a list.
+**Success criteria**: always include this! This shows that the step is done and we can move on. Can be a list.
 
-IMPORTANT: see the next section below for the per-step annotations you can optionally include for each step.
+see the next section below for the per-step annotations you can optionally include for each step.
 
 ...
 \`\`\`
 
 **Per-step annotations**:
-- **Success criteria** is REQUIRED on every step. This helps the model understand what the user expects from their workflow, and when it should have the confidence to move on.
+- **Success criteria** is required on every step. This helps the model understand what the user expects from their workflow, and when it should have the confidence to move on.
 - **Execution**: \`Direct\` (default), \`Task agent\` (straightforward subagents), \`Teammate\` (agent with true parallelism and inter-agent communication), or \`[human]\` (user does it). Only needs specifying if not Direct.
 - **Artifacts**: Data this step produces that later steps need (e.g., PR number, commit SHA). Only include if later steps depend on it.
 - **Human checkpoint**: When to pause and ask the user before proceeding. Include for irreversible actions (merging, sending messages), error judgment (merge conflicts), or output review.
@@ -116,7 +116,7 @@ IMPORTANT: see the next section below for the per-step annotations you can optio
 **Frontmatter rules:**
 - \`allowed-tools\`: Minimum permissions needed (use patterns like \`Bash(gh *)\` not \`Bash\`)
 - \`context\`: Only set \`context: fork\` for self-contained skills that don't need mid-process user input.
-- \`when_to_use\` is CRITICAL -- tells the model when to auto-invoke. Start with "Use when..." and include trigger phrases. Example: "Use when the user wants to cherry-pick a PR to a release branch. Examples: 'cherry-pick to release', 'CP this PR', 'hotfix'."
+- \`when_to_use\` is critical -- tells the model when to auto-invoke. Start with "Use when..." and include trigger phrases. Example: "Use when the user wants to cherry-pick a PR to a release branch. Examples: 'cherry-pick to release', 'CP this PR', 'hotfix'."
 - \`arguments\` and \`argument-hint\`: Only include if the skill takes parameters. Use \`$name\` in the body for substitution.
 
 ### Step 4: Confirm and Save

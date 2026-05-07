@@ -27,7 +27,7 @@ For the latest, authoritative version (with code samples in every supported lang
 | Opus 4.7 Migration Checklist | The required vs optional items for 4.7, tagged \`[BLOCKS]\` / \`[TUNE]\` |
 | Verify the Migration | After edits — runtime spot-check |
 
-**TL;DR:** Change the model ID string. If you were using \`budget_tokens\`, switch to \`thinking: {type: "adaptive"}\`. If you were using assistant prefills, they 400 on both Opus 4.6 and Sonnet 4.6 — switch to one of the prefill replacements (most often \`output_config.format\`; see the table in Breaking Changes by Source Model). If you're moving from Sonnet 4.5 to Sonnet 4.6, set \`effort\` explicitly — 4.6 defaults to \`high\`. Remove the \`effort-2025-11-24\` and \`fine-grained-tool-streaming-2025-05-14\` beta headers (GA on 4.6); remove \`interleaved-thinking-2025-05-14\` once you're on adaptive thinking (keep it only while using the transitional \`budget_tokens\` escape hatch). Then drop back from \`client.beta.messages.create\` to \`client.messages.create\`. Dial back any aggressive "CRITICAL: YOU MUST" tool instructions; 4.6 follows the system prompt much more closely.
+**TL;DR:** Change the model ID string. If you were using \`budget_tokens\`, switch to \`thinking: {type: "adaptive"}\`. If you were using assistant prefills, they 400 on both Opus 4.6 and Sonnet 4.6 — switch to one of the prefill replacements (most often \`output_config.format\`; see the table in Breaking Changes by Source Model). If you're moving from Sonnet 4.5 to Sonnet 4.6, set \`effort\` explicitly — 4.6 defaults to \`high\`. Remove the \`effort-2025-11-24\` and \`fine-grained-tool-streaming-2025-05-14\` beta headers (GA on 4.6); remove \`interleaved-thinking-2025-05-14\` once you're on adaptive thinking (keep it only while using the transitional \`budget_tokens\` escape hatch). Then drop back from \`client.beta.messages.create\` to \`client.messages.create\`. Dial back any aggressive "critical: YOU must" tool instructions; 4.6 follows the system prompt much more closely.
 
 ---
 
@@ -157,7 +157,7 @@ Migration edits often look arbitrary to a user who hasn't read the release notes
 Be especially explicit about **system-prompt edits**. Users are rightly protective of their prompts, and prompt-tuning changes are judgment calls (not hard API requirements). For any prompt edit:
 
 - Quote the before and after text.
-- State the behavioral shift that motivates it (e.g. *"Opus 4.7 calibrates response length to task complexity, so I added an explicit length instruction"*, or *"4.6 follows instructions more literally, so 'CRITICAL: YOU MUST use the search tool' will now overtrigger — softened to 'Use the search tool when…'"*).
+- State the behavioral shift that motivates it (e.g. *"Opus 4.7 calibrates response length to task complexity, so I added an explicit length instruction"*, or *"4.6 follows instructions more literally, so 'critical: YOU must use the search tool' will now overtrigger — softened to 'Use the search tool when…'"*).
 - Make clear which prompt edits are **optional tuning** (tone, length, subagent guidance) versus which code edits are **required to avoid a 400** (sampling params, \`budget_tokens\`, prefills). Never present an optional prompt change as mandatory.
 
 If you're applying several prompt-tuning edits at once, offer them as a short list the user can accept or decline item-by-item rather than silently rewriting their system prompt.
@@ -264,7 +264,7 @@ response = client.messages.create(
 
 # New (Opus 4.6 / Sonnet 4.6)
 response = client.messages.create(
-    model="claude-opus-4-6",  # or "claude-sonnet-4-6"
+    model="claude-opus-4-6", # or "claude-sonnet-4-6"
     max_tokens=16000,
     thinking={"type": "adaptive"},
     output_config={"effort": "high"},  # optional: low | medium | high | max
@@ -281,7 +281,7 @@ Adaptive thinking is the long-term target, and on internal evaluations it outper
 client.messages.create(
     model="claude-sonnet-4-6",
     max_tokens=16384,
-    thinking={"type": "enabled", "budget_tokens": 8192},  # must be < max_tokens
+    thinking={"type": "enabled", "budget_tokens": 8192}, # must be < max_tokens
     output_config={"effort": "medium"},
     messages=[...],
 )
@@ -294,7 +294,7 @@ If the user asks for a "thinking budget" on 4.6, the preferred answer is \`effor
 Controls thinking depth and overall token spend. Goes inside \`output_config\`, not top-level. Default is \`high\`. \`max\` is Opus-tier only (Opus 4.6 and later — not Sonnet or Haiku). Errors on Sonnet 4.5 and Haiku 4.5.
 
 \`\`\`python
-output_config={"effort": "medium"}  # often the best cost / quality balance
+output_config={"effort": "medium"} # often the best cost / quality balance
 \`\`\`
 
 ### Migrating to the 4.6 family (Opus 4.6 and Sonnet 4.6)
@@ -395,7 +395,7 @@ Passing both will error on every Claude 4+ model:
 client.messages.create(temperature=0.7, top_p=0.9, ...)
 
 # New
-client.messages.create(temperature=0.7, ...)  # or top_p, not both
+client.messages.create(temperature=0.7, ...) # or top_p, not both
 \`\`\`
 
 **2. Update tool versions.**
@@ -555,7 +555,7 @@ client.messages.create(
     model="claude-opus-4-7",
     max_tokens=64000,
     thinking={"type": "adaptive"},
-    output_config={"effort": "high"},  # or "max", "xhigh", "medium", "low"
+    output_config={"effort": "high"}, # or "max", "xhigh", "medium", "low"
     messages=[{"role": "user", "content": "..."}],
 )
 \`\`\`
@@ -573,7 +573,7 @@ The \`temperature\`, \`top_p\`, and \`top_k\` parameters are no longer accepted 
 client.messages.create(temperature=0.7, top_p=0.9, ...)
 
 # After
-client.messages.create(...)  # no sampling params
+client.messages.create(...) # no sampling params
 \`\`\`
 
 - **If the intent was determinism** — use \`effort: "low"\` with a tighter prompt.
@@ -703,7 +703,7 @@ Adaptive-thinking triggering is also steerable. If the model thinks more often t
 - **Raise \`effort\`** — \`high\` or \`xhigh\` show substantially more tool usage in agentic search and coding, and are especially useful for knowledge work.
 - **Prompt for it** — be explicit in tool descriptions or the system prompt about when and how to use the tool, and encourage the model to err on the side of using it more often:
 
-> *"When the answer depends on information not present in the conversation, you MUST call the \`search\` tool before answering — do not answer from prior knowledge."*
+> *"When the answer depends on information not present in the conversation, you must call the \`search\` tool before answering — do not answer from prior knowledge."*
 
 **Fewer subagents by default.** Opus 4.7 tends to spawn fewer subagents than 4.6. This is steerable — give explicit guidance on when delegation is desirable. For a coding agent, for example:
 
@@ -722,7 +722,7 @@ If the caller previously relied on \`temperature\` for design variety, use appro
 
 Opus 4.7 also requires less frontend-design prompting than previous models to avoid generic "AI slop" aesthetics. Where earlier models needed a lengthy anti-slop snippet, Opus 4.7 generates distinctive, creative frontends with a much shorter nudge. This snippet works well alongside the variety approaches above:
 
-> *"NEVER use generic AI-generated aesthetics like overused font families (Inter, Roboto, Arial, system fonts), cliched color schemes (particularly purple gradients on white or dark backgrounds), predictable layouts and component patterns, and cookie-cutter design that lacks context-specific character. Use unique fonts, cohesive colors and themes, and animations for effects and micro-interactions."*
+> *"never use generic AI-generated aesthetics like overused font families (Inter, Roboto, Arial, system fonts), cliched color schemes (particularly purple gradients on white or dark backgrounds), predictable layouts and component patterns, and cookie-cutter design that lacks context-specific character. Use unique fonts, cohesive colors and themes, and animations for effects and micro-interactions."*
 
 **Interactive coding products.** Opus 4.7's token usage and behavior can differ between autonomous, asynchronous coding agents with a single user turn and interactive, synchronous coding agents with multiple user turns. Specifically, it tends to use more tokens in interactive settings, primarily because it reasons more after user turns. This can improve long-horizon coherence, instruction following, and coding capabilities in long interactive coding sessions, but also comes with more token usage. To maximize both performance and token efficiency in coding products, use \`effort: "xhigh"\` or \`"high"\`, add autonomous features (like an auto mode), and reduce the number of human interactions required from users.
 
@@ -775,7 +775,7 @@ Every item is tagged: **\`[BLOCKS]\`** items cause a 400 error, infinite loop, s
 After updating, spot-check that the new model is actually being used. Replace \`YOUR_TARGET_MODEL\` with the model string you migrated to (e.g. \`claude-opus-4-7\`, \`claude-opus-4-6\`, \`claude-sonnet-4-6\`, \`claude-haiku-4-5\`) and keep the assertion prefix in sync:
 
 \`\`\`python
-YOUR_TARGET_MODEL = "{{OPUS_ID}}"  # or "claude-opus-4-6", "claude-sonnet-4-6", "claude-haiku-4-5"
+YOUR_TARGET_MODEL = "{{OPUS_ID}}" # or "claude-opus-4-6", "claude-sonnet-4-6", "claude-haiku-4-5"
 response = client.messages.create(model=YOUR_TARGET_MODEL, max_tokens=64, messages=[...])
 assert response.model.startswith(YOUR_TARGET_MODEL), response.model
 \`\`\`

@@ -11,7 +11,7 @@ Session transcripts are stored as .jsonl files under the projects directory. Eac
 
 You have Grep and Read tools. Use Grep with files_with_matches mode to scan transcript content efficiently before reading individual files.
 
-When you have identified the matching sessions, end with ONLY a JSON object on its own line:
+When you have identified the matching sessions, end with only a JSON object on its own line:
 {"session_ids": ["<uuid>", ...]}
 
 Return session IDs ordered by relevance (most relevant first). Return an empty array if nothing matches.

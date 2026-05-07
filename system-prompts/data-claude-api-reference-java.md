@@ -174,7 +174,7 @@ MessageCreateParams createParams = MessageCreateParams.builder()
     .model("{{OPUS_ID}}")
     .maxTokens(4096L)
     .addTool(BetaMemoryTool20250818.builder().build())
-    .addUserMessage("Remember that my favorite color is blue")
+    .addUserMessage("my favorite color is blue")
     .build();
 
 BetaToolRunner toolRunner = client.beta().messages().toolRunner(
@@ -237,7 +237,7 @@ List<ContentBlockParam> results = List.of(
 
 MessageParam toolResultMsg = MessageParam.builder()
     .role(MessageParam.Role.USER)
-    .contentOfBlockParams(results)   // builder alias for Content.ofBlockParams(...)
+    .contentOfBlockParams(results) // builder alias for Content.ofBlockParams(...)
     .build();
 \`\`\`
 
@@ -251,7 +251,7 @@ Effort is nested inside \`OutputConfig\` — there is NO \`.effort()\` directly 
 import com.anthropic.models.messages.OutputConfig;
 
 .outputConfig(OutputConfig.builder()
-    .effort(OutputConfig.Effort.HIGH)  // or LOW, MEDIUM, MAX
+    .effort(OutputConfig.Effort.HIGH) // or LOW, MEDIUM, MAX
     .build())
 \`\`\`
 
@@ -271,7 +271,7 @@ import com.anthropic.models.messages.CacheControlEphemeral;
     TextBlockParam.builder()
         .text(longSystemPrompt)
         .cacheControl(CacheControlEphemeral.builder()
-            .ttl(CacheControlEphemeral.Ttl.TTL_1H)  // optional; also TTL_5M
+            .ttl(CacheControlEphemeral.Ttl.TTL_1H) // optional; also TTL_5M
             .build())
         .build()))
 \`\`\`
@@ -310,7 +310,7 @@ record BookList(List<Book> books) {}
 StructuredMessageCreateParams<BookList> params = MessageCreateParams.builder()
     .model(Model.CLAUDE_SONNET_4_6)
     .maxTokens(16000L)
-    .outputConfig(BookList.class)  // returns a typed builder
+    .outputConfig(BookList.class) // returns a typed builder
     .addUserMessage("List 3 classic novels")
     .build();
 
@@ -336,8 +336,8 @@ import com.anthropic.models.messages.ContentBlockParam;
 import com.anthropic.models.messages.TextBlockParam;
 
 DocumentBlockParam doc = DocumentBlockParam.builder()
-    .base64Source(base64String)  // or .urlSource("https://...") or .textSource("...")
-    .title("My Document")        // optional
+    .base64Source(base64String) // or .urlSource("https://...") or .textSource("...")
+    .title("My Document") // optional
     .build();
 
 .addUserMessageOfBlockParams(List.of(
@@ -358,8 +358,8 @@ import com.anthropic.models.messages.ToolTextEditor20250728;
 import com.anthropic.models.messages.CodeExecutionTool20260120;
 
 .addTool(WebSearchTool20260209.builder()
-    .maxUses(5L)                              // optional
-    .allowedDomains(List.of("example.com"))   // optional
+    .maxUses(5L) // optional
+    .allowedDomains(List.of("example.com")) // optional
     .build())
 .addTool(ToolBash20250124.builder().build())
 .addTool(ToolTextEditor20250728.builder().build())
@@ -437,7 +437,7 @@ try {
     client.messages().create(params);
 } catch (AnthropicServiceException e) {
     e.errorType().ifPresent(type ->
-        System.out.println("Error type: " + type)  // RATE_LIMIT_ERROR, OVERLOADED_ERROR, etc.
+        System.out.println("Error type: " + type) // RATE_LIMIT_ERROR, OVERLOADED_ERROR, etc.
     );
 }
 \`\`\`
@@ -456,7 +456,7 @@ import java.nio.file.Paths;
 
 FileMetadata meta = client.beta().files().upload(
     FileUploadParams.builder()
-        .file(Paths.get("/path/to/doc.pdf"))  // or .file(InputStream) or .file(byte[])
+        .file(Paths.get("/path/to/doc.pdf")) // or .file(InputStream) or .file(byte[])
         .build());
 
 // Reference in a beta message:

@@ -18,4 +18,4 @@ Example 3: {"title": "Improve performance of data processing script", "branch": 
 
 Here is the session description:
 <description>{description}</description>
-Please generate a title and branch name for this session.
+generate a title and branch name for this session.

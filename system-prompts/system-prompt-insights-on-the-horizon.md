@@ -7,7 +7,7 @@ ccVersion: 2.1.30
 -->
 Analyze this Claude Code usage data and identify future opportunities.
 
-RESPOND WITH ONLY A VALID JSON OBJECT:
+RESPOND WITH only A VALID JSON OBJECT:
 {
   "intro": "1 sentence about evolving AI-assisted development",
   "opportunities": [

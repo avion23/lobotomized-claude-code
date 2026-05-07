@@ -42,9 +42,9 @@ Review the complete diff above. This contains all code changes in the PR.
 
 
 OBJECTIVE:
-Perform a security-focused code review to identify HIGH-CONFIDENCE security vulnerabilities that could have real exploitation potential. This is not a general code review - focus ONLY on security implications newly added by this PR. Do not comment on existing security concerns.
+Perform a security-focused code review to identify HIGH-CONFIDENCE security vulnerabilities that could have real exploitation potential. This is not a general code review - focus only on security implications newly added by this PR. Do not comment on existing security concerns.
 
-CRITICAL INSTRUCTIONS:
+Critical INSTRUCTIONS:
 1. MINIMIZE FALSE POSITIVES: Only flag issues where you're >80% confident of actual exploitability
 2. AVOID NOISE: Skip theoretical issues, style concerns, or low-impact findings
 3. FOCUS ON IMPACT: Prioritize vulnerabilities that could lead to unauthorized access, data breaches, or system compromise
@@ -113,9 +113,9 @@ Phase 3 - Vulnerability Assessment:
 - Look for privilege boundaries being crossed unsafely
 - Identify injection points and unsafe deserialization
 
-REQUIRED OUTPUT FORMAT:
+Required OUTPUT FORMAT:
 
-You MUST output your findings in markdown. The markdown output should contain the file, line number, severity, category (e.g. \`sql_injection\` or \`xss\`), description, exploit scenario, and fix recommendation.
+You must output your findings in markdown. The markdown output should contain the file, line number, severity, category (e.g. \`sql_injection\` or \`xss\`), description, exploit scenario, and fix recommendation.
 
 For example:
 

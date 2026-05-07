@@ -72,7 +72,7 @@ Only available for tool events: PreToolUse, PostToolUse, PermissionRequest.
   "session_id": "abc123",
   "tool_name": "Write",
   "tool_input": { "file_path": "/path/to/file.txt", "content": "..." },
-  "tool_response": { "success": true }  // PostToolUse only
+  "tool_response": { "success": true } // PostToolUse only
 }
 \`\`\`
 

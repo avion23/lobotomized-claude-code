@@ -65,7 +65,7 @@ Many requests share a large fixed preamble (few-shot examples, retrieved docs, i
 \`\`\`json
 "messages": [{"role": "user", "content": [
   {"type": "text", "text": "<shared context>", "cache_control": {"type": "ephemeral"}},
-  {"type": "text", "text": "<varying question>"}  // no marker — differs every time
+  {"type": "text", "text": "<varying question>"} // no marker — differs every time
 ]}]
 \`\`\`
 
@@ -107,7 +107,7 @@ Fix by moving the dynamic piece after the last breakpoint, making it determinist
 ## API reference
 
 \`\`\`json
-"cache_control": {"type": "ephemeral"}              // 5-minute TTL (default)
+"cache_control": {"type": "ephemeral"} // 5-minute TTL (default)
 "cache_control": {"type": "ephemeral", "ttl": "1h"} // 1-hour TTL
 \`\`\`
 

@@ -54,7 +54,7 @@ For each event with a concrete start time, schedule a one-shot reminder that wil
 
 \`\`\`
 CronCreate(
-  cron: "<minute> <hour> <day-of-month> <month> *",   # local time, pinned
+  cron: "<minute> <hour> <day-of-month> <month> *", # local time, pinned
   prompt: "/pre-meeting-checkin <title> · <local time> · <attendees> · <any doc links or prep notes>",
   recurring: false
 )
@@ -84,7 +84,7 @@ If there's a natural check-in point for it — an hour before a deadline, after 
 
 \`\`\`
 CronCreate(
-  cron: "<minute> <hour> <day-of-month> <month> *",   # local time, pinned
+  cron: "<minute> <hour> <day-of-month> <month> *", # local time, pinned
   prompt: "Check-in: <thing>. Where are we? What's blocking?",
   recurring: false
 )
@@ -105,7 +105,7 @@ Your final text is the digest. This is what the main agent sees and relays. **Br
 
 **Calendar**
   <time>  <title>  <· unresponded | · prep needed | (blank if fine)>
-  <time>  <title>
+  <time> <title>
 
 **Needs you**
   · <sender/thread> — <one line>

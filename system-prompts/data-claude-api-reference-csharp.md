@@ -176,7 +176,7 @@ foreach (ContentBlock block in response.Content)
     }
     else if (block.TryPickThinking(out ThinkingBlock? thinking))
     {
-        // Signature MUST be preserved — the API rejects tampering
+        // Signature must be preserved — the API rejects tampering
         assistantContent.Add(new ThinkingBlockParam
         {
             Thinking = thinking.Thinking,
@@ -226,7 +226,7 @@ List<MessageParam> followUpMessages =
 
 \`\`\`csharp
 using Anthropic.Models.Beta.Messages;
-using NonBeta = Anthropic.Models.Messages;  // only if you also need non-beta types
+using NonBeta = Anthropic.Models.Messages; // only if you also need non-beta types
 // Now: MessageCreateParams, BetaMessageParam, Role (beta's), NonBeta.Role (if needed)
 \`\`\`
 
@@ -236,7 +236,7 @@ using NonBeta = Anthropic.Models.Messages;  // only if you also need non-beta ty
 \`\`\`csharp
 using Anthropic.Models.Beta.Messages;
 
-var betaParams = new MessageCreateParams   // no Beta prefix — one of only 2 unprefixed
+var betaParams = new MessageCreateParams // no Beta prefix — one of only 2 unprefixed
 {
     Model = Model.ClaudeOpus4_6,
     MaxTokens = 16000,
@@ -312,7 +312,7 @@ Values: \`Effort.Low\`, \`Effort.Medium\`, \`Effort.High\`, \`Effort.Max\`. Comb
 System = new List<TextBlockParam> {
     new() {
         Text = longSystemPrompt,
-        CacheControl = new CacheControlEphemeral(),  // auto-sets Type = "ephemeral"
+        CacheControl = new CacheControlEphemeral(), // auto-sets Type = "ephemeral"
     },
 },
 \`\`\`

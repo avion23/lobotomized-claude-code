@@ -13,17 +13,17 @@ ccVersion: 2.1.94
 Based on [name]'s usage over the last [N] days:
 
 Work Type Breakdown:
-  [Category 1]  [ascii bar]  [N]%
-  [Category 2]  [ascii bar]  [N]%
-  [Category 3]  [ascii bar]  [N]%
+  [Category 1] [ascii bar] [N]%
+  [Category 2] [ascii bar] [N]%
+  [Category 3] [ascii bar] [N]%
   ...
 
 Top Skills & Commands:
-  [/command]  [ascii bar]  [N]x/month
+  [/command] [ascii bar] [N]x/month
   ...
 
 Top MCP Servers:
-  [Server]  [ascii bar]  [N] calls
+  [Server] [ascii bar] [N] calls
   ...
 
 ## Your Setup Checklist

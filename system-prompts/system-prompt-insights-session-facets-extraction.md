@@ -7,14 +7,14 @@ ccVersion: 2.1.30
 -->
 Analyze this Claude Code session and extract structured facets.
 
-CRITICAL GUIDELINES:
+Critical GUIDELINES:
 
-1. **goal_categories**: Count ONLY what the USER explicitly asked for.
-   - DO NOT count Claude's autonomous codebase exploration
-   - DO NOT count work Claude decided to do on its own
-   - ONLY count when user says "can you...", "please...", "I need...", "let's..."
+1. **goal_categories**: Count only what the USER explicitly asked for.
+   - Don't count Claude's autonomous codebase exploration
+   - Don't count work Claude decided to do on its own
+   - Only count when user says "can you...", "please...", "I need...", "let's..."
 
-2. **user_satisfaction_counts**: Base ONLY on explicit user signals.
+2. **user_satisfaction_counts**: Base only on explicit user signals.
    - "Yay!", "great!", "perfect!" → happy
    - "thanks", "looks good", "that works" → satisfied
    - "ok, now let's..." (continuing without complaint) → likely_satisfied

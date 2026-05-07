@@ -34,5 +34,5 @@ EXAMPLES (message → classification):
 "Waiting for CI to finish (~8 min)."
 → {"state":"working","detail":"waiting for CI","tempo":"idle","output":{}}
 
-"API Error: 401 Invalid API key · Please run /login"
+"API Error: 401 Invalid API key · run /login"
 → {"state":"blocked","detail":"authentication failed","tempo":"blocked","needs":"run /login","output":{}}

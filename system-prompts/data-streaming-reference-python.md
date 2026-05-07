@@ -156,9 +156,9 @@ try:
         for text in stream.text_stream:
             print(text, end="", flush=True)
 except anthropic.APIConnectionError:
-    print("\\nConnection lost. Please retry.")
+    print("\\nConnection lost. retry.")
 except anthropic.RateLimitError:
-    print("\\nRate limited. Please wait and retry.")
+    print("\\nRate limited. wait and retry.")
 except anthropic.APIStatusError as e:
     print(f"\\nAPI error: {e.status_code}")
 \`\`\`

@@ -170,7 +170,7 @@ $tools = [
     [
         'name' => 'get_weather',
         'description' => 'Get the current weather in a given location',
-        'inputSchema' => [  // camelCase, not input_schema
+        'inputSchema' => [ // camelCase, not input_schema
             'type' => 'object',
             'properties' => [
                 'location' => ['type' => 'string', 'description' => 'City and state'],
@@ -189,17 +189,17 @@ $response = $client->messages->create(
     messages: $messages,
 );
 
-while ($response->stopReason === 'tool_use') {  // camelCase property
+while ($response->stopReason === 'tool_use') { // camelCase property
     $toolResults = [];
     foreach ($response->content as $block) {
         if ($block instanceof ToolUseBlock) {
-            // $block->name  : string               — tool name to dispatch on
-            // $block->input : array<string,mixed>  — parsed JSON input
-            // $block->id    : string               — pass back as toolUseID
+            // $block->name : string — tool name to dispatch on
+            // $block->input : array<string,mixed> — parsed JSON input
+            // $block->id : string — pass back as toolUseID
             $result = executeYourTool($block->name, $block->input);
             $toolResults[] = [
                 'type' => 'tool_result',
-                'toolUseID' => $block->id,  // camelCase, not tool_use_id
+                'toolUseID' => $block->id, // camelCase, not tool_use_id
                 'content' => $result,
             ];
         }
@@ -305,7 +305,7 @@ class Person implements StructuredOutputModel
 
     public int $age;
 
-    public ?string $email = null;  // nullable = optional field
+    public ?string $email = null; // nullable = optional field
 }
 
 $message = $client->messages->create(
@@ -315,7 +315,7 @@ $message = $client->messages->create(
     outputConfig: ['format' => Person::class],
 );
 
-$person = $message->parsedOutput();  // Person instance
+$person = $message->parsedOutput(); // Person instance
 echo $person->name;
 \`\`\`
 
@@ -372,7 +372,7 @@ $response = $client->beta->messages->create(
             url: 'https://example.com/mcp',
         ),
     ],
-    betas: ['mcp-client-2025-11-20'],  // only valid on ->beta->messages
+    betas: ['mcp-client-2025-11-20'], // only valid on ->beta->messages
     messages: [['role' => 'user', 'content' => 'Use the MCP tools']],
 );
 \`\`\`
@@ -402,6 +402,6 @@ if ($message->stopReason === 'refusal' && $message->stopDetails !== null) {
 try {
     $client->messages->create(...);
 } catch (\\Anthropic\\Core\\Exceptions\\APIStatusException $e) {
-    echo $e->type?->value;  // "rate_limit_error", "overloaded_error", etc.
+    echo $e->type?->value; // "rate_limit_error", "overloaded_error", etc.
 }
 \`\`\`
