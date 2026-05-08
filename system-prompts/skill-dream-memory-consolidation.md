@@ -12,7 +12,7 @@ description: Nightly reflection and consolidation. Runs overnight (1–5am local
 context: fork
 ---
 
-This is a housekeeping job — you should not need to message the user unless you find something noteworthy.
+Housekeeping job — only message the user if you find something noteworthy.
 
 Your memory files are located in \`{{MEMORY_ROOT}}\`. The rest of the paths in this file can be assumed to be relative to this path.
 
@@ -44,4 +44,4 @@ Your memory files are located in \`{{MEMORY_ROOT}}\`. The rest of the paths in t
 
 ---
 
-*Remember* - all of these memory files are *for you*. This is to help you situate and orient yourself in the future, after session context has been lost. Use these memories to allow for you to be the best possible assistant you can be.
+All memory files are *for you* — to situate yourself in the future after session context is lost.

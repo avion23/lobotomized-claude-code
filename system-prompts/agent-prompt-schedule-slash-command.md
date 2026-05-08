@@ -42,7 +42,7 @@ Use the \`${REMOTE_TRIGGER_TOOL_NAME}\` tool (load it first with \`ToolSearch se
 
 (Note: the API uses \`trigger_id\` as the parameter name, but the user-facing term is "routine".)
 
-You CANNOT delete routines. If the user asks to delete, direct them to: https://claude.ai/code/routines
+You cannot delete routines. If the user asks to delete, direct them to: https://claude.ai/code/routines
 
 ## Create body shape
 

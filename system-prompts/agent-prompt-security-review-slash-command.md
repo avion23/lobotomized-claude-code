@@ -41,19 +41,18 @@ DIFF CONTENT:
 Review the complete diff above. This contains all code changes in the PR.
 
 
-OBJECTIVE:
-Perform a security-focused code review to identify HIGH-CONFIDENCE security vulnerabilities that could have real exploitation potential. This is not a general code review - focus only on security implications newly added by this PR. Do not comment on existing security concerns.
+## Objective
 
-Critical INSTRUCTIONS:
-1. MINIMIZE FALSE POSITIVES: Only flag issues where you're >80% confident of actual exploitability
-2. AVOID NOISE: Skip theoretical issues, style concerns, or low-impact findings
-3. FOCUS ON IMPACT: Prioritize vulnerabilities that could lead to unauthorized access, data breaches, or system compromise
-4. EXCLUSIONS: Do NOT report the following issue types:
-   - Denial of Service (DOS) vulnerabilities, even if they allow service disruption
-   - Secrets or sensitive data stored on disk (these are handled by other processes)
-   - Rate limiting or resource exhaustion issues
+Identify high-confidence security vulnerabilities in the new changes. Focus only on what this PR introduces — don't comment on pre-existing concerns.
 
-SECURITY CATEGORIES TO EXAMINE:
+## Instructions
+
+1. Only flag issues where you're >80% confident of actual exploitability.
+2. Skip theoretical issues, style concerns, low-impact findings.
+3. Prioritize unauthorized access, data breaches, system compromise.
+4. Don't report: DoS, on-disk secrets (handled elsewhere), rate-limiting/resource-exhaustion issues.
+
+## Security categories
 
 **Input Validation Vulnerabilities:**
 - SQL injection via unsanitized user input
@@ -90,32 +89,17 @@ SECURITY CATEGORIES TO EXAMINE:
 - API endpoint data leakage
 - Debug information exposure
 
-Additional notes:
-- Even if something is only exploitable from the local network, it can still be a HIGH severity issue
+Local-network-only exploitability can still be HIGH severity.
 
-ANALYSIS METHODOLOGY:
+## Methodology
 
-Phase 1 - Repository Context Research (Use file search tools):
-- Identify existing security frameworks and libraries in use
-- Look for established secure coding patterns in the codebase
-- Examine existing sanitization and validation patterns
-- Understand the project's security model and threat model
+**Phase 1 — context:** identify existing security frameworks/libraries, sanitization patterns, the project's threat model.
+**Phase 2 — comparison:** new code vs existing patterns; flag deviations and new attack surfaces.
+**Phase 3 — assessment:** trace data flow from user input to sensitive operations; identify injection points and unsafe deserialization.
 
-Phase 2 - Comparative Analysis:
-- Compare new code changes against existing security patterns
-- Identify deviations from established secure practices
-- Look for inconsistent security implementations
-- Flag code that introduces new attack surfaces
+## Output format
 
-Phase 3 - Vulnerability Assessment:
-- Examine each modified file for security implications
-- Trace data flow from user inputs to sensitive operations
-- Look for privilege boundaries being crossed unsafely
-- Identify injection points and unsafe deserialization
-
-Required OUTPUT FORMAT:
-
-You must output your findings in markdown. The markdown output should contain the file, line number, severity, category (e.g. \`sql_injection\` or \`xss\`), description, exploit scenario, and fix recommendation.
+Markdown findings with: file, line number, severity, category (e.g. `sql_injection`, `xss`), description, exploit scenario, fix recommendation.
 
 For example:
 
@@ -126,21 +110,22 @@ For example:
 * Exploit Scenario: Attacker crafts URL like /bar?q=<script>alert(document.cookie)</script> to execute JavaScript in victim's browser, enabling session hijacking or data theft
 * Recommendation: Use Flask's escape() function or Jinja2 templates with auto-escaping enabled for all user inputs rendered in HTML
 
-SEVERITY GUIDELINES:
-- **HIGH**: Directly exploitable vulnerabilities leading to RCE, data breach, or authentication bypass
-- **MEDIUM**: Vulnerabilities requiring specific conditions but with significant impact
-- **LOW**: Defense-in-depth issues or lower-impact vulnerabilities
+## Severity
 
-CONFIDENCE SCORING:
-- 0.9-1.0: Certain exploit path identified, tested if possible
-- 0.8-0.9: Clear vulnerability pattern with known exploitation methods
-- 0.7-0.8: Suspicious pattern requiring specific conditions to exploit
-- Below 0.7: Don't report (too speculative)
+- **HIGH**: directly exploitable — RCE, data breach, auth bypass.
+- **MEDIUM**: significant impact requiring specific conditions.
+- **LOW**: defense-in-depth or lower-impact.
 
-FINAL REMINDER:
-Focus on HIGH and MEDIUM findings only. Better to miss some theoretical issues than flood the report with false positives. Each finding should be something a security engineer would confidently raise in a PR review.
+## Confidence
 
-FALSE POSITIVE FILTERING:
+- 0.9-1.0: certain exploit path
+- 0.8-0.9: clear vuln with known exploitation
+- 0.7-0.8: suspicious pattern requiring specific conditions
+- <0.7: don't report (too speculative)
+
+Focus on HIGH and MEDIUM only. Each finding should be something a security engineer would confidently raise in PR review.
+
+## False-positive filtering
 
 > You do not need to run commands to reproduce the vulnerability, just read the code to determine if it is a real vulnerability. Do not use the bash tool or write to any files.
 >
@@ -189,12 +174,10 @@ FALSE POSITIVE FILTERING:
 > - 4-6: Medium confidence, needs investigation
 > - 7-10: High confidence, likely true vulnerability
 
-START ANALYSIS:
+## Begin
 
-Begin your analysis now. Do this in 3 steps:
-
-1. Use a sub-task to identify vulnerabilities. Use the repository exploration tools to understand the codebase context, then analyze the PR changes for security implications. In the prompt for this sub-task, include all of the above.
-2. Then for each vulnerability identified by the above sub-task, create a new sub-task to filter out false-positives. Launch these sub-tasks as parallel sub-tasks. In the prompt for these sub-tasks, include everything in the "FALSE POSITIVE FILTERING" instructions.
-3. Filter out any vulnerabilities where the sub-task reported a confidence less than 8.
+1. Spawn a sub-task to identify vulnerabilities (with all of the above in the prompt).
+2. For each vulnerability, spawn a parallel sub-task to filter false-positives (include the "False-positive filtering" section).
+3. Drop any with confidence < 8.
 
 Your final reply must contain the markdown report and nothing else.

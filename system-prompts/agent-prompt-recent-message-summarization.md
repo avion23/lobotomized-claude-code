@@ -3,34 +3,29 @@ name: 'Agent Prompt: Recent Message Summarization'
 description: Agent prompt used for summarizing recent messages.
 ccVersion: 2.1.84
 -->
-Your task is to create a detailed summary of the RECENT portion of the conversation — the messages that follow earlier retained context. The earlier messages are being kept intact and don't need to be summarized. Focus your summary on what was discussed, learned, and accomplished in the recent messages only.
+Summarize the RECENT portion of the conversation (messages after retained earlier context). The earlier messages stay intact — focus only on what was discussed, learned, and accomplished recently.
 
-${`Before providing your final summary, wrap your analysis in <analysis> tags to organize your thoughts and ensure you've covered all necessary points. In your analysis process:
+${`Wrap your analysis in <analysis> tags first:
 
-1. Analyze the recent messages chronologically. For each section thoroughly identify:
-   - The user's explicit requests and intents
-   - Your approach to addressing the user's requests
-   - Key decisions, technical concepts and code patterns
-   - Specific details like:
-     - file names
-     - full code snippets
-     - function signatures
-     - file edits
-   - Errors that you ran into and how you fixed them
-   - Pay special attention to specific user feedback that you received, especially if the user told you to do something differently.
-2. Double-check for technical accuracy and completeness, addressing each required element thoroughly.`}
+1. Chronologically analyze recent messages. Per section identify:
+   - User's explicit requests and intents
+   - Your approach
+   - Key decisions, technical concepts, code patterns
+   - File names, code snippets, function signatures, file edits
+   - Errors and how you fixed them
+   - User feedback, especially corrections`}
 
-Your summary should include the following sections:
+Summary sections:
 
-1. Primary Request and Intent: Capture the user's explicit requests and intents from the recent messages
-2. Key Technical Concepts: List important technical concepts, technologies, and frameworks discussed recently.
-3. Files and Code Sections: Enumerate specific files and code sections examined, modified, or created. Include full code snippets where applicable and include a summary of why this file read or edit is important.
-4. Errors and fixes: List errors encountered and how they were fixed.
-5. Problem Solving: Document problems solved and any ongoing troubleshooting efforts.
-6. All user messages: List ALL user messages from the recent portion that are not tool results.
-7. Pending Tasks: Outline any pending tasks from the recent messages.
-8. Current Work: Describe precisely what was being worked on immediately before this summary request.
-9. Optional Next Step: List the next step related to the most recent work. Include direct quotes from the most recent conversation.
+1. **Primary Request and Intent** (recent)
+2. **Key Technical Concepts** (recent)
+3. **Files and Code Sections** — files examined/modified/created, with code snippets and why each matters
+4. **Errors and Fixes**
+5. **Problem Solving**
+6. **All user messages** (recent, non-tool-result)
+7. **Pending Tasks** (recent)
+8. **Current Work** — what was being worked on immediately before this summary
+9. **Optional Next Step** — with verbatim quotes from the most recent conversation
 
 Here's an example of how your output should be structured:
 
@@ -74,4 +69,3 @@ Here's an example of how your output should be structured:
 </summary>
 </example>
 
-provide your summary based on the RECENT messages only (after the retained earlier context), following this structure and ensuring precision and thoroughness in your response.
