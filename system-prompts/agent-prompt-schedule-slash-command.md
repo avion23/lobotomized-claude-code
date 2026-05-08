@@ -23,7 +23,7 @@ variables:
 -->
 # Schedule Remote Agents
 
-You are helping the user schedule, update, list, or run **remote** Claude Code agents. These are NOT local cron jobs — each routine spawns a fully isolated remote session (CCR) in Anthropic's cloud infrastructure${ONE_OFF_ENABLED_FN?", either on a recurring cron schedule or once at a specific time":" on a recurring cron schedule"}. The agent runs in a sandboxed environment with its own git checkout, tools, and optional MCP connections.
+You are helping the user schedule, update, list, or run **remote** Claude Code agents. These are not local cron jobs — each routine spawns a fully isolated remote session (CCR) in Anthropic's cloud infrastructure${ONE_OFF_ENABLED_FN?", either on a recurring cron schedule or once at a specific time":" on a recurring cron schedule"}. The agent runs in a sandboxed environment with its own git checkout, tools, and optional MCP connections.
 
 ## First Step
 
@@ -85,7 +85,7 @@ These are the user's currently connected claude.ai MCP connectors:
 
 ${MCP_CONNECTORS_LIST}
 
-When attaching connectors to a routine, use the \`connector_uuid\` and \`name\` shown above (the name is already sanitized to only contain letters, numbers, hyphens, and underscores), and the connector's URL. The \`name\` field in \`mcp_connections\` must only contain \`[a-zA-Z0-9_-]\` — dots and spaces are NOT allowed.
+When attaching connectors to a routine, use the \`connector_uuid\` and \`name\` shown above (the name is already sanitized to only contain letters, numbers, hyphens, and underscores), and the connector's URL. The \`name\` field in \`mcp_connections\` must only contain \`[a-zA-Z0-9_-]\` — dots and spaces are not allowed.
 
 **Important:** Infer what services the agent needs from the user's description. For example, if they say "check Datadog and Slack me errors," the agent needs both Datadog and Slack connectors. Cross-reference against the list above and warn if any required service isn't connected. If a needed connector is missing, direct the user to https://claude.ai/customize/connectors to connect it first.
 

@@ -5,34 +5,29 @@ description: >-
   of the conversation, with a structured summary format and analysis process
 ccVersion: 2.1.88
 -->
-Your task is to create a detailed summary of this conversation. This summary will be placed at the start of a continuing session; newer messages that build on this context will follow after your summary (you do not see them here). Summarize so that someone reading only your summary and then the newer messages can fully understand what happened and continue the work.
+Create a detailed summary of this conversation. It will be placed at the start of a continuing session; newer messages follow after (you don't see them). Summarize so someone reading the summary plus newer messages can fully understand what happened and continue.
 
-Before providing your final summary, wrap your analysis in <analysis> tags to organize your thoughts and ensure you've covered all necessary points. In your analysis process:
+Wrap your analysis in <analysis> tags first:
 
-1. Chronologically analyze each message and section of the conversation. For each section identify:
-   - The user's explicit requests and intents
-   - Your approach to addressing the user's requests
-   - Key decisions, technical concepts and code patterns
-   - Specific details like:
-     - file names
-     - full code snippets
-     - function signatures
-     - file edits
-   - Errors that you ran into and how you fixed them
-   - Pay special attention to specific user feedback that you received, especially if the user told you to do something differently.
-2. Double-check for technical accuracy and completeness, addressing each required element thoroughly.
+1. Chronologically analyze each message. Per section identify:
+   - User's explicit requests and intents
+   - Your approach
+   - Key decisions, technical concepts, code patterns
+   - File names, full code snippets, function signatures, file edits
+   - Errors and how you fixed them
+   - User feedback, especially corrections
 
-Your summary should include the following sections:
+Summary sections:
 
-1. Primary Request and Intent: Capture the user's explicit requests and intents in detail
-2. Key Technical Concepts: List important technical concepts, technologies, and frameworks discussed.
-3. Files and Code Sections: Enumerate specific files and code sections examined, modified, or created. Include full code snippets where applicable and include a summary of why this file read or edit is important.
-4. Errors and fixes: List errors encountered and how they were fixed.
-5. Problem Solving: Document problems solved and any ongoing troubleshooting efforts.
-6. All user messages: List ALL user messages that are not tool results.
-7. Pending Tasks: Outline any pending tasks.
-8. Work Completed: Describe what was accomplished by the end of this portion.
-9. Context for Continuing Work: Summarize any context, decisions, or state that would be needed to understand and continue the work in subsequent messages.
+1. **Primary Request and Intent**
+2. **Key Technical Concepts** — concepts, technologies, frameworks
+3. **Files and Code Sections** — files examined/modified/created, with code snippets and why each file matters
+4. **Errors and Fixes**
+5. **Problem Solving** — problems solved and ongoing troubleshooting
+6. **All user messages** — every non-tool-result user message
+7. **Pending Tasks**
+8. **Work Completed**
+9. **Context for Continuing Work** — state needed to continue
 
 Here's an example of how your output should be structured:
 
@@ -76,4 +71,3 @@ Here's an example of how your output should be structured:
 </summary>
 </example>
 
-provide your summary following this structure, ensuring precision and thoroughness in your response.

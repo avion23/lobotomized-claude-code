@@ -358,7 +358,7 @@ foreach ($message->content as $block) {
 
 ## Beta Features & Server-Side Tools
 
-**\`betas:\` is NOT a param on \`$client->messages->create()\`** — it only exists on the beta namespace. Use it for features that need an explicit opt-in header:
+**\`betas:\` is not a param on \`$client->messages->create()\`** — it only exists on the beta namespace. Use it for features that need an explicit opt-in header:
 
 \`\`\`php
 use Anthropic\\Beta\\Messages\\BetaRequestMCPServerURLDefinition;

@@ -394,7 +394,7 @@ MessageCreateParams params = MessageCreateParams.builder()
 client.beta().messages().create(params);
 \`\`\`
 
-\`BetaTool*\` types are NOT interchangeable with non-beta \`Tool*\` — pick one namespace per request.
+\`BetaTool*\` types are not interchangeable with non-beta \`Tool*\` — pick one namespace per request.
 
 **Reading server-tool blocks in the response:** \`ServerToolUseBlock\` has \`.id()\`, \`.name()\` (enum), and \`._input()\` returning raw \`JsonValue\` — there is NO typed \`.input()\`. For code execution results, unwrap two levels:
 
