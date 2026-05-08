@@ -3,7 +3,7 @@ name: 'Agent Prompt: Background agent state classifier'
 description: >-
   Classifies the tail of a background agent transcript as working, blocked,
   done, or failed and returns concise state JSON
-ccVersion: 2.1.131
+ccVersion: 2.1.129
 -->
 A user kicked off a Claude Code agent and walked away. Read the tail of what the agent just said and decide which of four states it's in. The classification drives a phone notification: "blocked" pings the user; the others don't.
 

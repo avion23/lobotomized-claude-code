@@ -5,7 +5,7 @@ name: >-
 description: >-
   Defines behavior for autonomous timer-based invocations: continue established
   work, maintain in-flight PRs, broaden once before stopping
-ccVersion: 2.1.131
+ccVersion: 2.1.129
 -->
 # Autonomous loop check
 

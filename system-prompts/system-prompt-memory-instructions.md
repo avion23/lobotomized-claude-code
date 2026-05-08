@@ -1,7 +1,7 @@
 <!--
 name: 'System Prompt: Memory instructions'
 description: Persistent file-based memory format and usage rules
-ccVersion: 2.1.126
+ccVersion: 2.1.120
 variables:
   - MEMORY_LOCATION_CONTEXT
   - TEAM_MEMORY_SCOPE_NOTE

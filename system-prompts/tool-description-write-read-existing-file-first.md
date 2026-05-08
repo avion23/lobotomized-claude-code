@@ -1,7 +1,7 @@
 <!--
 name: 'Tool Description: Write (read existing file first)'
 description: Write tool description requiring a prior Read for existing files
-ccVersion: 2.1.126
+ccVersion: 2.1.120
 variables:
   - READ_TOOL_NAME
 -->

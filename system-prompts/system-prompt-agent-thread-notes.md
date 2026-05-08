@@ -3,7 +3,7 @@ name: 'System Prompt: Agent thread notes'
 description: >-
   Behavioral guidelines for agent threads covering absolute paths, response
   formatting, emoji avoidance, and tool call punctuation
-ccVersion: 2.1.97
+ccVersion: 2.1.128
 variables:
   - WRITE_TOOL_NAME
 -->

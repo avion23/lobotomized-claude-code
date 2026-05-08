@@ -3,7 +3,7 @@ name: 'System Reminder: File modification detected (budget exceeded)'
 description: >-
   Reminder when a file changed mid-turn but the diff was dropped due to snippet
   budget
-ccVersion: 2.1.126
+ccVersion: 2.1.124
 variables:
   - FILE_OBJECT
 -->

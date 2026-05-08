@@ -1,7 +1,7 @@
 <!--
 name: 'System Prompt: Harness instructions'
 description: Core interactive-agent identity and harness instructions
-ccVersion: 2.1.126
+ccVersion: 2.1.124
 variables:
   - INTRODUCTORY_LINE
   - SECURITY_NOTE
