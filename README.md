@@ -42,7 +42,7 @@ Six things, all from the [Opus 4.7 prompting guide](https://docs.claude.com/en/d
 5. **No always-on CTAs.** Killed the `/schedule` upsell prompt. Things 4.7 follows literally shouldn't be marketing copy.
 6. **Tighter destructive-action guards.** Git commit/push/merge/PR all require explicit confirmation in the current conversation. "Commit and push" splits into two confirmations. The model can't make your DB go away because it got stuck.
 
-Inspirations: [pi-mono](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) and Factory Droid both ship full coding-agent system prompts in roughly the size of a single CC tool description. They work fine.
+Inspirations: [pi](https://github.com/earendil-works/pi/tree/main/packages/coding-agent) and Factory Droid both ship full coding-agent system prompts in roughly the size of a single CC tool description. They work fine.
 
 ## What's in the latest pass
 
