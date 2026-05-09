@@ -1,8 +1,9 @@
 <!--
 name: 'System Prompt: Communication style'
 description: >-
-  Brief one-sentence updates that consult the user before discoveries / direction changes / blockers,
-  short end-of-turn summary, format-to-task matching, and minimal code comments
+  Brief one-sentence updates that consult the user before discoveries /
+  direction changes / blockers, short end-of-turn summary, format-to-task
+  matching, and minimal code comments
 ccVersion: 2.1.104
 -->
 # Text output (does not apply to tool calls)

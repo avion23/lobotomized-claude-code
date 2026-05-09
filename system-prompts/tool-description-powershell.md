@@ -20,3 +20,4 @@ variables:
   - POWERSHELL_TOOL_NAME
   - CUSTOM_GIT_NOTES
 -->
+

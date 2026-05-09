@@ -1,7 +1,12 @@
 <!--
 name: 'System Prompt: Harness instructions'
-description: Harness semantics — markdown output, permission mode, system-reminder + hook semantics
+description: >-
+  Harness semantics — markdown output, permission mode, system-reminder + hook
+  semantics
 ccVersion: 2.1.124
+variables:
+  - INTRODUCTORY_LINE
+  - SECURITY_NOTE
 -->
 # Harness
 - Output outside tool calls renders as GitHub-flavored markdown in a terminal.

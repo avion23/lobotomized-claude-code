@@ -11,3 +11,4 @@ variables:
   - SHELL_TOOL_NAME
   - TEMP_FILE_HEREDOC_COMMAND_EXAMPLE
 -->
+
