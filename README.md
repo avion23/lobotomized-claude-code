@@ -20,7 +20,7 @@ The first row is what matters. Niche prompts only inject when you trigger that f
 <details>
 <summary>Methodology</summary>
 
-Numbers measured against pristine CC 2.1.128 prompts. Anthropic doesn't publish an offline tokenizer for Claude 3+/4 models — accurate token counts require `client.messages.count_tokens()` against an API key — so figures are reported in **characters** (text length, no tokenization assumption). Same approximation isn't an issue when comparing two strings: the percentage cut is the percentage cut.
+Numbers measured against pristine CC 2.1.138 prompts. Anthropic doesn't publish an offline tokenizer for Claude 3+/4 models — accurate token counts require `client.messages.count_tokens()` against an API key — so figures are reported in **characters** (text length, no tokenization assumption). Same approximation isn't an issue when comparing two strings: the percentage cut is the percentage cut.
 
 | | Files | Pristine | After lobotomy | Cut |
 |---|---:|---:|---:|---:|
@@ -75,7 +75,7 @@ Cull:
 
 - `system-prompt-proactive-schedule-offer-after-follow-up-work` — deleted (always-on `/schedule` CTA nag)
 
-11 orphans dropped (no longer in CC 2.1.128): agent-hook, session-memory-update-instructions, data-session-memory-template, skill-verify-skill-runtime-verification, system-prompt-background-job-behavior, system-prompt-phase-four-of-plan-mod, system-prompt-teammate-communication, system-reminder-invoked-skills, system-reminder-malware-analysis-after-read-tool-call, system-reminder-post-turn-session-summary, tool-description-config.
+11 orphans dropped (no longer in CC 2.1.138): agent-hook, session-memory-update-instructions, data-session-memory-template, skill-verify-skill-runtime-verification, system-prompt-background-job-behavior, system-prompt-phase-four-of-plan-mod, system-prompt-teammate-communication, system-reminder-invoked-skills, system-reminder-malware-analysis-after-read-tool-call, system-reminder-post-turn-session-summary, tool-description-config.
 
 ## How it works
 
