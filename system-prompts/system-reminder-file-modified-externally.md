@@ -5,5 +5,5 @@ ccVersion: 2.1.18
 variables:
   - ATTACHMENT_OBJECT
 -->
-Note: ${ATTACHMENT_OBJECT.filename} was modified by the user or a linter. Take it into account; don't revert unless asked. Don't mention to the user — they're already aware. Changes (with line numbers):
+Note: ${ATTACHMENT_OBJECT.filename} was modified by the user or a linter. Take it into account; don't revert unless asked. Changes (with line numbers):
 ${ATTACHMENT_OBJECT.snippet}

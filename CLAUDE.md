@@ -14,25 +14,27 @@ The README's "~60% leaner on every coding turn" claim is the bar. If your edits 
 
 ### The decision rule (read this every time)
 
-**If the override's message is conveyed elsewhere — in another lobotomized prompt, OR as Opus 4.7 default behavior per Anthropic's guide — trim/cull it. If a sentence is NOT conveyed elsewhere and is oddly specific, KEEP it. Full-nuke is reserved for cases where every load-bearing signal is duplicated elsewhere, OR where the user doesn't use the feature the prompt is about.**
+**For each load-bearing claim in a prompt: is it conveyed elsewhere (sibling override) OR a 4.7 default per Anthropic's guide OR a feature the user doesn't use? → cut it. Whatever unique signals remain → keep them. If nothing unique remains → full-wipe is the correct outcome.**
 
-This is the core rule. It came directly from the user. Do not full-nuke without first sibling-checking the lobotomized-cc repo and default-checking the Anthropic guide. "Oddly specific" instructions (e.g. `"Report outcomes faithfully: if tests fail, say so with the output; if a step was skipped, say that"`) are load-bearing and stay even when they superficially look like overhead.
+**Many prompts will get fully wiped. That is expected, not a failure mode.** "Wipe vs trim" is not a stylistic preference — the outcome falls out of the per-claim checks. A prompt where every claim is duplicated/default/useless goes to zero. A prompt with one unique signal becomes a one-sentence override. There is no bias toward keeping content — there is a bias toward keeping *unique* content.
 
-### Three valid lobotomization actions, in order of preference
+The earlier "trim, don't wipe" framing came from one specific incident — `system-prompt-action-safety-and-truthful-reporting` had genuinely unique "report outcomes faithfully if tests fail" content that got wiped instead of preserved. The lesson there was about preserving unique signals, not about preferring trim over wipe. Many prompts have zero unique signals; those go to zero.
 
-1. **Trim** — keep the unique signals, drop sentences whose message is duplicated by a sibling override or is an Opus 4.7 default. Most prompts that ship at 800–2000 chars compress to 200–400 chars without losing function.
-2. **Sentence-level cuts** — for already-tight overrides, scan for the candidates listed below and cut.
-3. **Full nuke (empty body)** — only when every claim is duplicated elsewhere, or the user doesn't use the feature (e.g. all `data-managed-agents-*` are empty bodies because the user doesn't use Managed Agents). Empty body = file present, frontmatter with `ccVersion:`, zero body content.
+### Three valid outcomes (no preference order — outcome falls out of the checks)
 
-### Sibling-check protocol (mandatory before any trim/nuke)
+- **No override** (file absent, or override identical to pristine): zero unique signals worth saving — pristine is fine.
+- **Trimmed override**: some claims are unique-and-load-bearing, others are duplicated/default — keep the uniques, cut the duplicates.
+- **Full-wiped override** (empty body): every claim is duplicated/default/useless — we override with empty content to suppress the pristine entirely. Used when pristine actively gets in the way (anti-laziness theater Anthropic ships, features the user doesn't use). Empty body = file present, frontmatter with `ccVersion:`, zero body content. Precedent: all `data-managed-agents-*` (user doesn't use Managed Agents).
+
+### Sibling-check protocol (mandatory)
 
 For each candidate edit:
-1. List the load-bearing claims in the override.
+1. List the load-bearing claims in the prompt.
 2. `grep` the rest of `system-prompts/` for prompts conveying any of those claims. Closest sibling first (e.g. `system-prompt-executing-actions-with-care.md` covers destructive-action confirmation; `system-prompt-doing-tasks-security.md` covers OWASP-style guards).
-3. For each claim: if a sibling already conveys it OR Anthropic's guide says it's a 4.7 default → drop it from this override.
-4. Whatever remains is what stays.
+3. For each claim: if a sibling already conveys it OR Anthropic's guide says it's a 4.7 default OR the user doesn't use the feature → drop it from this override.
+4. Whatever remains is what stays. Could be the full prompt minus a few sentences. Could be one sentence. Could be empty.
 
-The user's directive: *"if the file contents aren't phrased similarly (same message conveyed) elsewhere, then trim it/cull it not wipe it. that's the entire logic of cleaning up prompts for lobotomized cc."*
+The user's framing: *"if the file contents aren't phrased similarly (same message conveyed) elsewhere, then trim it/cull it not wipe it"* — applies to *unique* content. *"something will get wiped if useless. and there will be many"* — applies to fully-duplicated/default/useless content. Both are true; the per-claim check is what decides which path each prompt takes.
 
 ### What "useless shit" looks like (cut on sight)
 

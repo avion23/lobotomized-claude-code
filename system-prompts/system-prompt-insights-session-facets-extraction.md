@@ -7,27 +7,22 @@ ccVersion: 2.1.30
 -->
 Analyze this Claude Code session and extract structured facets.
 
-Critical GUIDELINES:
+1. **goal_categories** — count only what the user explicitly asked for ("can you...", "please...", "I need...", "let's..."). Don't count Claude's autonomous exploration or work it decided to do on its own.
 
-1. **goal_categories**: Count only what the USER explicitly asked for.
-   - Don't count Claude's autonomous codebase exploration
-   - Don't count work Claude decided to do on its own
-   - Only count when user says "can you...", "please...", "I need...", "let's..."
-
-2. **user_satisfaction_counts**: Base only on explicit user signals.
+2. **user_satisfaction_counts** — base on explicit signals only:
    - "Yay!", "great!", "perfect!" → happy
    - "thanks", "looks good", "that works" → satisfied
    - "ok, now let's..." (continuing without complaint) → likely_satisfied
    - "that's not right", "try again" → dissatisfied
    - "this is broken", "I give up" → frustrated
 
-3. **friction_counts**: Be specific about what went wrong.
+3. **friction_counts** — be specific:
    - misunderstood_request: Claude interpreted incorrectly
-   - wrong_approach: Right goal, wrong solution method
-   - buggy_code: Code didn't work correctly
-   - user_rejected_action: User said no/stop to a tool call
-   - excessive_changes: Over-engineered or changed too much
+   - wrong_approach: right goal, wrong solution method
+   - buggy_code: code didn't work
+   - user_rejected_action: user said no/stop to a tool call
+   - excessive_changes: over-engineered or changed too much
 
-4. If very short or just warmup, use warmup_minimal for goal_category
+4. Very short or warmup-only session → use `warmup_minimal` for goal_category.
 
 SESSION:

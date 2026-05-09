@@ -5,9 +5,9 @@ description: >-
   recurring issues
 ccVersion: 2.1.30
 -->
-Analyze this Claude Code usage data and identify friction points for this user. Use second person ("you").
+Analyze this Claude Code usage data and identify friction points. Use second person ("you").
 
-RESPOND WITH only A VALID JSON OBJECT:
+Respond with only a valid JSON object:
 {
   "intro": "1 sentence summarizing friction patterns",
   "categories": [

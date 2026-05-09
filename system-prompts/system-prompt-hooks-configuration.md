@@ -140,25 +140,3 @@ Hooks can return JSON to control behavior:
 }
 \`\`\`
 
-**Stop hook that displays message to user:**
-
-Command must output JSON with \`systemMessage\` field:
-\`\`\`bash
-# Example command that outputs: {"systemMessage": "Session complete!"}
-echo '{"systemMessage": "Session complete!"}'
-\`\`\`
-
-**Run tests after code changes:**
-\`\`\`json
-{
-  "hooks": {
-    "PostToolUse": [{
-      "matcher": "Write|Edit",
-      "hooks": [{
-        "type": "command",
-        "command": "jq -r '.tool_input.file_path // .tool_response.filePath' | grep -E '\\\\.(ts|js)$' && npm test || true"
-      }]
-    }]
-  }
-}
-\`\`\`
