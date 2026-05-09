@@ -12,11 +12,27 @@ You're a coding agent invoked in this repo. Read this first. It explains what we
 
 The README's "~60% leaner on every coding turn" claim is the bar. If your edits don't trend toward that ratio, you're not lobotomizing — you're just cosmeticking.
 
+### The decision rule (read this every time)
+
+**If the override's message is conveyed elsewhere — in another lobotomized prompt, OR as Opus 4.7 default behavior per Anthropic's guide — trim/cull it. If a sentence is NOT conveyed elsewhere and is oddly specific, KEEP it. Full-nuke is reserved for cases where every load-bearing signal is duplicated elsewhere, OR where the user doesn't use the feature the prompt is about.**
+
+This is the core rule. It came directly from the user. Do not full-nuke without first sibling-checking the lobotomized-cc repo and default-checking the Anthropic guide. "Oddly specific" instructions (e.g. `"Report outcomes faithfully: if tests fail, say so with the output; if a step was skipped, say that"`) are load-bearing and stay even when they superficially look like overhead.
+
 ### Three valid lobotomization actions, in order of preference
 
-1. **Fully nuke a file** — set the override body to empty. Valid when the prompt is pure overhead and we don't want it injected at all (e.g. all the `data-managed-agents-*` prompts in this repo's hot path are empty bodies because the user doesn't use Managed Agents). Empty body = file present, frontmatter with `ccVersion:`, zero body content.
-2. **Massive cut** — keep the load-bearing core, drop everything else. Most prompts that ship at 800–2000 chars compress to under 300 chars without losing function.
-3. **Sentence-level cuts** — for already-tight overrides, scan for the candidates listed below and cut.
+1. **Trim** — keep the unique signals, drop sentences whose message is duplicated by a sibling override or is an Opus 4.7 default. Most prompts that ship at 800–2000 chars compress to 200–400 chars without losing function.
+2. **Sentence-level cuts** — for already-tight overrides, scan for the candidates listed below and cut.
+3. **Full nuke (empty body)** — only when every claim is duplicated elsewhere, or the user doesn't use the feature (e.g. all `data-managed-agents-*` are empty bodies because the user doesn't use Managed Agents). Empty body = file present, frontmatter with `ccVersion:`, zero body content.
+
+### Sibling-check protocol (mandatory before any trim/nuke)
+
+For each candidate edit:
+1. List the load-bearing claims in the override.
+2. `grep` the rest of `system-prompts/` for prompts conveying any of those claims. Closest sibling first (e.g. `system-prompt-executing-actions-with-care.md` covers destructive-action confirmation; `system-prompt-doing-tasks-security.md` covers OWASP-style guards).
+3. For each claim: if a sibling already conveys it OR Anthropic's guide says it's a 4.7 default → drop it from this override.
+4. Whatever remains is what stays.
+
+The user's directive: *"if the file contents aren't phrased similarly (same message conveyed) elsewhere, then trim it/cull it not wipe it. that's the entire logic of cleaning up prompts for lobotomized cc."*
 
 ### What "useless shit" looks like (cut on sight)
 
@@ -85,8 +101,21 @@ For each conflict reported by `tweakcc-fixed --apply` (or `.diff.html` produced 
 Just bumping `ccVersion:` without reading the diff is the lazy path. It silences the warning but skips the lobotomization work. Don't take it.
 
 For comparison points on what minimal coding-agent prompts look like:
-- [pi-mono coding-agent](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) — main system prompt is ~50 lines including all tool descriptions
-- Factory Droid — ~800 tokens for the full interactive system prompt (extracted via [tweakdroid](https://github.com/skrabe/tweakdroid))
+- [pi (pi.dev / earendil-works/pi)](https://github.com/earendil-works/pi) — minimal terminal coding harness. Built-in tools are only `read`, `write`, `edit`, `bash`, `grep`, `find`, `ls`. **Skipped on purpose**: no sub-agents, no plan mode, no permission popups, no built-in to-dos ("they confuse models"), no background bash, no MCP. Every "this prompt teaches the model how to use feature X" override is a candidate for nuke if we don't use feature X. Anti-bloat target.
+- Factory Droid — leaked prompt at [gist 8c5b16f4...](https://gist.github.com/AshikNesin/8c5b16f4f50734d1413bce4002223e22) shows heavy phase gates and CAPS theater; use as **anti-pattern**, not inspiration. The "~800 tokens" figure for older Droid versions (extracted via [tweakdroid](https://github.com/skrabe/tweakdroid)) does not describe the current leaked prompt.
+
+## Workflow: cull pass with user in the loop (do NOT cull autonomously at scale)
+
+When the user asks for a cull pass — phrasings like "do a cull pass", "lobotomize", "cull useless prompts", "lobotomized v2" — do NOT autonomously decide what to nuke. Run this protocol instead:
+
+1. **Group all overrides** by topic / subtopic (system-prompts → tone, tasks, memory, plan-mode, etc.; tool-descriptions → bash, edit, write, etc.; agent-prompts → coding agents, security, etc.; system-reminders; data; skills).
+2. **Number every prompt** within its group.
+3. For each prompt, write a **one-line TLDR** of what it asserts and how often it's injected (always-on / per-tool / per-feature / per-skill).
+4. Present the list. **Wait** for the user to pick which prompts to nuke / trim / leave.
+5. Apply ONLY the cuts the user named. For trims, follow the trim-don't-wipe rule above (sibling-check, then drop duplicates).
+6. Re-apply, smoke-test, report. Do not push without confirmation.
+
+Per-version-bump realignment (rename / inline / archive when CC restructures) is a separate workflow — that's surgical per-prompt work and you handle it directly. The above is for *cleaning-up-bloat* passes.
 
 ## Repo layout
 
