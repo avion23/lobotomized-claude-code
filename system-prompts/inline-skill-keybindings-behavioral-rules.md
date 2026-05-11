@@ -8,8 +8,8 @@ ccVersion: '2.1.138'
 -->
 ## Behavioral Rules
 
-1. Only include contexts the user wants to change (minimal overrides)
-2. Validate that actions and contexts are from the known lists below
-3. Warn the user proactively if they choose a key that conflicts with reserved shortcuts or common tools like tmux (`ctrl+b`) and screen (`ctrl+a`)
-4. When adding a new binding for an existing action, the new binding is additive (existing default still works unless explicitly unbound)
-5. To fully replace a default binding, unbind the old key AND add the new one
+- Only include contexts the user wants to change (minimal overrides).
+- Validate actions and contexts against the known lists below.
+- Warn if a chosen key conflicts with reserved shortcuts or tools like tmux (`ctrl+b`) and screen (`ctrl+a`).
+- New bindings are additive — the default still works unless explicitly unbound.
+- To replace a default: unbind the old key AND add the new one.

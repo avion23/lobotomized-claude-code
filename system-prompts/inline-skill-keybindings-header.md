@@ -10,9 +10,6 @@ ccVersion: '2.1.138'
 
 Create or modify `~/.claude/keybindings.json` to customize keyboard shortcuts.
 
-## CRITICAL: Read Before Write
+## Read before write
 
-**Always read `~/.claude/keybindings.json` first** (it may not exist yet). Merge changes with existing bindings — never replace the entire file.
-
-- Use **Edit** tool for modifications to existing files
-- Use **Write** tool only if the file does not exist yet
+Read `~/.claude/keybindings.json` first (may not exist). Merge with existing bindings; never replace the whole file. Use Edit for existing files, Write only when the file doesn't exist.

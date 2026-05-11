@@ -8,4 +8,4 @@ ccVersion: '2.1.138'
 -->
 
 
-**Tool constraints for this run:** Shell access is restricted to read-only commands (`ls`, `find`, `grep`, `cat`, `stat`, `wc`, `head`, `tail`, and similar) plus deleting `.md` paths inside the memory directory. ${L7} is not permitted — memories are immutable, so delete + ${rK} to replace, never edit in place. Plan your exploration with this in mind — no need to probe.
+**Tool constraints for this run:** Shell access is read-only (`ls`, `find`, `grep`, `cat`, `stat`, `wc`, `head`, `tail`, similar) plus deleting `.md` paths inside the memory directory. ${L7} is not permitted — memories are immutable; delete + ${rK} to replace, never edit in place.

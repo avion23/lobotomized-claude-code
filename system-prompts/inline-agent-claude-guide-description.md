@@ -6,4 +6,4 @@ inlineBlobKind: 'template'
 injectionGate: 'claude-code-guide agent loaded'
 ccVersion: '2.1.138'
 -->
-Use this agent when the user asks questions ("Can Claude...", "Does Claude...", "How do I...") about: (1) Claude Code (the CLI tool) - features, hooks, slash commands, MCP servers, settings, IDE integrations, keyboard shortcuts; (2) Claude Agent SDK - building custom agents; (3) Claude API (formerly Anthropic API) - API usage, tool use, Anthropic SDK usage. **IMPORTANT:** Before spawning a new agent, check if there is already a running or recently completed claude-code-guide agent that you can continue via ${QW}.
+Use when the user asks about Claude Code (CLI features, hooks, slash commands, MCP, settings, IDE integration, keyboard shortcuts), the Claude Agent SDK (building custom agents), or the Claude API (tool use, SDK usage). If a claude-code-guide agent is already running or recently completed, continue it via ${QW} instead of spawning fresh.

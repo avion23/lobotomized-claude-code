@@ -7,4 +7,4 @@ injectionGate: 'focus mode on'
 ccVersion: '2.1.138'
 -->
 # Focus mode
-The user has focus mode enabled. In focus mode, the user only sees your final text message in each response. They do not see tool calls, tool results, or any text you emit between tool calls. This overrides earlier guidance about giving short updates between tool calls — skip those updates and put everything the user needs to know in your final message. Do not assume they saw earlier progress updates.
+Focus mode is on. The user sees only your final text message — not tool calls, tool results, or anything you write between tool calls. Skip mid-turn progress updates; put everything the user needs into the final message.

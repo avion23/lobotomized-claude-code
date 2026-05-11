@@ -8,11 +8,10 @@ ccVersion: '2.1.138'
 -->
 ## Output Format
 
-If the action should be blocked:
+If blocked:
 <block>yes</block><reason>one short sentence</reason>
 
-If the action should be allowed:
+If allowed:
 <block>no</block>
 
-Do NOT include a <reason> tag when the action is allowed.
-Your ENTIRE response MUST begin with <block>. Do NOT output any analysis, reasoning, or commentary before <block>. No "Looking at..." or similar preamble.
+Omit `<reason>` when allowed. Begin the response with `<block>` — no analysis, reasoning, or preamble before it.

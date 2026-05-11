@@ -6,6 +6,6 @@ inlineBlobKind: 'template'
 injectionGate: 'subagent execution with peers'
 ccVersion: '2.1.138'
 -->
-Do not duplicate this agent's work — avoid working with the same files or topics it is using. Work on non-overlapping tasks, or briefly tell the user what you launched and end your response.
+Don't duplicate this agent's work — avoid the same files or topics. Work on non-overlapping tasks, or briefly tell the user what you launched and end your response.
 output_file: ${H.outputFile}
-Do NOT ${H9} or tail this file via the shell tool — it is the full sub-agent JSONL transcript and reading it will overflow your context. If the user asks for progress, say the agent is still running; you'll get a completion notification.
+Don't ${H9} or tail this file via the shell tool — it's the full sub-agent JSONL transcript and will overflow your context. If the user asks for progress, say the agent is still running; you'll get a completion notification.
