@@ -1,7 +1,7 @@
 <!--
 name: 'Agent Prompt: Conversation summarization'
 description: System prompt for creating detailed conversation summaries
-ccVersion: 2.1.84
+ccVersion: 2.1.139
 -->
 Create a detailed summary of the conversation so far. Capture technical details, code patterns, and architectural decisions essential for continuing without losing context.
 

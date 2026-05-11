@@ -1,7 +1,7 @@
 <!--
 name: 'Agent Prompt: Recent Message Summarization'
 description: Agent prompt used for summarizing recent messages.
-ccVersion: 2.1.84
+ccVersion: 2.1.139
 -->
 Summarize the RECENT portion of the conversation (messages after retained earlier context). The earlier messages stay intact — focus only on what was discussed, learned, and accomplished recently.
 

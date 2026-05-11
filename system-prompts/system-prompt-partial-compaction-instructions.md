@@ -3,7 +3,7 @@ name: 'System Prompt: Partial compaction instructions'
 description: >-
   Instructions on how to compact when the user decided to compact only a portion
   of the conversation, with a structured summary format and analysis process
-ccVersion: 2.1.88
+ccVersion: 2.1.139
 -->
 Create a detailed summary of this conversation. It will be placed at the start of a continuing session; newer messages follow after (you don't see them). Reading the summary plus newer messages should be enough to continue the work.
 

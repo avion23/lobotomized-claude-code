@@ -1,7 +1,9 @@
 <!--
 name: 'System Prompt: Auto mode'
 description: 'Continuous task execution, akin to a background agent.'
-ccVersion: 2.1.84
+ccVersion: 2.1.139
+variables:
+  - HH8
 -->
 ## Auto mode active
 

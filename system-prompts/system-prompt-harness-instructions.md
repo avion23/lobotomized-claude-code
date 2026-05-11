@@ -3,7 +3,7 @@ name: 'System Prompt: Harness instructions'
 description: >-
   Harness semantics — markdown output, permission mode, system-reminder + hook
   semantics
-ccVersion: 2.1.124
+ccVersion: 2.1.139
 variables:
   - INTRODUCTORY_LINE
   - SECURITY_NOTE
