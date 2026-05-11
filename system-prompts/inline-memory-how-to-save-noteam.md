@@ -1,7 +1,7 @@
 <!--
 name: 'Inline blob: memory how to save noteam'
 description: '## How to save memories — no-team variant (single directory)'
-inlineBlobAnchor: '\bO=\["## How to save memories","","Write each memory to its own file\. Use a 3-4 word filename'
+inlineBlobAnchor: '[$\w]+=\["## How to save memories","","Write each memory to its own file\. Use a 3-4 word filename'
 inlineBlobKind: 'array'
 injectionGate: 'memory enabled + no team memory'
 ccVersion: '2.1.138'

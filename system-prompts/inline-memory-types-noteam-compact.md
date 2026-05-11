@@ -1,7 +1,7 @@
 <!--
 name: 'Inline blob: memory types noteam compact'
 description: 'Memory <types> definition — no-team scope, compact variant'
-inlineBlobAnchor: "jz_=\\[\"## Types of memory\",\"\",\"There are several discrete types of memory that you can store in your memory system:\",\"\",\"<types>\",\"<type>\",\"    <name>user</name>\",\"    <description>Contain information about the user\\'s role"
+inlineBlobAnchor: '[$\w]+=\["## Types of memory","","There are several discrete types of memory that you can store in your memory system:","","<types>","<type>","    <name>user</name>","    <description>Contain information about the user\''s role'
 inlineBlobKind: 'array'
 injectionGate: 'memory enabled + no team memory + compact-format'
 ccVersion: '2.1.138'

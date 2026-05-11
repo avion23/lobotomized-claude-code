@@ -1,7 +1,7 @@
 <!--
 name: 'Inline blob: memory types team extended'
 description: 'Memory <types> definition — team scope, extended/detailed variant'
-inlineBlobAnchor: 'tL8=\["## Types of memory","","There are several discrete types of memory that you can store in your memory system\. Each type below declares a <scope>'
+inlineBlobAnchor: '[$\w]+=\["## Types of memory","","There are several discrete types of memory that you can store in your memory system\. Each type below declares a <scope> of `private`, `team`, or guidance for choosing between the two\.","","<types>","<type>","    <name>user</name>","    <scope>always private</scope>","    <description>Contain information about the user \\u2014 one detail per file'
 inlineBlobKind: 'array'
 injectionGate: 'memory enabled + team memory enabled + extended-format on'
 ccVersion: '2.1.138'

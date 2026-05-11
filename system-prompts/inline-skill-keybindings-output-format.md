@@ -1,7 +1,7 @@
 <!--
 name: 'Inline blob: skill keybindings output format'
 description: 'keybindings-help skill: output format guidance.'
-inlineBlobAnchor: '\bq=\["## Output Format","","If the action should be blocked:",'
+inlineBlobAnchor: '[$\w]+=\["## Output Format","","If the action should be blocked:",'
 inlineBlobKind: 'array'
 injectionGate: 'keybindings-help skill'
 ccVersion: '2.1.138'

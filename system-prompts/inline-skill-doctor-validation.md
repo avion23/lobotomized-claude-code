@@ -1,7 +1,7 @@
 <!--
 name: 'Inline blob: skill doctor validation'
 description: '/doctor validation messages for keybindings.json.'
-inlineBlobAnchor: 'nc3=\["## Validation with /doctor",'
+inlineBlobAnchor: '[$\w]+=\["## Validation with /doctor",'
 inlineBlobKind: 'array'
 injectionGate: 'keybindings-help skill (loaded with /doctor section)'
 ccVersion: '2.1.138'

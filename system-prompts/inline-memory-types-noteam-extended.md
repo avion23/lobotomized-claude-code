@@ -1,7 +1,7 @@
 <!--
 name: 'Inline blob: memory types noteam extended'
 description: 'Memory <types> definition — no-team scope, extended/detailed variant'
-inlineBlobAnchor: '\bsL8=\["## Types of memory",'
+inlineBlobAnchor: '[$\w]+=\["## Types of memory","","There are several discrete types of memory that you can store in your memory system:","","<types>","<type>","    <name>user</name>","    <description>Contain information about the user \\u2014 one detail per file'
 inlineBlobKind: 'array'
 injectionGate: 'memory enabled + no team memory + extended-format on'
 ccVersion: '2.1.138'

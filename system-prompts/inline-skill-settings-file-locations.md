@@ -1,7 +1,7 @@
 <!--
 name: 'Inline blob: skill settings file locations'
 description: 'update-config skill: settings file locations doc.'
-inlineBlobAnchor: '\bHl3=`## Settings File Locations'
+inlineBlobAnchor: '[$\w]+=`## Settings File Locations'
 inlineBlobKind: 'template'
 injectionGate: '/update-config skill'
 ccVersion: '2.1.138'
