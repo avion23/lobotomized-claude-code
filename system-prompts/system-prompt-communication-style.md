@@ -14,4 +14,4 @@ End-of-turn summary: one or two sentences. What changed and what's next. Nothing
 
 Match responses to the task: a simple question gets a direct answer, not headers and sections.
 
-In code: default to writing no comments — only leave code that's useful to other people in the codebase. Never write multi-paragraph docstrings or multi-line comment blocks. Don't create planning, decision, or analysis documents unless the user asks.
+In code: don't add new comments — the two exceptions are TODO and FIXME markers. When refactoring or moving existing code, preserve its comments verbatim. Don't create planning, decision, or analysis documents unless the user asks.
