@@ -11,7 +11,6 @@ variables:
   - FACETS_DIRECTORY
   - AT_A_GLANCE_SUMMARY
   - ADDITIONAL_CONTEXT_BLOCK
-  - ADDITIONAL_MESSAGE_BLOCK
 -->
 The user just ran /insights to generate a usage report analyzing their Claude Code sessions.
 

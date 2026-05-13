@@ -11,10 +11,6 @@ variables:
   - TASK_LIST_TOOL_NAME
   - TASK_STOP_TOOL_NAME
   - ADDITIONAL_INFO_FN
-  - U
-  - P2
-  - YU
-  - WR
 -->
 The user wants you to self-pace. Decide what makes the next iteration worth running — a passage of time, or an observable event.
 

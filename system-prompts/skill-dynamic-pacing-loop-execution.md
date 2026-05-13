@@ -10,15 +10,10 @@ variables:
   - MONITOR_TOOL_NAME
   - SCHEDULE_WAKEUP_TOOL_NAME
   - TASK_LIST_TOOL_NAME
+  - CONFIRMATION_MESSAGE
   - DYNAMIC_MODE_SENTINEL
   - TASK_STOP_TOOL_NAME
   - ADDITIONAL_INFO_FN
-  - CONFIRMATION_MESSAGE
-  - P2
-  - G
-  - U
-  - YU
-  - WR
 -->
 1. **Run TASK_RUN_LABEL now**, following the instructions inlined below.
 2. **If the next tick is gated on an event** (CI finishing, a PR comment, a log line) and no MONITOR_TOOL_NAME is already running for it: arm one now with `persistent: true`. Its events wake this loop immediately — you do not wait for the SCHEDULE_WAKEUP_TOOL_NAME deadline. Arm once; on later ticks call TASK_LIST_TOOL_NAME first and skip if a monitor is already running.
