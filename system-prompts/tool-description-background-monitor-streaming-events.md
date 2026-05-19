@@ -4,7 +4,7 @@ description: >-
   Describes the background monitor tool that streams stdout events from
   long-running scripts as chat notifications, with guidelines on script quality,
   output volume, and selective filtering
-ccVersion: 2.1.119
+ccVersion: 2.1.141
 -->
 Start a background monitor that streams stdout events from a long-running script. Each line is a notification; events arrive on their own schedule (not user replies). Exit ends the watch.
 

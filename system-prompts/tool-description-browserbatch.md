@@ -3,7 +3,7 @@ name: 'Tool Description: BrowserBatch'
 description: >-
   Tool description for BrowserBatch (sequential browser tool batching in one
   round trip)
-ccVersion: 2.1.141
+ccVersion: 2.1.120
 -->
 Execute a sequence of browser tool calls in one round trip. Each item is `{name, input}` matching the standalone tool's input. Actions run sequentially and stop on the first error. Use whenever you can predict 2+ steps ahead — typical sequences: `navigate → find → click → form_input → screenshot`, or `find → scroll_to → click`.
 

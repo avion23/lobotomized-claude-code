@@ -1,7 +1,7 @@
 <!--
 name: 'Tool Description: ExitWorktree'
 description: 'Roughly, the reverse of the ExitWorktree'
-ccVersion: 2.1.141
+ccVersion: 2.1.72
 -->
 Exit a worktree session created by `EnterWorktree` in this session. No-op if no `EnterWorktree` session is active — won't touch manually-created worktrees or worktrees from previous sessions.
 

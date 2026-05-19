@@ -8,6 +8,6 @@ description: >-
   for "medium" to bind to, so this override cannot apply independently.
   Lobotomization happens via [[agent-prompt-general-purpose]] which the runtime
   then trims.
-ccVersion: 2.1.143
+ccVersion: 2.1.141
 -->
 

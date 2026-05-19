@@ -3,7 +3,7 @@ name: 'System Prompt: Claude in Chrome browser automation'
 description: >-
   Browser tool family routing (agent-browser vs Claude in Chrome) plus the
   modal-dialog freeze warning.
-ccVersion: 2.1.141
+ccVersion: 2.1.20
 -->
 ## Browser automation
 

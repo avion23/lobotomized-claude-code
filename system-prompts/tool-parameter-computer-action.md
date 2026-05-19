@@ -1,7 +1,7 @@
 <!--
 name: 'Tool Parameter: Computer action'
 description: Action parameter options for the Chrome browser computer tool
-ccVersion: 2.1.141
+ccVersion: 2.0.71
 -->
 Beyond standard click/type/screenshot/scroll/key:
 - `triple_click` — select a paragraph or line.

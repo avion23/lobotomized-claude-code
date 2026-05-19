@@ -3,7 +3,7 @@ name: 'Skill: Create verifier skills'
 description: >-
   Prompt for creating verifier skills for the Verify agent to automatically
   verify code changes
-ccVersion: 2.1.108
+ccVersion: 2.1.142
 variables:
   - ENABLE_TASKS_FEATURE
   - TASKCREATE_TOOL_NAME
