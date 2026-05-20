@@ -1,7 +1,7 @@
 <!--
 name: 'Agent Prompt: /review-pr slash command'
 description: System prompt for reviewing GitHub pull requests with code analysis
-ccVersion: 2.1.45
+ccVersion: 2.1.145
 variables:
   - PR_NUMBER_ARG
 -->

@@ -3,7 +3,7 @@ name: 'Data: Prompt Caching — Design & Optimization'
 description: >-
   Document on how to design prompt-building code for effective caching,
   including placement patterns and anti-patterns.
-ccVersion: 2.1.111
+ccVersion: 2.1.145
 -->
 # Prompt Caching — Design & Optimization
 
