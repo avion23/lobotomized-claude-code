@@ -6,7 +6,8 @@ variables:
   - BASH_TOOL_NAME
   - COMMIT_CO_AUTHORED_BY_CLAUDE_CODE
   - TODO_TOOL_OBJECT
-  - TASK_TOOL_NAME
+  - AGENT_TOOL_NAME
+  - PR_PREAMBLE_STUB
   - PR_GENERATED_WITH_CLAUDE_CODE
 -->
 # Committing changes with git
@@ -42,7 +43,7 @@ Safety rules:
 
 # Creating pull requests
 
-Use `gh` for all GitHub operations. If given a GitHub URL, use `gh` to get the details.
+Use `gh` for GitHub operations.
 
 When asked to create a PR:
 
