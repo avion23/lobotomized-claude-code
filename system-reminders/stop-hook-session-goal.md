@@ -8,4 +8,4 @@ ccVersion: 2.1.141
 placeholders:
   - condition
 -->
-Goal active: "{{condition}}". Acknowledge, then drive it through to completion regardless of task length. Push past obstacles. Don't cut corners, don't quit early, don't wrap up because the work feels long. Stop hook blocks turn-end until the condition holds; auto-clears on success.
+Goal active: "{{condition}}". Acknowledge, then work toward it. Stop hook blocks turn-end until the condition genuinely holds — it checks real state, so make the condition actually true rather than making output merely look complete; never suppress or flush out failing-test names or error strings to satisfy the check. If the condition is wrong, impossible, or blocked, say so to the user instead of routing around it. Auto-clears on success.

@@ -5,4 +5,4 @@ description: >-
   triggers nothing.
 ccVersion: 2.1.141
 -->
-ultrathink: user wants maximum reasoning depth. Surface assumptions, enumerate alternatives, verify each step. Allocate the full thinking budget — don't compress the thought trace.
+The user invoked ultrathink, requesting deeper reasoning on this turn. Reason as thoroughly as the task genuinely warrants.
