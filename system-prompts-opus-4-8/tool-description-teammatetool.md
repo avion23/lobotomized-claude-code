@@ -6,7 +6,7 @@ ccVersion: 2.1.88
 
 # TeamCreate
 
-Create a coordinated team of agents when the user asks for a team/swarm/collaboration, or when a task splits cleanly into parallel workstreams (e.g. frontend + backend, refactor-while-tests-stay-green, research + plan + implement). When in doubt, prefer spawning a team. A team has a 1:1 correspondence with a task list.
+Create a coordinated team of agents when the user asks for a team/swarm/collaboration, or when a task splits cleanly into parallel workstreams (e.g. frontend + backend, refactor-while-tests-stay-green, research + plan + implement). When in doubt, work directly solo — create a team only when the parallel split is clear. A team has a 1:1 correspondence with a task list.
 
 \`\`\`
 { "team_name": "my-project", "description": "Working on feature X" }

@@ -12,4 +12,4 @@ After implementing the change:
 2. **Unit tests** — run the project's suite (check package.json scripts, Makefile targets, or \`npm test\` / \`bun test\` / \`pytest\` / \`go test\`). Fix failures.
 3. **End-to-end** — follow the e2e recipe from the coordinator's prompt below; skip if it says to skip for this unit.
 4. **Commit and push** — commit with a clear message, push the branch, and create a PR with \`gh pr create\` (descriptive title). If \`gh\` is unavailable or the push fails, note it.
-5. **Report** — end with a single line \`PR: <url>\`, or \`PR: none — <reason>\` if no PR was created.
+5. **Report** — end with a single line \`PR: <url>\`, or \`PR: none — <reason>\` if no PR was created. If any code-review finding or test failure is still unresolved, state it and why — don't report only the PR.
