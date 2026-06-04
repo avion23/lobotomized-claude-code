@@ -4,7 +4,7 @@ description: >-
   A comprehensive onboarding flow for setting up CLAUDE.md and related
   skills/hooks in the current repository, including codebase exploration, user
   interviews, and iterative proposal refinement.
-ccVersion: 2.1.119
+ccVersion: 2.1.162
 -->
 Set up a minimal CLAUDE.md (and optionally skills and hooks) for this repo. CLAUDE.md loads into every Claude Code session, so keep it concise — only what Claude would get wrong without it.
 
