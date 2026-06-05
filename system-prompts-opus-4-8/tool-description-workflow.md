@@ -4,7 +4,7 @@ description: >-
   Describes the Workflow tool (alias RunWorkflow) — runs a deterministic
   JavaScript workflow script that orchestrates subagents via
   agent()/parallel()/pipeline()/phase(); env-gated behind CLAUDE_CODE_WORKFLOWS
-ccVersion: 2.1.160
+ccVersion: 2.1.165
 variables:
   - WORKFLOW_INVOCATION_QUALIFIER
   - WORKFLOW_RESEND_NOTE

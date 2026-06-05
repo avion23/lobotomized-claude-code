@@ -5,7 +5,7 @@ description: >-
   This runs a converter that bundles the real component code (from Storybook or
   a bare package) and uploads it. Use when the user runs /design-sync or says
   "sync my design system to Claude Design".
-ccVersion: 2.1.162
+ccVersion: 2.1.165
 -->
 ---
 name: design-sync
