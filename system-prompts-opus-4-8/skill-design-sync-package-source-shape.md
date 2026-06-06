@@ -4,7 +4,7 @@ description: >-
   design-sync skill reference shown when no Storybook is present: the component
   list comes from the package’s shipped .d.ts exports and previews are generated
   from .d.ts prop types
-ccVersion: 2.1.165
+ccVersion: 2.1.167
 -->
 # Package source shape
 
@@ -13,7 +13,7 @@ No Storybook — the component list comes from the package's shipped `.d.ts` exp
 ## 2. Explore, then write config (continued)
 
 3. **Get `dist/` built.** The converter needs the built entry (`package.json` `module`/`main`/`exports['.']`) + its `.d.ts` tree. Install may have built it via `prepare`. If missing:
-   - Run `<pm> run build`; no `build` script → `prepare`/`prepack`. In a monorepo the build may be at the root (`turbo build --filter=<pkg>`, `pnpm -F <pkg> build`, `nx build <pkg>`). Some build scripts fork a watcher and exit 0 early — after the command returns, `ls` the expected output (`dist/`, `build/esm/`, or whatever `package.json` `module`/`main` points at) and confirm it's populated. If empty, use the script's one-shot (non-`--watch`) variant or poll the output dir.
+   - Run `<pm> run build`; no `build` script → `prepare`/`prepack`. In a monorepo, build the package *and its workspace dependencies* from the root: `turbo build --filter=<pkg>` or `pnpm -F "<pkg>..." build` (the trailing `...` is required — bare `-F <pkg>` skips deps → `Cannot find module '@scope/tokens'`). Some build scripts fork a watcher and exit 0 early — after the command returns, `ls` the expected output (`dist/`, `build/esm/`, or whatever `package.json` `module`/`main` points at) and confirm it's populated. If empty, use the script's one-shot (non-`--watch`) variant or poll the output dir.
    - Still missing → `AskUserQuestion`("What command builds this package?", options = `scripts.*` containing `tsc|tsup|rollup|vite build|esbuild|swc`, plus freeform). Record as `buildCmd`.
    - No build at all → the converter synthesizes an entry from `src/` (weaker `.d.ts` contracts; recommend adding a build).
 4. **Check the existing project.** `DesignSync(list_files)`. If non-empty, read `_ds_bundle.js` via `DesignSync(get_file)` and note component names from its first-line `/* @ds-bundle: {…} */` header. Still rebuild (step 7) — the existing bundle is stale once source changes; the header's `sourceHashes` diff only decides what to *upload* incrementally.
@@ -41,24 +41,22 @@ No Storybook — the component list comes from the package's shipped `.d.ts` exp
    | `libOverrides` | `{"<name>.mjs": "<reason>"}` — declares which `.design-sync/lib/*.mjs` files this repo forks and why (§Troubleshooting). Cross-checked at build time. |
    | `notes` | path to a markdown notes file — default `"./.design-sync/NOTES.md"`. Repo quirks (workspace build order, flaky stories, odd entry paths), one bullet each. Read first on re-sync; append when you learn something. |
 
-7. **Run the converter.** For large DSes (200+ components) the ts-morph `.d.ts` parse takes minutes; `[DTS]` stderr lines show progress.
+7. **Run the converter.** For large DSes (200+ components) the ts-morph `.d.ts` parse takes minutes; `[DTS]` stderr lines show progress. Stage scripts into `.ds-sync/` and install converter deps there (isolated from the repo's lockfile/package manager):
 
 ```bash
-# Converter ships under the skill dir. If `cp` is permission-denied, write via
-# `cat`: `cat "<src>" > ./lib/<name>.mjs`.
-cp -r "<skill-base-dir>"/package-build.mjs "<skill-base-dir>"/package-validate.mjs "<skill-base-dir>"/lib .
-npm i --no-save esbuild ts-morph @types/react   # pnpm note below
-node package-build.mjs --config design-sync.config.json --node-modules ./node_modules \
+mkdir -p .ds-sync && cp -r "<skill-base-dir>"/package-build.mjs "<skill-base-dir>"/package-validate.mjs "<skill-base-dir>"/lib .ds-sync/
+echo '{"name":"ds-sync-deps","private":true}' > .ds-sync/package.json
+(cd .ds-sync && npm i esbuild ts-morph @types/react)
+node .ds-sync/package-build.mjs --config design-sync.config.json --node-modules <pkg-node-modules> \
   --entry ./dist/index.es.js --out ./ds-bundle
-node package-validate.mjs ./ds-bundle
+node .ds-sync/package-validate.mjs ./ds-bundle
 ```
 
 Run build and validate as separate commands and check each exit code — a chained `build && validate` backgrounded exits non-zero with no visible log when build fails. In a headless / `-p` session run both synchronously (no `run_in_background`): there's no task-notification re-invocation, so a backgrounded run never resumes. Interactive sessions may background.
 
-`--entry` is needed because `node_modules/<pkg>` usually doesn't self-install in the DS's own repo.
+In a monorepo, point `--node-modules` at the DS package's own `node_modules` (where its `react` resolves) — not the repo root. `--entry` is needed because `node_modules/<pkg>` usually doesn't self-install in the DS's own repo.
 
 Notes:
-- **pnpm:** `npm i --no-save esbuild ts-morph` can fail or stay un-hoisted on pnpm-managed `node_modules`, so the converter's imports won't resolve. Install where pnpm sees it (`pnpm add -D esbuild ts-morph @types/react`) or symlink the targets from `$(pnpm root)/.pnpm/`.
 - `@types/react` is required for prop extraction — without it `React.ComponentPropsWithoutRef<…>` and similar resolve to `any` and the emitted `.d.ts` loses inherited props (`[DTS_REACT]`).
 - Complex monorepo build → `npm install <your-pkg>@latest react react-dom` into a scratch dir and pass `--node-modules <scratch>/node_modules` (published dist, flattened deps).
 
@@ -80,6 +78,7 @@ Per component, `components/<group>/<Name>/`: `<Name>.jsx` (re-export stub), `<Na
 |---|---|---|
 | `[NO_DIST]` | `entry <path> doesn't exist` | DS isn't built. Run its build (`npm run build` / `turbo run build`), or the published-dist alternative above. |
 | `[WORKSPACE_SIBLING]` | `Could not resolve "<sibling>"` | A workspace sibling isn't built. `turbo build` it, or `npm install` published versions into a scratch dir. |
+| `[PNPM_SELF_PROVISION]` | `packageManager: pnpm@X` tries to auto-install and fails | Corepack → `COREPACK_ENABLE_STRICT=0`; npm's own provisioning → `npm_config_manage_package_manager_versions=false`. Retry. |
 | `[CONFIG]` | `<path>: <json error>` | `design-sync.config.json` is missing or malformed. Fix the JSON. |
 | `[ZERO_MATCH]` | no components discovered | No PascalCase `.d.ts` exports and empty `componentSrcMap`. |
 | `[OUT_UNSAFE]` | `refusing to rm <path>` | `--out` points at `/`, `$HOME`, cwd, or a non-empty non-bundle dir. Point it at an empty dir. |

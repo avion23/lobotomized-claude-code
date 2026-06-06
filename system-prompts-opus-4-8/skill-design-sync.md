@@ -5,7 +5,7 @@ description: >-
   This runs a converter that bundles the real component code (from Storybook or
   a bare package) and uploads it. Use when the user runs /design-sync or says
   "sync my design system to Claude Design".
-ccVersion: 2.1.165
+ccVersion: 2.1.167
 -->
 ---
 name: design-sync
@@ -31,9 +31,11 @@ Load `DesignSync` via `ToolSearch(query: "select:DesignSync")` if it isn't in yo
 
 Workflow: explore the repo → write `design-sync.config.json` → run the converter from it. Discovery is heuristic-based; each heuristic has a config override (`grep ASSUMPTION lib/*.mjs` lists them), so repos that don't match the defaults write config, not code.
 
+If `design-sync.config.json` or `.design-sync/NOTES.md` already exist, `Read` both first and honor them. When the user reports an issue mid-run, persist it immediately: values that map to a `cfg.*` field go in `design-sync.config.json`, anything else as a bullet in `.design-sync/NOTES.md`. Both get committed at the end.
+
 1. **Install with the repo's package manager**, using its pinned node version (`.nvmrc` / `engines.node`). Detect by lockfile: `yarn.lock` → `yarn install --immutable`; `pnpm-lock.yaml` → `pnpm i --frozen-lockfile`; `bun.lockb`/`bun.lock` → `bun install --frozen-lockfile`; `package-lock.json` → `npm ci`.
-2. **Determine the source shape.** If `design-sync.config.json` already has a `"shape"` field, use it. Otherwise search for `.storybook/` and `*.stories.*`:
-   - A `.storybook/` dir → `shape = 'storybook'`. Several → `AskUserQuestion` which is the design system's; that dir becomes `storybookConfigDir`.
+2. **Determine the source shape.** If `design-sync.config.json` already has a `"shape"` field, use it. Otherwise `Glob` for `**/.storybook/main.*` and `**/storybook/main.*` (some repos drop the dot; exclude `node_modules`) — monorepo DSes keep it in a subpackage, so never assume it's at repo root:
+   - Any match → `shape = 'storybook'`; the match's grandparent is the package to run from. Several → `AskUserQuestion` which is the design system's; that dir becomes `storybookConfigDir`. Do not fall back to `package` just because `.storybook` isn't at repo root.
    - `*.stories.*` but no `.storybook/` in the target → `AskUserQuestion` whether a Storybook config lives elsewhere (e.g. `apps/storybook/.storybook` in a monorepo). Pointed at one → `shape = 'storybook'`, record it as `storybookConfigDir`; else `shape = 'package'`.
    - Neither → `AskUserQuestion` whether a Storybook exists at all. Pointed at one → record `storybookConfigDir`, `shape = 'storybook'`; else `shape = 'package'`.
 
