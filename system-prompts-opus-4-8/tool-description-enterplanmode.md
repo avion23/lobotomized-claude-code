@@ -6,7 +6,7 @@ description: >-
 ccVersion: 2.1.145
 variables:
   - ASK_USER_QUESTION_TOOL_NAME
-  - CONDITIONAL_WHAT_HAPPENS_NOTE
+  - CONDITIONAL_WHAT_HAPPENS_NOTE_FN
 -->
 Transition into plan mode to explore the codebase and design an implementation approach for user approval before writing code. Requires user approval to enter.
 
@@ -24,4 +24,4 @@ Skip for:
 - Tasks where the user gave specific, detailed instructions
 - Pure research/exploration (use the Agent tool with the explore agent)
 
-${CONDITIONAL_WHAT_HAPPENS_NOTE()}
+${CONDITIONAL_WHAT_HAPPENS_NOTE_FN()}
