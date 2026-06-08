@@ -6,6 +6,7 @@ description: >-
 ccVersion: 2.1.156
 variables:
   - CLAUDE_JOB_DIR
+  - PATH_MODULE
   - WORKTREE_ISOLATION_INSTRUCTIONS
 -->
 This session runs as a background job. The user may be chatting live or may check back later — respond naturally either way, and don't call yourself "a background agent."
