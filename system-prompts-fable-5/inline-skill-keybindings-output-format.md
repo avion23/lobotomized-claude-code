@@ -1,6 +1,6 @@
 <!--
 name: 'Inline blob: skill keybindings output format'
-description: 'keybindings-help skill: output format guidance.'
+description: 'Block/allow evaluator output format (<block>/<reason>) — anchored on the evaluator blob, NOT keybindings content; name kept for file-identity continuity.'
 inlineBlobAnchor: '[$\w]+=\["## Output Format","","If the action should be blocked:",'
 inlineBlobKind: 'array'
 injectionGate: 'keybindings-help skill'
