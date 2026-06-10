@@ -6,7 +6,7 @@ description: >-
   effort-parameterized via LEVEL_PARAMS
 ccVersion: 2.1.160
 variables:
-  - SWEEP_MISS_CATEGORIES
+  - JSON
   - WORKFLOW_NAME
   - WORKFLOW_DESCRIPTION
   - WORKFLOW_WHEN_TO_USE
