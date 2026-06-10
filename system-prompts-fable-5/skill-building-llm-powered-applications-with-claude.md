@@ -5,7 +5,7 @@ description: >-
   covering language detection, API surface selection (Claude API vs Managed
   Agents), model defaults, thinking/effort configuration, and language-specific
   documentation reading
-ccVersion: 2.1.170
+ccVersion: 2.1.172
 -->
 # Building LLM-Powered Applications with Claude
 
@@ -153,20 +153,33 @@ Everything goes through `POST /v1/messages`. Tools and output constraints are fe
 
 ---
 
-## Current Models (cached: 2026-05-26)
+## Current Models (cached: 2026-06-04)
 
 | Model             | Model ID            | Context        | Input $/1M | Output $/1M |
 | ----------------- | ------------------- | -------------- | ---------- | ----------- |
-| Claude Fable 5    | `{{FABLE_ID}}`      | 1M             | $10.00     | $50.00      |
+| {{FABLE_NAME}}    | `{{FABLE_ID}}`      | 1M             | $10.00     | $50.00      |
+| {{MYTHOS_NAME}} (Project Glasswing only) | `{{MYTHOS_ID}}` | 1M | $10.00     | $50.00      |
 | Claude Opus 4.8   | `claude-opus-4-8`   | 1M             | $5.00      | $25.00      |
 | Claude Opus 4.7   | `claude-opus-4-7`   | 1M             | $5.00      | $25.00      |
 | Claude Opus 4.6   | `claude-opus-4-6`   | 1M             | $5.00      | $25.00      |
 | Claude Sonnet 4.6 | `claude-sonnet-4-6` | 1M             | $3.00      | $15.00      |
 | Claude Haiku 4.5  | `claude-haiku-4-5`  | 200K           | $1.00      | $5.00       |
 
-Default to `{{OPUS_ID}}`. Use a different model only when the user names one ("use sonnet", "use haiku"); cost is the user's call, not yours. Use the exact ID strings above — they're complete; don't append date suffixes (use `claude-sonnet-4-6`, not `claude-sonnet-4-6-20251114`). For an older model not in the table ("opus 4.5", "sonnet 3.7"), read `shared/models.md` for the exact ID rather than constructing one.
+Default to `{{OPUS_ID}}`. Use a different model only when the user names one ("use sonnet", "use haiku"); cost is the user's call, not yours. Use `{{FABLE_ID}}` only when the user explicitly asks for {{FABLE_NAME}}, "fable", or Anthropic's most capable model — it has different API behavior than the Opus family (see below) and pricing above Opus-tier. Use the exact ID strings above — they're complete; don't append date suffixes (use `claude-sonnet-4-6`, not `claude-sonnet-4-6-20251114`). For an older model not in the table ("opus 4.5", "sonnet 3.7"), read `shared/models.md` for the exact ID rather than constructing one.
 
 If a model string looks unfamiliar, it was released after your training cutoff. These are real models.
+
+### {{FABLE_NAME}} (`{{FABLE_ID}}`)
+
+Anthropic's most capable widely released model, for the most demanding reasoning and long-horizon agentic work. **{{MYTHOS_NAME}}** (`{{MYTHOS_ID}}`) offers the same capabilities, pricing, and API surface through Project Glasswing (participation is the only access route), succeeding the invitation-only Claude Mythos Preview (`claude-mythos-preview`) — everything below applies to both. 1M context (the maximum is also the default), 128K max output. Key API differences from Opus-tier — see `shared/model-migration.md` → Migrating to {{FABLE_NAME}}:
+
+- **Thinking always on** — omit the `thinking` parameter (or send `{type: "adaptive"}`); `{type: "disabled"}` and `{type: "enabled", budget_tokens: N}` both 400. Control depth with `output_config.effort` (`low` through `xhigh` and `max`).
+- **Protected thinking = the raw chain of thought, not the summary** — responses carry regular `thinking` blocks (not `redacted_thinking`): `display: "summarized"` returns a readable summary; `"omitted"` (default) leaves `thinking` empty; the raw chain of thought is never exposed. Replay: pass thinking blocks back exactly as received on the same model (including empty-text blocks — the API rejects *modified* blocks, not read ones); a **different** model silently **drops** them before pricing — unbilled, nothing to strip. Regular thinking blocks from non-protected models replay across models freely.
+- **New tokenizer** — ~30% more tokens for the same content vs Opus-tier. Don't reuse token counts or `max_tokens` measured on other models; re-baseline with `count_tokens`.
+- **`refusal` stop reason** — safety classifiers may decline: HTTP 200, `stop_reason: "refusal"`, with a `stop_details` category. Pre-output refusal: empty `content`, not billed. Mid-stream: already-streamed output billed — discard it. Check `stop_reason` before reading `content`. Retry on another model: the beta `fallbacks` parameter (Claude API and Claude Platform on AWS) retries server-side in one round trip; the GA SDKs' `BetaRefusalFallbackMiddleware` + `BetaFallbackState` handle client-side retry everywhere else (incl. Bedrock/Vertex); fallback credit refunds the cache-switch cost of client-side retries. See the migration guide's refusal section.
+- **No assistant prefill** — same as the rest of the 4.6+ family.
+- **30-day data retention required** — not available under zero data retention; non-conforming orgs get `400 invalid_request_error`.
+- **Longer turns, different prompting** — single requests on hard tasks can run many minutes (plan timeouts/streaming/progress UX); effort sweeps should include low/medium for routine work; prompts written for prior models are often too prescriptive and reduce output quality. See `shared/model-migration.md` → Migrating to {{FABLE_NAME}} → Behavioral shifts (prompt-tunable) for the recommended snippets (anti-overplanning, no-tidying, grounded progress claims, boundaries, async sub-agents, memory, `send_to_user`).
 
 **Live capability lookup:** the table is cached. When the user asks "what's the context window for X", "does X support vision/thinking/effort", or "which models support Y", query the Models API (`client.models.retrieve(id)` / `client.models.list()`) — see `shared/models.md`.
 
@@ -180,7 +193,7 @@ If a model string looks unfamiliar, it was released after your training cutoff. 
 
 **Effort (GA, no beta header):** controls thinking depth and overall token spend via `output_config: {effort: "low"|"medium"|"high"|"max"}` (inside `output_config`, not top-level). Default is `high` (= omitting it). `max` is supported on Fable 5, Opus 4.6+, and Sonnet 4.6 (not Haiku or earlier Sonnets). Opus 4.7 added `"xhigh"` (between `high` and `max`) — best for most coding/agentic use on Fable 5 / Opus 4.7/4.8 and the default in Claude Code; use a minimum of `high` for intelligence-sensitive work. Works on Fable 5, Opus 4.5/4.6/4.7/4.8 and Sonnet 4.6; errors on Sonnet 4.5 / Haiku 4.5. On Fable 5 / Opus 4.7/4.8 effort matters more than on any prior Opus — re-tune when migrating, and run long-horizon/agentic tasks at `high`/`xhigh` with the full task spec up front. Lower effort means fewer, more-consolidated tool calls and terser confirmations. Use `max` when correctness matters more than cost; `low` for subagents or simple tasks.
 
-**Fable 5 / Opus 4.8 / 4.7 — thinking content omitted by default:** `thinking` blocks stream but their text is empty unless you opt in with `thinking: {type: "adaptive", display: "summarized"}` (default `"omitted"`). Silent — no error. If you stream reasoning to users, the default looks like a long pause; set `"summarized"` to restore visible progress.
+**Thinking display — `"omitted"` by default on Fable 5 / Mythos 5 / Opus 4.8 / 4.7:** `display: "summarized"` returns a readable summary; `"omitted"` (the default on all four — a silent change from Opus 4.6, where it was `"summarized"`) streams `thinking` blocks with empty text. `display` controls visibility only — thinking happens and is billed the same under every setting; the raw chain of thought is never exposed. If you stream reasoning to users, the default looks like a long pause; set `thinking: {type: "adaptive", display: "summarized"}` explicitly. (Independent of display: echo thinking blocks back unchanged when continuing on the same model; other models silently ignore them — see the migration guide.)
 
 **Task Budgets (beta, Fable 5 / Opus 4.7 / 4.8):** `output_config: {task_budget: {type: "tokens", total: N}}` tells the model its token allowance for a full agentic loop — it sees a running countdown and self-moderates (minimum 20,000; beta header `task-budgets-2026-03-13`). Distinct from `max_tokens`, an enforced per-response ceiling the model isn't aware of. See `shared/model-migration.md` → Task Budgets.
 
@@ -222,19 +235,21 @@ Available on the first-party API and Claude Platform on AWS. **Not** available o
 
 **Mandatory flow:** Agent (once) → Session (every run). `model`/`system`/`tools` live on the agent, never the session. See `shared/managed-agents-overview.md` for the full reading guide, beta headers, and pitfalls.
 
-**Beta headers:** `managed-agents-2026-04-01` — the SDK sets this automatically for all `client.beta.{agents,environments,sessions,vaults,memory_stores}.*` calls. Skills API uses `skills-2025-10-02` and Files API uses `files-api-2025-04-14`, passed automatically except for `/v1/skills` and `/v1/files`.
+**Beta headers:** `managed-agents-2026-04-01` — the SDK sets this automatically for all `client.beta.{agents,environments,sessions,vaults,memory_stores,deployments,deployment_runs}.*` calls. Skills API uses `skills-2025-10-02` and Files API uses `files-api-2025-04-14`, passed automatically except for `/v1/skills` and `/v1/files`.
 
 **Subcommands** — invoke with `/claude-api <subcommand>`:
 
 | Subcommand | Action |
 |---|---|
-| `managed-agents-onboard` | Walk the user through setting up a Managed Agent from scratch. Read `shared/managed-agents-onboarding.md` and run its interview script: mental model → know-or-explore branch → template config → session setup → **pre-flight viability check** → emit code. The viability check (reconcile the stated job against configured tools/credentials/data) catches under-resourced setups before the agent burns budget. Run the interview, don't summarize. |
+| `managed-agents-onboard` | Walk the user through setting up a Managed Agent from scratch. Read `shared/managed-agents-onboarding.md` and run its interview script: **describe → configure the agent (propose, don't interrogate) → environment → session** (same arc as the Console quickstart, auth deferred to the session step) — defaults and inline suggestions do the work, with a silent viability gate (job vs tools/credentials/data) before any code is emitted. Run the interview, don't summarize. |
 
-**Reading guide:** start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, client-patterns, onboarding, api-reference). For Python, TypeScript, Go, Ruby, PHP, and Java read `{lang}/managed-agents/README.md`; for cURL read `curl/managed-agents.md`. **Agents are persistent — create once, reference by ID.** Store the agent ID returned by `agents.create` and pass it to every subsequent `sessions.create`; don't call `agents.create` in the request path. The Anthropic CLI (`ant`) creates agents and environments from version-controlled YAML — see `shared/anthropic-cli.md`. If a binding isn't shown in the README, WebFetch the relevant entry from `shared/live-sources.md`. C# uses `client.Beta.Agents`.
+**Reading guide:** start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, scheduled-deployments, client-patterns, onboarding, api-reference). For Python, TypeScript, Go, Ruby, PHP, and Java read `{lang}/managed-agents/README.md`; for cURL read `curl/managed-agents.md`. **Agents are persistent — create once, reference by ID.** Store the agent ID returned by `agents.create` and pass it to every subsequent `sessions.create`; don't call `agents.create` in the request path. The Anthropic CLI (`ant`) creates agents and environments from version-controlled YAML — see `shared/anthropic-cli.md`. If a binding isn't shown in the README, WebFetch the relevant entry from `shared/live-sources.md`. C# uses `client.Beta.Agents`.
 
 **When the user wants to set up a Managed Agent from scratch** ("how do I get started", "walk me through creating one", "set up a new agent"): read `shared/managed-agents-onboarding.md` and run its interview — same flow as `managed-agents-onboard`.
 
 **When the user asks "how do I write the client code for X":** read `shared/managed-agents-client-patterns.md` — lossless stream reconnect, `processed_at` queued/processed gate, interrupt, `tool_confirmation` round-trip, the idle/terminated break gate, post-idle status race, stream-first ordering, file-mount gotchas, keeping credentials host-side via custom tools, etc.
+
+**When the user wants the agent to run on a schedule** (cron, "every night", "weekly report"): read `shared/managed-agents-scheduled-deployments.md` — deployments fire sessions autonomously on a cron cadence, with per-firing run records and lifecycle controls (pause/unpause/archive).
 
 ---
 
@@ -248,6 +263,7 @@ After detecting the language, read based on what the user needs.
 **Chat UI or real-time response display:** `{lang}/claude-api/README.md` + `{lang}/claude-api/streaming.md`
 **Long-running conversations (may exceed context window):** `{lang}/claude-api/README.md` — Compaction section
 **Migrating to a newer model or replacing a retired one:** `shared/model-migration.md`
+**Prompting or tuning Fable 5 (long turns, effort, verbosity, autonomous runs, sub-agents):** `shared/model-migration.md` → Migrating to Fable 5 → Behavioral shifts (prompt-tunable) + Long-running agent recommendations
 **Prompt caching / "why is my cache hit rate low":** `shared/prompt-caching.md` + `{lang}/claude-api/README.md` (Prompt Caching section)
 **Count tokens in a file / prompt / diff ("how many tokens is X"):** `shared/token-counting.md` — use `messages.count_tokens`, never `tiktoken`
 **Function calling / tool use / agents:** `{lang}/claude-api/README.md` + `shared/tool-use-concepts.md` + `{lang}/claude-api/tool-use.md`
@@ -285,7 +301,9 @@ Use WebFetch for the latest documentation when the user asks for "latest"/"curre
 - Don't truncate inputs when passing files or content. If content exceeds the context window, notify the user and discuss options (chunking, summarization) rather than silently truncating.
 - **Fable 5 / Opus 4.8 / 4.7 thinking:** adaptive only. `thinking: {type: "enabled", budget_tokens: N}` returns 400 — `budget_tokens` is fully removed (with `temperature`, `top_p`, `top_k`). Use `thinking: {type: "adaptive"}`. 4.8 inherits this surface from 4.7 with no new breaking changes; Fable 5 adds one — an explicit `thinking: {type: "disabled"}` returns 400 (accepted on 4.7/4.8), so omit the param instead.
 - **Opus 4.6 / Sonnet 4.6 thinking:** use `thinking: {type: "adaptive"}` — don't use `budget_tokens` for new code (deprecated on both; transitional escape hatch in `shared/model-migration.md` doesn't apply to Fable 5 / 4.7/4.8). For older models, `budget_tokens` < `max_tokens` (minimum 1024), or it errors.
-- **Prefill removed (Fable 5 and the 4.6/4.7/4.8 family):** last-assistant-turn prefills return 400 on Fable 5, Opus 4.6/4.7/4.8 and Sonnet 4.6. Use structured outputs (`output_config.format`) or system-prompt instructions to control format.
+- **Prefill removed (Fable 5 and the 4.6/4.7/4.8 family):** last-assistant-turn prefills return 400 on Fable 5, Opus 4.6/4.7/4.8 and Sonnet 4.6. Use structured outputs (`output_config.format`) or system-prompt instructions to control format. (One exception: the fallback-credit prefill claim — when redeeming a credit with `fallback_has_prefill_claim: true`, the server accepts the echoed assistant message; see the migration guide's refusal section.)
+- **Fable 5 `refusal` stop reason:** a successful HTTP 200 may carry `stop_reason: "refusal"` (pre-output: empty `content`, nothing billed; mid-stream: partial output billed — discard it). Check `stop_reason` before reading `response.content[0]`, or you'll hit index errors on refused requests. To retry on another model, replay the history as-is — other models drop the refused model's protected thinking blocks from the prompt, unbilled; no stripping needed (and a fallback-credit redemption must echo the refused body exactly anyway, thinking blocks included).
+- **Fable 5 tokenizer:** ~30% more tokens for the same content vs Opus-tier. Token counts, context-window budgets, and `max_tokens` values measured on other models don't transfer — re-measure with `count_tokens` passing `model: "{{FABLE_ID}}"` (the response includes counts under both tokenizers).
 - **Confirm migration scope before editing:** when asked to migrate without a named file/directory/list, ask which scope first (whole working dir, a subdirectory, or specific files). Don't edit until confirmed. "migrate my codebase", "upgrade to Sonnet 4.6", bare "migrate to Opus 4.8" are still ambiguous — they say what, not where. Proceed without asking only when an exact file/directory/list is named. See `shared/model-migration.md` Step 0.
 - **`max_tokens` defaults:** don't lowball it — hitting the cap truncates mid-thought. Non-streaming: default `~16000` (under SDK HTTP timeouts). Streaming: default `~64000`. Go lower only with a reason: classification (`~256`), cost caps, deliberately short outputs, or `max_tokens: 0` for cache pre-warming (see `shared/prompt-caching.md` → Pre-warming).
 - **128K output tokens:** Fable 5, Opus 4.6/4.7/4.8 support up to 128K `max_tokens`, but the SDKs require streaming for values that large. Use `.stream()` with `.get_final_message()` / `.finalMessage()`.
