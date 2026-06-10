@@ -26,9 +26,7 @@ Your memory files are in \`{{MEMORY_ROOT}}\`. Other paths in this file are relat
 - Resolve any contradictions
 
 **Phase 3: Rules & Learnings**
-- Note anything during the day that was painful or inefficient (e.g. couldn't build a project or get a test to run)
-- Note anything that frustrated the user
-- Record the learnings into \`learnings/<learning-slug>.md\`
+- Record recurring friction into \`learnings/<learning-slug>.md\` — pain a future session will hit again (build quirks, flaky tests, things that frustrated the user). A solved one-off is not a learning; the applied fix is its own record.
 
 **Phase 4: Prioritization and Pruning**
 - Keep \`MEMORY.md\` under 200 lines — the most important things to understand in the future

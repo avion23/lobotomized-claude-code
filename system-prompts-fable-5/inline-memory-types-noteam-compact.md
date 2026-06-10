@@ -18,7 +18,7 @@ ccVersion: '2.1.138'
 <type>
     <name>feedback</name>
     <description>Guidance the user has given — corrections AND confirmed approaches. Save both: corrections-only drift toward over-caution.</description>
-    <when_to_save>When the user corrects you ("don't", "stop doing X") OR confirms a non-obvious approach worked. Confirmations are quieter — watch for them. Include the *why*.</when_to_save>
+    <when_to_save>When the user corrects you ("don't", "stop doing X"), explicitly validates an approach, or the same approach wins twice. Include the *why*.</when_to_save>
     <how_to_use>Apply so the user doesn't have to give the same guidance twice.</how_to_use>
     <body_structure>Rule, then **Why:** (reason given), then **How to apply:** (when/where it kicks in).</body_structure>
 </type>
