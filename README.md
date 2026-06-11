@@ -62,15 +62,13 @@ git clone https://github.com/skrabe/lobotomized-claude-code ~/.tweakcc/lobotomiz
 ln -sfn ~/.tweakcc/lobotomized-claude-code/system-prompts-fable-5 ~/.tweakcc/system-prompts
 ln -sfn ~/.tweakcc/lobotomized-claude-code/system-reminders        ~/.tweakcc/system-reminders
 
-# apply with the patcher
-git clone https://github.com/skrabe/tweakcc-fixed ~/dev/tweakcc-fixed
-cd ~/dev/tweakcc-fixed && pnpm install && pnpm build
-node ~/dev/tweakcc-fixed/dist/index.mjs --apply
+# apply with the patcher (published on npm from skrabe/tweakcc-fixed)
+npx -y tweakcc-fixed@latest --apply
 ```
 
-Re-run `node ~/dev/tweakcc-fixed/dist/index.mjs --apply` after each Claude Code update. To revert: `node ~/dev/tweakcc-fixed/dist/index.mjs --restore`.
+Re-run `npx -y tweakcc-fixed@latest --apply` after each Claude Code update. To revert: `npx -y tweakcc-fixed@latest --restore`.
 
-> Use [`skrabe/tweakcc-fixed`](https://github.com/skrabe/tweakcc-fixed) (built from source, above) — not the `tweakcc` npm package. The skrabe fork carries the extraction + patching fixes these overrides depend on.
+> The [`tweakcc-fixed`](https://www.npmjs.com/package/tweakcc-fixed) npm package (2.0.0+) is published from [skrabe/tweakcc-fixed](https://github.com/skrabe/tweakcc-fixed) and carries the extraction + patching fixes these overrides depend on. (Versions ≤ 1.0.5 were an earlier, unmaintained fork; plain `npx tweakcc` is upstream Piebald, which doesn't apply system prompts to native installs.)
 
 ## License
 

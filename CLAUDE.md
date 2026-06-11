@@ -258,7 +258,7 @@ These are the failure modes I've seen recur, with the diagnostic each time:
 - **Prompt apply succeeds but CC crashes on launch** — almost always the orphan-variable bug. Run the scan above.
 - **`Could not find system prompt "X" in cli.js`** — your override's content diverges so far from the pristine that the regex (built from the pristine pieces, not your override) doesn't match. Either the override is bound to an older `ccVersion` than the current binary's pristine version, or there's an upstream content change you haven't accepted. Update `ccVersion:` to match, then re-apply.
 - **`Auto-escaped unescaped backticks in "X"`** — informational, not an error. tweakcc handles backticks-in-template-literals automatically.
-- **dist is stale** — `tweakcc-fixed --apply` reads from `dist/`, not `src/`. Always `pnpm build` after editing `src/`.
+- **dist is stale** — when applying from a checkout, `--apply` reads from `dist/`, not `src/`; always `pnpm build` after editing `src/`. (npx runs use the published build and can't be stale — but they also lack unpublished patches.)
 
 ## Extracting `cli.js` from a native CC binary
 
@@ -277,26 +277,25 @@ Then grep `/tmp/cli.js` directly for the shapes you need to match.
 ## Day-to-day commands
 
 ```bash
-# Apply all overrides to the installed CC binary (use the LOCAL build to pick up
-# any unpublished tweakcc-fixed patches like max-effort default).
-node ~/dev/tweakcc-fixed/dist/index.mjs --apply
+# Apply all overrides to the installed CC binary (published npm package).
+npx -y tweakcc-fixed@latest --apply
 
 # Restore CC to its pristine state (preserves config.json).
-node ~/dev/tweakcc-fixed/dist/index.mjs --restore
+npx -y tweakcc-fixed@latest --restore
 
 # Open the tweakcc UI to toggle the non-prompt patches (themes, max-effort, etc.).
-node ~/dev/tweakcc-fixed/dist/index.mjs
+npx -y tweakcc-fixed@latest
 
-# After editing tweakcc-fixed source, rebuild before --apply picks up changes.
-cd ~/dev/tweakcc-fixed && pnpm build
+# Testing UNPUBLISHED tweakcc-fixed changes: use the local build instead.
+cd ~/dev/tweakcc-fixed && pnpm build && node dist/index.mjs --apply
 
 # Sync overrides to GitHub.
 cd ~/.tweakcc/lobotomized-claude-code && git add -A && git commit -m "..." && git push origin main
 ```
 
-## Don't use `npx tweakcc-fixed@latest --apply`
+## The npm package IS the workflow (since 2.0.0)
 
-That pulls the published `1.0.4` from npm, which doesn't have the local patches the user has added (e.g. max-effort default, any future patch additions). Always use the local build via `node ~/dev/tweakcc-fixed/dist/index.mjs`. The npm package is reference-quality, not the user's actual workflow.
+`npx -y tweakcc-fixed@latest --apply` is the standard apply path — the package is published from [skrabe/tweakcc-fixed](https://github.com/skrabe/tweakcc-fixed) (2.0.0+; versions ≤ 1.0.5 were BenIsLegit's earlier fork, superseded). Use the local build (`node ~/dev/tweakcc-fixed/dist/index.mjs`) only for tweakcc-fixed changes that aren't published yet — the published build always lags the working tree mid-development.
 
 ## Things to surface (not assume)
 
