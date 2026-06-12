@@ -1,7 +1,7 @@
 <!--
 name: 'Data: Claude API reference — Go'
 description: Go SDK reference
-ccVersion: 2.1.170
+ccVersion: 2.1.175
 -->
 # Claude API — Go
 
@@ -65,7 +65,7 @@ for _, block := range response.Content {
 
 \`\`\`go
 stream := client.Messages.NewStreaming(context.Background(), anthropic.MessageNewParams{
-    Model:     anthropic.ModelClaudeOpus4_6,
+    Model:     anthropic.ModelClaudeOpus4_8,
     MaxTokens: 64000,
     Messages: []anthropic.MessageParam{
         anthropic.NewUserMessage(anthropic.NewTextBlock("Write a haiku")),
@@ -144,7 +144,7 @@ runner := client.Beta.Messages.NewToolRunner(
     []anthropic.BetaTool{weatherTool},
     anthropic.BetaToolRunnerParams{
         BetaMessageNewParams: anthropic.BetaMessageNewParams{
-            Model:     anthropic.ModelClaudeOpus4_6,
+            Model:     anthropic.ModelClaudeOpus4_8,
             MaxTokens: 16000,
             Messages: []anthropic.BetaMessageParam{
                 anthropic.NewBetaUserMessage(anthropic.NewBetaTextBlock("What's the weather in Paris?")),
@@ -366,7 +366,7 @@ When \`StopReason\` is \`anthropic.StopReasonRefusal\`, the response includes st
 
 \`\`\`go
 if resp.StopReason == anthropic.StopReasonRefusal {
-    fmt.Println("Category:", resp.StopDetails.Category)     // "cyber" | "bio" | ""
+    fmt.Println("Category:", resp.StopDetails.Category)     // e.g. "cyber", "bio", "reasoning_extraction", "frontier_llm", or "" — see docs for the full set
     fmt.Println("Explanation:", resp.StopDetails.Explanation)
 }
 \`\`\`
@@ -415,7 +415,7 @@ Use \`Beta.Messages.New\` with \`ContextManagement\` on \`BetaMessageNewParams\`
 
 \`\`\`go
 params := anthropic.BetaMessageNewParams{
-    Model:     anthropic.ModelClaudeOpus4_6,  // also supported: ModelClaudeSonnet4_6
+    Model:     anthropic.ModelClaudeOpus4_8,  // also supported: ModelClaudeSonnet4_6
     MaxTokens: 16000,
     Betas:     []anthropic.AnthropicBeta{"compact-2026-01-12"},
     ContextManagement: anthropic.BetaContextManagementConfigParam{

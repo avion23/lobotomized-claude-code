@@ -3,7 +3,7 @@ name: 'Data: Claude API reference — TypeScript'
 description: >-
   TypeScript SDK reference including installation, client initialization, basic
   requests, thinking, and multi-turn conversation
-ccVersion: 2.1.170
+ccVersion: 2.1.175
 -->
 # Claude API — TypeScript
 
@@ -211,7 +211,7 @@ If \`cache_read_input_tokens\` is zero across repeated identical-prefix requests
 const response = await client.messages.create({
   model: "{{OPUS_ID}}",
   max_tokens: 16000,
-  thinking: { type: "adaptive" },
+  thinking: { type: "adaptive", display: "summarized" }, // display opt-in: default is omitted (empty thinking text) on Fable 5 / Mythos 5 / Opus 4.8 / 4.7
   output_config: { effort: "high" }, // low | medium | high | max
   messages: [
     { role: "user", content: "Solve this math problem step by step..." },
@@ -340,7 +340,7 @@ When \`stop_reason\` is \`"refusal"\`, the response includes a \`stop_details\` 
 
 \`\`\`typescript
 if (response.stop_reason === "refusal" && response.stop_details) {
-  console.log(\`Category: \${response.stop_details.category}\`); // "cyber" | "bio" | null
+  console.log(\`Category: \${response.stop_details.category}\`); // e.g. "cyber", "bio", "reasoning_extraction", "frontier_llm", or null — see docs for the full set
   console.log(\`Explanation: \${response.stop_details.explanation}\`);
 }
 \`\`\`

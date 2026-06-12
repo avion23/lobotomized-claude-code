@@ -4,7 +4,7 @@ description: >-
   Bundled lib/source-storybook.mjs adapter for the design-sync skill: builds
   storybook-static, parses index.json, and runs composeStories to extract story
   args
-ccVersion: 2.1.172
+ccVersion: 2.1.175
 -->
 // Storybook source adapter. Builds (or copies) storybook-static, parses
 // index.json into the component list, resolves each component's story SOURCE
@@ -332,7 +332,18 @@ module.exports=\${proxy('window.React', '{jsx:jsx,jsxs:jsx,jsxDEV:jsx,Fragment:u
     console.error(\`  preview-decorators.js: bundled from \${relative(pkgRoot, sbPreview)}\`);
     return true;
   } catch (e) {
-    console.error(\`  ! preview decorator bundle failed: \${String(e).split('\\n')[0]} — set cfg.provider manually\`);
+    {
+      // A decorator bundle failure always means the provider chain needs
+      // manual config, so that line prints unconditionally.
+      // esbuild rejections carry the signature in e.errors[0].text, not String(e).
+      const err = e?.errors?.[0];
+      const firstLine = String(err?.text ?? e?.message ?? String(e)).split('\\n')[0];
+      console.error(\`  ! preview decorator bundle failed: \${firstLine}\`);
+      // No hypothesis line here: the resolve-class remedies name the
+      // story-imports fork seam, which this bundle's hardcoded plugins never
+      // consult — the only actionable remedy is the unconditional line below.
+      console.error('    decorators will not wrap previews — set cfg.provider to supply the context they provided');
+    }
     return false;
   } finally {
     rmSync(entry, { force: true });

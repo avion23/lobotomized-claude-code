@@ -3,7 +3,7 @@ name: 'Data: Claude API reference — Java'
 description: >-
   Java SDK reference including installation, client initialization, basic
   requests, streaming, and beta tool use
-ccVersion: 2.1.152
+ccVersion: 2.1.175
 -->
 # Claude API — Java
 
@@ -52,7 +52,7 @@ import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.Model;
 
 MessageCreateParams params = MessageCreateParams.builder()
-    .model(Model.CLAUDE_OPUS_4_6)
+    .model(Model.CLAUDE_OPUS_4_8)
     .maxTokens(16000L)
     .addUserMessage("What is the capital of France?")
     .build();
@@ -72,7 +72,7 @@ import com.anthropic.core.http.StreamResponse;
 import com.anthropic.models.messages.RawMessageStreamEvent;
 
 MessageCreateParams params = MessageCreateParams.builder()
-    .model(Model.CLAUDE_OPUS_4_6)
+    .model(Model.CLAUDE_OPUS_4_8)
     .maxTokens(64000L)
     .addUserMessage("Write a haiku")
     .build();
@@ -379,7 +379,7 @@ import com.anthropic.models.beta.messages.BetaCodeExecutionTool20260120;
 import com.anthropic.models.beta.messages.BetaRequestMcpServerUrlDefinition;
 
 MessageCreateParams params = MessageCreateParams.builder()
-    .model(Model.CLAUDE_OPUS_4_6)
+    .model(Model.CLAUDE_OPUS_4_8)
     .maxTokens(16000L)
     .addBeta("mcp-client-2025-11-20")
     .addTool(BetaToolBash20250124.builder().build())

@@ -1,7 +1,7 @@
 <!--
 name: 'Data: Claude API reference — cURL'
 description: Raw API reference for Claude API for use with cURL or else Raw HTTP
-ccVersion: 2.1.170
+ccVersion: 2.1.175
 -->
 # Claude API — cURL / Raw HTTP
 
@@ -200,7 +200,8 @@ curl https://api.anthropic.com/v1/messages \\
     "model": "{{OPUS_ID}}",
     "max_tokens": 16000,
     "thinking": {
-      "type": "adaptive"
+      "type": "adaptive",
+      "display": "summarized"
     },
     "output_config": {
       "effort": "high"

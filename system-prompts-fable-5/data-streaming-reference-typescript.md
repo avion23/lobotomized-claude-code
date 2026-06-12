@@ -3,7 +3,7 @@ name: 'Data: Streaming reference — TypeScript'
 description: >-
   TypeScript streaming reference including basic streaming and handling
   different content types
-ccVersion: 2.1.170
+ccVersion: 2.1.175
 -->
 # Streaming — TypeScript
 
@@ -36,7 +36,7 @@ for await (const event of stream) {
 const stream = client.messages.stream({
   model: "{{OPUS_ID}}",
   max_tokens: 64000,
-  thinking: { type: "adaptive" },
+  thinking: { type: "adaptive", display: "summarized" }, // display opt-in: default is omitted (empty thinking text) on Fable 5 / Mythos 5 / Opus 4.8 / 4.7
   messages: [{ role: "user", content: "Analyze this problem" }],
 });
 

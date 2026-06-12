@@ -3,7 +3,7 @@ name: 'Data: Claude API reference — C#'
 description: >-
   C# SDK reference including installation, client initialization, basic
   requests, streaming, and tool use
-ccVersion: 2.1.128
+ccVersion: 2.1.175
 -->
 # Claude API — C#
 
@@ -38,7 +38,7 @@ using Anthropic.Models.Messages;
 
 var parameters = new MessageCreateParams
 {
-    Model = Model.ClaudeOpus4_6,
+    Model = Model.ClaudeOpus4_8,
     MaxTokens = 16000,
     Messages = [new() { Role = Role.User, Content = "What is the capital of France?" }]
 };
@@ -62,7 +62,7 @@ using Anthropic.Models.Messages;
 
 var parameters = new MessageCreateParams
 {
-    Model = Model.ClaudeOpus4_6,
+    Model = Model.ClaudeOpus4_8,
     MaxTokens = 64000,
     Messages = [new() { Role = Role.User, Content = "Write a haiku" }]
 };
@@ -90,11 +90,12 @@ using Anthropic.Models.Messages;
 
 var response = await client.Messages.Create(new MessageCreateParams
 {
-    Model = Model.ClaudeOpus4_6,
+    Model = Model.ClaudeOpus4_8,
     MaxTokens = 16000,
     // ThinkingConfigParam? implicitly converts from the concrete variant classes —
     // no wrapper needed.
-    Thinking = new ThinkingConfigAdaptive(),
+    // display opt-in: default is omitted (empty thinking text) on Fable 5 / Mythos 5 / Opus 4.8 / 4.7
+    Thinking = new ThinkingConfigAdaptive { Display = Display.Summarized },
     Messages =
     [
         new() { Role = Role.User, Content = "Solve: 27 * 453" },
@@ -238,7 +239,7 @@ using Anthropic.Models.Beta.Messages;
 
 var betaParams = new MessageCreateParams   // no Beta prefix — one of only 2 unprefixed
 {
-    Model = Model.ClaudeOpus4_6,
+    Model = Model.ClaudeOpus4_8,
     MaxTokens = 16000,
     Betas = ["compact-2026-01-12"],
     ContextManagement = new BetaContextManagementConfig
@@ -327,7 +328,7 @@ Verify hits via \`response.Usage.CacheCreationInputTokens\` / \`response.Usage.C
 
 \`\`\`csharp
 MessageTokensCount result = await client.Messages.CountTokens(new MessageCountTokensParams {
-    Model = Model.ClaudeOpus4_6,
+    Model = Model.ClaudeOpus4_8,
     Messages = [new() { Role = Role.User, Content = "Hello" }],
 });
 long tokens = result.InputTokens;
