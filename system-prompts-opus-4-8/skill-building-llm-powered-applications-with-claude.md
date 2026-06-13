@@ -5,7 +5,7 @@ description: >-
   covering language detection, API surface selection (Claude API vs Managed
   Agents), model defaults, thinking/effort configuration, and language-specific
   documentation reading
-ccVersion: 2.1.165
+ccVersion: 2.1.177
 -->
 # Building LLM-Powered Applications with Claude
 
@@ -153,17 +153,31 @@ Everything goes through `POST /v1/messages`. Tools and output constraints are fe
 
 ---
 
-## Current Models (cached: 2026-05-26)
+## Current Models (cached: 2026-06-04)
 
 | Model             | Model ID            | Context        | Input $/1M | Output $/1M |
 | ----------------- | ------------------- | -------------- | ---------- | ----------- |
+| {{FABLE_NAME}}    | `{{FABLE_ID}}`      | 1M             | $10.00     | $50.00      |
+| {{MYTHOS_NAME}} (Project Glasswing only) | `{{MYTHOS_ID}}` | 1M | $10.00     | $50.00      |
 | Claude Opus 4.8   | `claude-opus-4-8`   | 1M             | $5.00      | $25.00      |
 | Claude Opus 4.7   | `claude-opus-4-7`   | 1M             | $5.00      | $25.00      |
 | Claude Opus 4.6   | `claude-opus-4-6`   | 1M             | $5.00      | $25.00      |
 | Claude Sonnet 4.6 | `claude-sonnet-4-6` | 1M             | $3.00      | $15.00      |
 | Claude Haiku 4.5  | `claude-haiku-4-5`  | 200K           | $1.00      | $5.00       |
 
-Default to `{{OPUS_ID}}`. Use a different model only when the user names one ("use sonnet", "use haiku"); cost is the user's call, not yours. Use the exact ID strings above — they're complete; don't append date suffixes (use `claude-sonnet-4-6`, not `claude-sonnet-4-6-20251114`). For an older model not in the table ("opus 4.5", "sonnet 3.7"), read `shared/models.md` for the exact ID rather than constructing one.
+Default to `{{OPUS_ID}}`. Use a different model only when the user names one ("use sonnet", "use haiku"); cost is the user's call, not yours. Use `{{FABLE_ID}}` ({{FABLE_NAME}}, Anthropic's most capable widely released model — different API behavior, see below) only when the user asks for it by name or for "the most capable model". {{MYTHOS_NAME}} (`{{MYTHOS_ID}}`, Project Glasswing only) has the same capabilities, pricing, and API surface as Fable 5 — everything in the Fable 5 section applies to both. Use the exact ID strings above — they're complete; don't append date suffixes (use `claude-sonnet-4-6`, not `claude-sonnet-4-6-20251114`). For an older model not in the table ("opus 4.5", "sonnet 3.7"), read `shared/models.md` for the exact ID rather than constructing one.
+
+### {{FABLE_NAME}} (`{{FABLE_ID}}`) — key API differences from Opus-tier
+
+1M context (max is the default), 128K max output. See `shared/model-migration.md` → Migrating to {{FABLE_NAME}}.
+
+- **Thinking always on** — omit `thinking` (or send `{type: "adaptive"}`). `{type: "disabled"}` and `{type: "enabled", budget_tokens: N}` both 400. Control depth via `output_config.effort` (`low` through `xhigh`, plus `max`).
+- **Raw chain of thought never returned** — regular `thinking` blocks (not `redacted_thinking`); `display: "summarized"` gives a summary, `"omitted"` (default) leaves the field empty. Replay: pass thinking blocks back exactly as received on the same model (empty-text blocks included — the API rejects *modified* blocks, not read ones); a different model drops them silently (before pricing, so unbilled — nothing to strip).
+- **Tokenizer** — same as Opus 4.8 (introduced with 4.7); counts roughly unchanged from 4.7/4.8, per-token pricing differs. From 4.6/Sonnet/Haiku/older, re-baseline with `count_tokens`.
+- **`refusal` stop reason** — safety classifiers may decline (HTTP 200, `stop_reason: "refusal"`, with a `stop_details` category). Pre-output refusal: empty `content`, unbilled. Mid-stream: partial output billed — discard it. Check `stop_reason` before reading `content`. Recovery is opt-in: when you write `{{FABLE_ID}}` code, include the server-side `fallbacks` parameter by default (`betas: ["server-side-fallback-2026-06-01"]` + `fallbacks: [{"model": "{{OPUS_ID}}"}]`; Claude API and Claude Platform on AWS) — a declined request is re-served by the fallback model in the same call, with credit-style repricing (decline-before-output unbilled; rescue billed at the fallback's rates). Tell the user it's on; drop it only if they decline. Where server-side fallbacks aren't supported (Bedrock, Vertex AI, Microsoft Foundry), the GA SDKs' client-side `BetaRefusalFallbackMiddleware` + `BetaFallbackState` handle retry. Code: the Refusal Fallbacks section of your language's claude-api doc.
+- **No assistant prefill** — same as the 4.6+ family.
+- **30-day data retention required** — not available under zero data retention; non-conforming orgs get `400 invalid_request_error`.
+- **Longer turns, different prompting** — hard tasks can run many minutes (plan timeouts/streaming/progress UX); sweep effort including low/medium for routine work; prompts written for prior models are often too prescriptive. See `shared/model-migration.md` → Migrating to {{FABLE_NAME}} → Behavioral shifts for the recommended prompt snippets.
 
 If a model string looks unfamiliar, it was released after your training cutoff. These are real models.
 
@@ -173,15 +187,15 @@ If a model string looks unfamiliar, it was released after your training cutoff. 
 
 ## Thinking & Effort (Quick Reference)
 
-**Opus 4.8 / 4.7 — adaptive thinking only:** use `thinking: {type: "adaptive"}`. `thinking: {type: "enabled", budget_tokens: N}` returns 400 — adaptive is the only on-mode. `{type: "disabled"}` and omitting `thinking` both work. Sampling parameters (`temperature`, `top_p`, `top_k`) are removed and will 400. Opus 4.8 keeps the same request surface as 4.7 (no new breaking changes) — see `shared/model-migration.md` → Migrating to Opus 4.8 for behavioral re-tuning, and → Migrating to Opus 4.7 for the full breaking-change list from 4.6 or earlier. With `thinking` disabled, Opus 4.8 may write longer reasoning into the visible response — leave adaptive on, or add a final-answer-only instruction (see the migration guide).
+**Fable 5 / Opus 4.8 / 4.7 — adaptive thinking only:** use `thinking: {type: "adaptive"}`. `thinking: {type: "enabled", budget_tokens: N}` returns 400 — adaptive is the only on-mode. On Opus 4.8/4.7, `{type: "disabled"}` and omitting `thinking` both work; on Fable 5, `{type: "disabled"}` 400s — omit the param instead. Sampling parameters (`temperature`, `top_p`, `top_k`) are removed and will 400. Opus 4.8 keeps the same request surface as 4.7 (no new breaking changes) — see `shared/model-migration.md` → Migrating to Opus 4.8 for behavioral re-tuning, and → Migrating to Opus 4.7 for the full breaking-change list from 4.6 or earlier. With `thinking` disabled, Opus 4.8 may write longer reasoning into the visible response — leave adaptive on, or add a final-answer-only instruction (see the migration guide).
 
-**Opus 4.6 — adaptive thinking (recommended):** use `thinking: {type: "adaptive"}`; Claude decides when and how much to think. `budget_tokens` is deprecated on Opus 4.6 and Sonnet 4.6 — don't use it for new code. Adaptive also auto-enables interleaved thinking (no beta header). When the user asks for "extended thinking", a "thinking budget", or `budget_tokens`, use Opus 4.8/4.7/4.6 with `thinking: {type: "adaptive"}` — the fixed-budget concept is deprecated; don't switch to an older model. *Gradual-migration carve-out:* `budget_tokens` is still functional on Opus 4.6 and Sonnet 4.6 as a transitional escape hatch — see `shared/model-migration.md` → Transitional escape hatch. This carve-out does **not** apply to Opus 4.7 or 4.8 — `budget_tokens` is fully removed there.
+**Opus 4.6 — adaptive thinking (recommended):** use `thinking: {type: "adaptive"}`; Claude decides when and how much to think. `budget_tokens` is deprecated on Opus 4.6 and Sonnet 4.6 — don't use it for new code. Adaptive also auto-enables interleaved thinking (no beta header). When the user asks for "extended thinking", a "thinking budget", or `budget_tokens`, use Fable 5 / Opus 4.8/4.7/4.6 with `thinking: {type: "adaptive"}` — the fixed-budget concept is deprecated; don't switch to an older model. *Gradual-migration carve-out:* `budget_tokens` is still functional on Opus 4.6 and Sonnet 4.6 as a transitional escape hatch — see `shared/model-migration.md` → Transitional escape hatch. This carve-out does **not** apply to Fable 5, Opus 4.7 or 4.8 — `budget_tokens` is fully removed there.
 
-**Effort (GA, no beta header):** controls thinking depth and overall token spend via `output_config: {effort: "low"|"medium"|"high"|"max"}` (inside `output_config`, not top-level). Default is `high` (= omitting it). `max` is Opus-tier only (Opus 4.6+). Opus 4.7 added `"xhigh"` (between `high` and `max`) — best for most coding/agentic use on 4.7/4.8 and the default in Claude Code; use a minimum of `high` for intelligence-sensitive work. Works on Opus 4.5/4.6/4.7/4.8 and Sonnet 4.6; errors on Sonnet 4.5 / Haiku 4.5. On Opus 4.7/4.8 effort matters more than on any prior Opus — re-tune when migrating, and run long-horizon/agentic tasks at `high`/`xhigh` with the full task spec up front. Lower effort means fewer, more-consolidated tool calls and terser confirmations. Use `max` when correctness matters more than cost; `low` for subagents or simple tasks.
+**Effort (GA, no beta header):** controls thinking depth and overall token spend via `output_config: {effort: "low"|"medium"|"high"|"max"}` (inside `output_config`, not top-level). Default is `high` (= omitting it). `max` is supported on Fable 5, Opus 4.6+, and Sonnet 4.6 (not Haiku or earlier Sonnets). Opus 4.7 added `"xhigh"` (between `high` and `max`) — best for most coding/agentic use on Fable 5 / 4.7/4.8 and the default in Claude Code; use a minimum of `high` for intelligence-sensitive work. Works on Fable 5, Opus 4.5/4.6/4.7/4.8 and Sonnet 4.6; errors on Sonnet 4.5 / Haiku 4.5. On Fable 5, Opus 4.7/4.8 effort matters more than on any prior Opus — re-tune when migrating, and run long-horizon/agentic tasks at `high`/`xhigh` with the full task spec up front. Lower effort means fewer, more-consolidated tool calls and terser confirmations. Use `max` when correctness matters more than cost; `low` for subagents or simple tasks.
 
-**Opus 4.8 / 4.7 — thinking content omitted by default:** `thinking` blocks stream but their text is empty unless you opt in with `thinking: {type: "adaptive", display: "summarized"}` (default `"omitted"`). Silent — no error. If you stream reasoning to users, the default looks like a long pause; set `"summarized"` to restore visible progress.
+**Fable 5 / Mythos 5 / Opus 4.8 / 4.7 — thinking content omitted by default:** `thinking` blocks stream but their text is empty unless you opt in with `thinking: {type: "adaptive", display: "summarized"}` (default `"omitted"`, a silent change from Opus 4.6 where it was `"summarized"`). No error. If you stream reasoning to users, the default looks like a long pause; set `"summarized"` to restore visible progress.
 
-**Task Budgets (beta, Opus 4.7 / 4.8):** `output_config: {task_budget: {type: "tokens", total: N}}` tells the model its token allowance for a full agentic loop — it sees a running countdown and self-moderates (minimum 20,000; beta header `task-budgets-2026-03-13`). Distinct from `max_tokens`, an enforced per-response ceiling the model isn't aware of. See `shared/model-migration.md` → Task Budgets.
+**Task Budgets (beta, Fable 5 / Opus 4.7 / 4.8):** `output_config: {task_budget: {type: "tokens", total: N}}` tells the model its token allowance for a full agentic loop — it sees a running countdown and self-moderates (minimum 20,000; beta header `task-budgets-2026-03-13`). Distinct from `max_tokens`, an enforced per-response ceiling the model isn't aware of. See `shared/model-migration.md` → Task Budgets.
 
 **Sonnet 4.6:** supports adaptive thinking; `budget_tokens` deprecated — use adaptive.
 
@@ -191,7 +205,7 @@ If a model string looks unfamiliar, it was released after your training cutoff. 
 
 ## Compaction (Quick Reference)
 
-**Beta, Opus 4.8/4.7/4.6 and Sonnet 4.6.** For conversations that may exceed 1M context, enable server-side compaction: the API summarizes earlier context as it nears the trigger threshold (default 150K tokens). Beta header `compact-2026-01-12`.
+**Beta, Fable 5, Opus 4.8/4.7/4.6 and Sonnet 4.6.** For conversations that may exceed 1M context, enable server-side compaction: the API summarizes earlier context as it nears the trigger threshold (default 150K tokens). Beta header `compact-2026-01-12`.
 
 Append `response.content` (not just the text) back to your messages every turn. Compaction blocks must be preserved — the API uses them to replace compacted history on the next request; appending only the text string silently loses compaction state.
 
@@ -221,7 +235,7 @@ Available on the first-party API and Claude Platform on AWS. **Not** available o
 
 **Mandatory flow:** Agent (once) → Session (every run). `model`/`system`/`tools` live on the agent, never the session. See `shared/managed-agents-overview.md` for the full reading guide, beta headers, and pitfalls.
 
-**Beta headers:** `managed-agents-2026-04-01` — the SDK sets this automatically for all `client.beta.{agents,environments,sessions,vaults,memory_stores}.*` calls. Skills API uses `skills-2025-10-02` and Files API uses `files-api-2025-04-14`, passed automatically except for `/v1/skills` and `/v1/files`.
+**Beta headers:** `managed-agents-2026-04-01` — the SDK sets this automatically for all `client.beta.{agents,environments,sessions,vaults,memory_stores,deployments,deployment_runs}.*` calls. Skills API uses `skills-2025-10-02` and Files API uses `files-api-2025-04-14`, passed automatically except for `/v1/skills` and `/v1/files`.
 
 **Subcommands** — invoke with `/claude-api <subcommand>`:
 
@@ -229,11 +243,13 @@ Available on the first-party API and Claude Platform on AWS. **Not** available o
 |---|---|
 | `managed-agents-onboard` | Walk the user through setting up a Managed Agent from scratch. Read `shared/managed-agents-onboarding.md` and run its interview script: mental model → know-or-explore branch → template config → session setup → **pre-flight viability check** → emit code. The viability check (reconcile the stated job against configured tools/credentials/data) catches under-resourced setups before the agent burns budget. Run the interview, don't summarize. |
 
-**Reading guide:** start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, client-patterns, onboarding, api-reference). For Python, TypeScript, Go, Ruby, PHP, and Java read `{lang}/managed-agents/README.md`; for cURL read `curl/managed-agents.md`. **Agents are persistent — create once, reference by ID.** Store the agent ID returned by `agents.create` and pass it to every subsequent `sessions.create`; don't call `agents.create` in the request path. The Anthropic CLI (`ant`) creates agents and environments from version-controlled YAML — see `shared/anthropic-cli.md`. If a binding isn't shown in the README, WebFetch the relevant entry from `shared/live-sources.md`. C# uses `client.Beta.Agents`.
+**Reading guide:** start with `shared/managed-agents-overview.md`, then the topical `shared/managed-agents-*.md` files (core, environments, tools, events, outcomes, multiagent, webhooks, memory, scheduled-deployments, client-patterns, onboarding, api-reference). For Python, TypeScript, Go, Ruby, PHP, and Java read `{lang}/managed-agents/README.md`; for cURL read `curl/managed-agents.md`. **Agents are persistent — create once, reference by ID.** Store the agent ID returned by `agents.create` and pass it to every subsequent `sessions.create`; don't call `agents.create` in the request path. The Anthropic CLI (`ant`) creates agents and environments from version-controlled YAML — see `shared/anthropic-cli.md`. If a binding isn't shown in the README, WebFetch the relevant entry from `shared/live-sources.md`. C# uses `client.Beta.Agents`.
 
 **When the user wants to set up a Managed Agent from scratch** ("how do I get started", "walk me through creating one", "set up a new agent"): read `shared/managed-agents-onboarding.md` and run its interview — same flow as `managed-agents-onboard`.
 
 **When the user asks "how do I write the client code for X":** read `shared/managed-agents-client-patterns.md` — lossless stream reconnect, `processed_at` queued/processed gate, interrupt, `tool_confirmation` round-trip, the idle/terminated break gate, post-idle status race, stream-first ordering, file-mount gotchas, keeping credentials host-side via custom tools, etc.
+
+**When the user wants the agent to run on a schedule** (cron, "every night", "weekly report"): read `shared/managed-agents-scheduled-deployments.md` — deployments fire sessions autonomously on a cron cadence, with per-firing run records and lifecycle controls (pause/unpause/archive).
 
 ---
 
@@ -281,13 +297,13 @@ Use WebFetch for the latest documentation when the user asks for "latest"/"curre
 ## Common Pitfalls
 
 - Don't truncate inputs when passing files or content. If content exceeds the context window, notify the user and discuss options (chunking, summarization) rather than silently truncating.
-- **Opus 4.8 / 4.7 thinking:** adaptive only. `thinking: {type: "enabled", budget_tokens: N}` returns 400 — `budget_tokens` is fully removed (with `temperature`, `top_p`, `top_k`). Use `thinking: {type: "adaptive"}`. 4.8 inherits this surface from 4.7 with no new breaking changes.
+- **Fable 5 / Opus 4.8 / 4.7 thinking:** adaptive only. `thinking: {type: "enabled", budget_tokens: N}` returns 400 — `budget_tokens` is fully removed (with `temperature`, `top_p`, `top_k`). Use `thinking: {type: "adaptive"}`. 4.8 inherits this surface from 4.7 with no new breaking changes; Fable 5 adds one — an explicit `{type: "disabled"}` 400s (accepted on 4.7/4.8), so omit the param instead.
 - **Opus 4.6 / Sonnet 4.6 thinking:** use `thinking: {type: "adaptive"}` — don't use `budget_tokens` for new code (deprecated on both; transitional escape hatch in `shared/model-migration.md` doesn't apply to 4.7/4.8). For older models, `budget_tokens` < `max_tokens` (minimum 1024), or it errors.
-- **4.6/4.7/4.8 prefill removed:** last-assistant-turn prefills return 400 on Opus 4.6/4.7/4.8 and Sonnet 4.6. Use structured outputs (`output_config.format`) or system-prompt instructions to control format.
+- **Prefill removed (Fable 5 + 4.6/4.7/4.8):** last-assistant-turn prefills return 400 on Fable 5, Opus 4.6/4.7/4.8 and Sonnet 4.6. Use structured outputs (`output_config.format`) or system-prompt instructions to control format. (Exception: redeeming a fallback credit with `fallback_has_prefill_claim: true` echoes the refused assistant message back — see the migration guide's refusal section.)
 - **Confirm migration scope before editing:** when asked to migrate without a named file/directory/list, ask which scope first (whole working dir, a subdirectory, or specific files). Don't edit until confirmed. "migrate my codebase", "upgrade to Sonnet 4.6", bare "migrate to Opus 4.8" are still ambiguous — they say what, not where. Proceed without asking only when an exact file/directory/list is named. See `shared/model-migration.md` Step 0.
 - **`max_tokens` defaults:** don't lowball it — hitting the cap truncates mid-thought. Non-streaming: default `~16000` (under SDK HTTP timeouts). Streaming: default `~64000`. Go lower only with a reason: classification (`~256`), cost caps, deliberately short outputs, or `max_tokens: 0` for cache pre-warming (see `shared/prompt-caching.md` → Pre-warming).
-- **128K output tokens:** Opus 4.6/4.7/4.8 support up to 128K `max_tokens`, but the SDKs require streaming for values that large. Use `.stream()` with `.get_final_message()` / `.finalMessage()`.
-- **Tool call JSON parsing (4.6/4.7/4.8):** these may produce different JSON string escaping in tool-call `input` (Unicode, forward-slash). Always parse with `json.loads()` / `JSON.parse()` — never raw string matching on the serialized input.
+- **128K output tokens:** Fable 5, Opus 4.6/4.7/4.8 support up to 128K `max_tokens`, but the SDKs require streaming for values that large. Use `.stream()` with `.get_final_message()` / `.finalMessage()`.
+- **Tool call JSON parsing (Fable 5 + 4.6/4.7/4.8):** these may produce different JSON string escaping in tool-call `input` (Unicode, forward-slash). Always parse with `json.loads()` / `JSON.parse()` — never raw string matching on the serialized input.
 - **Structured outputs (all models):** use `output_config: {format: {...}}`, not the deprecated `output_format` parameter on `messages.create()`.
 - **Don't reimplement SDK functionality:** use `stream.finalMessage()` instead of wrapping `.on()` events in `new Promise()`; use typed exception classes (`Anthropic.RateLimitError`, etc.) instead of string-matching errors; use SDK types (`Anthropic.MessageParam`, `Anthropic.Tool`, `Anthropic.Message`, etc.) instead of redefining interfaces.
 - **Report and document output:** for reports/documents/visualizations, the code execution sandbox has `python-docx`, `python-pptx`, `matplotlib`, `pillow`, and `pypdf` pre-installed. Claude can generate formatted files (DOCX, PDF, charts) and return them via the Files API — prefer this over plain stdout text for "report"/"document" requests.

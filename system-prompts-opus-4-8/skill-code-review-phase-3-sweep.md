@@ -4,6 +4,8 @@ description: >-
   Shared Phase 3 of the code-review skill — a fresh finder re-reads the diff for
   defects not already listed
 ccVersion: 2.1.160
+variables:
+  - SWEEP_MISS_CATEGORIES
 -->
 ## Phase 3 — Sweep for gaps
 

@@ -4,7 +4,7 @@ description: >-
   Step-by-step instructions for migrating existing code to newer Claude models,
   covering breaking changes, deprecated parameters, per-SDK syntax,
   prompt-behavior shifts, and migration checklists
-ccVersion: 2.1.158
+ccVersion: 2.1.177
 -->
 # Model Migration Guide
 
@@ -27,6 +27,8 @@ This file is large. Use the section names below to jump (or \`Grep\` for the hea
 | Opus 4.7 Migration Checklist | Required vs optional items for 4.7, tagged \`[BLOCKS]\` / \`[TUNE]\` |
 | Migrating to Opus 4.8 | Migrating to Opus 4.8 (no new breaking changes; mid-session system prompts; behavioral re-tuning) |
 | Opus 4.8 Migration Checklist | Required vs optional items for 4.8, tagged \`[BLOCKS]\` / \`[TUNE]\` |
+| Migrating to {{FABLE_NAME}} | Migrating to {{FABLE_NAME}} or {{MYTHOS_NAME}} (always-on thinking, raw CoT never returned, refusal handling, data retention, behavioral shifts) |
+| {{FABLE_NAME}} Migration Checklist | Required vs optional items for {{FABLE_NAME}}, tagged \`[BLOCKS]\` / \`[TUNE]\` |
 | Verify the Migration | After edits — runtime spot-check |
 
 **TL;DR:** Change the model ID string. If you used \`budget_tokens\`, switch to \`thinking: {type: "adaptive"}\`. Assistant prefills 400 on both Opus 4.6 and Sonnet 4.6 — switch to a prefill replacement (most often \`output_config.format\`; see Breaking Changes by Source Model). Moving Sonnet 4.5 → Sonnet 4.6: set \`effort\` explicitly — 4.6 defaults to \`high\`. Remove the \`effort-2025-11-24\` and \`fine-grained-tool-streaming-2025-05-14\` beta headers (GA on 4.6); remove \`interleaved-thinking-2025-05-14\` once on adaptive thinking (keep it only while using the transitional \`budget_tokens\` escape hatch). Then drop from \`client.beta.messages.create\` back to \`client.messages.create\`. Dial back aggressive "CRITICAL: YOU MUST" tool instructions; 4.6 follows the system prompt much more closely.
@@ -186,7 +188,8 @@ If applying several prompt-tuning edits at once, offer them as a short list the 
 
 | If you're on…                         | Migrate to         | Why                                               |
 | ------------------------------------- | ------------------ | ------------------------------------------------- |
-| Opus 4.7                              | \`claude-opus-4-8\`  | Most capable model; same API surface as 4.7 (no new breaking changes) — mostly prompt re-tuning; see Migrating to Opus 4.8 |
+| Claude Mythos Preview (\`claude-mythos-preview\`) | \`{{MYTHOS_ID}}\` (Project Glasswing successor) or \`{{FABLE_ID}}\` (GA) | Same tokenizer family — mostly a model-ID swap; remove \`thinking\` config and prefill; see Migrating to {{FABLE_NAME}} |
+| Opus 4.7                              | \`claude-opus-4-8\`  | Most capable Opus-tier model; same API surface as 4.7 (no new breaking changes) — mostly prompt re-tuning; see Migrating to Opus 4.8 |
 | Opus 4.6                              | \`claude-opus-4-8\`  | Apply the Opus 4.7 breaking changes, then the 4.8 re-tuning |
 | Opus 4.0 / 4.1 / 4.5 / Opus 3         | \`claude-opus-4-8\`  | Apply 4.6 → 4.7 → 4.8 in order (adaptive thinking, drop sampling params, then re-tune) |
 | Sonnet 4.0 / 4.5 / 3.7 / 3.5          | \`claude-sonnet-4-6\`| Best speed / intelligence balance; adaptive thinking; 64K output |
@@ -796,7 +799,7 @@ This works without an actual second step, but moving confidence filtering out of
 
 > **Model ID \`claude-opus-4-8\` is authoritative as written here.** When the user asks to migrate to Opus 4.8, write \`model="claude-opus-4-8"\` exactly. Do not WebFetch to verify — this guide is the source of truth for migration target IDs. The corresponding entry exists in \`shared/models.md\`.
 
-Claude Opus 4.8 is the most capable generally available model to date — highly autonomous, with state-of-the-art long-horizon agentic execution, knowledge work, and memory. Layered on top of the Opus 4.7 migration above. From Opus 4.6 or older: apply the 4.6 and 4.7 sections first, then this one.
+Claude Opus 4.8 is the most capable Opus-tier model — highly autonomous, with state-of-the-art long-horizon agentic execution, knowledge work, and memory. Layered on top of the Opus 4.7 migration above. From Opus 4.6 or older: apply the 4.6 and 4.7 sections first, then this one. ({{FABLE_NAME}} is a higher tier above Opus — see its section below — but \`claude-opus-4-8\` remains the default "upgrade to the latest" target.)
 
 **No new breaking changes.** Opus 4.8 keeps the same request surface as Opus 4.7 — adaptive thinking only (\`budget_tokens\` still 400s; use \`{type: "adaptive"}\`), sampling parameters still rejected, last-assistant-turn prefills still 400, \`thinking.display\` still defaults to \`"omitted"\`, and the \`low\`/\`medium\`/\`high\`/\`xhigh\`/\`max\` effort levels, Task Budgets (beta), and high-resolution vision all behave as on 4.7. A 4.7 → 4.8 migration is the model-ID swap plus prompt re-tuning — no required code edit beyond the model string.
 
@@ -888,9 +891,128 @@ For a caller **already on Opus 4.7**, only the first item is required; everythin
 
 ---
 
+## Migrating to {{FABLE_NAME}}
+
+> **Model IDs \`{{FABLE_ID}}\` and \`{{MYTHOS_ID}}\` are authoritative as written here.** Migrating to {{FABLE_NAME}}: write \`model="{{FABLE_ID}}"\`. A Mythos Preview migrator in Project Glasswing writes \`model="{{MYTHOS_ID}}"\` (everyone else: \`{{FABLE_ID}}\`). Don't WebFetch to verify — this guide is the source of truth for migration target IDs.
+
+{{FABLE_NAME}} is Anthropic's most capable widely released model. **{{MYTHOS_NAME}}** (\`{{MYTHOS_ID}}\`) has the same capabilities, pricing, and API behavior through Project Glasswing (the only way to access it) and succeeds the invitation-only **Claude Mythos Preview** (\`claude-mythos-preview\`). Everything here applies to both — only the ID differs. 1M token context window by default; up to 128K output tokens per request.
+
+Migrate here only when the user explicitly chose it — pricing is above Opus-tier, so it's *not* the default Opus upgrade. For "upgrade to the latest model", the target stays \`claude-opus-4-8\`.
+
+### Breaking changes (vs Opus-tier and Mythos Preview)
+
+1. **Thinking is always on — remove all \`thinking\` configuration.** Adaptive thinking applies automatically when \`thinking\` is unset (explicit \`{type: "adaptive"}\` is also accepted). \`{type: "disabled"}\` and \`{type: "enabled", budget_tokens: N}\` both 400. \`budget_tokens\` has no replacement — \`output_config.effort\` is an output-level control, not a thinking budget.
+
+\`\`\`python
+# After ({{FABLE_NAME}}) — no thinking field at all
+client.messages.create(
+    model="{{FABLE_ID}}",
+    max_tokens=16000,
+    output_config={"effort": "high"},
+    messages=[...],
+)
+\`\`\`
+
+2. **Assistant prefill is not supported.** Replace last-assistant-turn prefills with structured outputs (\`output_config.format\`) or system-prompt instructions — same patterns as the 4.6-family prefill removal above. (Exception: the fallback-credit prefill claim — see the refusal section.)
+3. **Interleaved scratchpad is not supported** (Mythos Preview migrators only). Inter-tool reasoning comes back in thinking blocks instead, which adaptive thinking produces automatically between tool calls.
+
+### Thinking output
+
+Raw chain of thought is never returned. You get **regular \`thinking\` blocks** (not encrypted blobs or \`redacted_thinking\`): \`display: "summarized"\` returns a readable summary; \`"omitted"\` (default, as on Opus 4.8/4.7) still includes \`thinking\` blocks but with an empty \`thinking\` field. \`display\` controls visibility only; thinking happens and is billed the same. Continuing on the same model: pass each thinking block back **exactly as received — including empty ones**. The API rejects *modified* blocks, not blocks you've read.
+
+{{FABLE_NAME}}/{{MYTHOS_NAME}} thinking is the exception to cross-model replay: a thinking block from these models replayed to a *different* model is **dropped from the prompt** rather than rendered — typically silently (early builds hard-rejected; reverted before launch but still rolling out, so don't depend on either outcome). The drop happens before pricing, so it **lowers \`usage.input_tokens\`** — nothing to strip. Don't strip *regular* thinking blocks either (removing them can trigger ordering/signature 400s). A request trying to elicit internal reasoning *in the response text* can refuse with \`stop_details.category: "reasoning_extraction"\` — read the summarized \`thinking\` blocks instead.
+
+### Tokenizer — unchanged from Opus 4.8
+
+Same tokenizer as Opus 4.8 (introduced with Opus 4.7). From Opus 4.7/4.8 or \`claude-mythos-preview\`: token counts roughly unchanged — re-baseline cost/latency for the per-token price difference. From Opus 4.6 / Sonnet / Haiku / older: ~1×–1.35× as many tokens; re-baseline with \`count_tokens\` (call once per model, compare \`input_tokens\`).
+
+### \`refusal\` stop reason — handle before reading content
+
+{{FABLE_NAME}} runs safety classifiers on incoming requests (research biology, most cybersecurity — not its intended domains); benign adjacent work can trigger false positives, which is why fallbacks matter even for legitimate workloads. A declined request returns **HTTP 200** with \`stop_reason: "refusal"\` plus a \`stop_details\` object carrying the policy category (\`"cyber"\`, \`"bio"\`, \`"reasoning_extraction"\`, \`"frontier_llm"\`, or \`null\` — \`null\` is a valid permanent state). **Branch on \`stop_reason\`, never on \`stop_details\`** (it's informational, can be \`null\` on a refusal, and \`explanation\` isn't guaranteed). Classifier blocks and ordinary model refusals both surface as \`stop_reason: "refusal"\`; \`stop_details.category\` tells which. The classifier can fire **before any output** (empty \`content\`; not billed — no tokens, no rate-limit consumption) or **mid-stream** (already-streamed output billed normally — discard it). Code reading \`response.content[0]\` unconditionally breaks — check \`stop_reason\` first.
+
+**Default to opting in.** Fallbacks are not automatic on the API. Ship migrated/new {{FABLE_NAME}} code with pattern 1 (or pattern 2 where server-side isn't supported) from day one — emit it, tell the user, remove only if they decline. Three ways to retry a refused request on another model, in order of preference:
+
+**1. Server-side \`fallbacks\` parameter (beta: Claude API, Claude Platform on AWS) — preferred.** One round trip, plain client. Only supported target at launch is \`claude-opus-4-8\`. On a policy decline the API runs the next model on the same request; a final \`stop_reason: "refusal"\` means the whole chain refused.
+
+\`\`\`python
+response = client.beta.messages.create(
+    model="{{FABLE_ID}}",
+    max_tokens=1024,
+    betas=["server-side-fallback-2026-06-01"],
+    fallbacks=[{"model": "claude-opus-4-8"}],
+    messages=[{"role": "user", "content": "Hello, Claude"}],
+)
+\`\`\`
+
+- **Header must be exactly \`server-side-fallback-2026-06-01\`** — other \`server-side-fallback-*\` values 400. The series date is the *earliest* (\`-2026-06-09\`/\`-2026-06-02\` were earlier previews) — don't "correct" it newer. Rejected on Batches; not on Bedrock/Vertex/Foundry (use pattern 2 there). Per-entry \`max_tokens\` override allowed; \`thinking\`/\`output_config\`/\`speed\` overrides are rolling out — until then include only \`model\` and \`max_tokens\`. Entries must be distinct and in the model's \`allowed_fallback_models\`.
+- **Triggers on policy declines only** — rate limits, overloads, server errors are returned as-is.
+- **Reading the response:** a \`fallback\` content block (\`{"type":"fallback","from":{...},"to":{...}}\`) marks each switch point; the served-by signal is a \`fallback_message\` entry in \`usage.iterations\` (don't rely on the block — sticky-served turns have none). Top-level \`model\` names the producer.
+- **Billing:** \`usage.iterations\` is per-attempt source of truth; top-level \`usage\` covers only the returned attempt. Declined-before-output attempts are reported, not billed. Each attempt claims its own model's rate limits — if the fallback is rate-limited/overloaded it isn't tried and the refusal is returned with \`stop_details.recommended_model\` (a hint, \`null\` when none).
+- **Sticky routing:** once a conversation falls back, later *non-streaming* \`fallbacks\` requests serve directly from the fallback model ~1 hour (best-effort, org-scoped content hash, not for ZDR orgs). Not consulted on streaming.
+- **Echoing fallback turns back:** after a mid-output fallback, omit \`thinking\`/\`redacted_thinking\`/\`tool_use\` blocks (plus any \`server_tool_use\` without its \`server_tool_result\`, and unknown model-internal blocks) that appear *before* the final \`fallback\` block; text, paired server-tool blocks, and everything after echo normally. The \`fallback\` block is an ignorable audit marker.
+
+**2. SDK client-side middleware — for providers without server-side fallbacks (Bedrock, Vertex, Foundry).** Register on the client; every \`client.beta.messages\` request (streaming included) retries refusals, splicing the fallback model's events onto the open stream in pattern-1 wire shape. Sends \`fallback-credit-2026-06-01\` by default so retries reprice via credit tokens. \`BetaFallbackState\` pins follow-up turns to the model that accepted — **one state per conversation** (it's the pinning scope).
+
+\`\`\`python
+from anthropic import Anthropic, BetaFallbackState, BetaRefusalFallbackMiddleware
+
+client = Anthropic(middleware=[BetaRefusalFallbackMiddleware([{"model": "claude-opus-4-8"}])])
+state = BetaFallbackState()
+with state:
+    response = client.beta.messages.create(model="{{FABLE_ID}}", max_tokens=1024, messages=messages)
+\`\`\`
+
+Per-language naming (from the GA SDK examples — don't improvise): TypeScript \`betaRefusalFallbackMiddleware([...])\` + \`{ fallbackState: state }\`; Go \`betafallback.BetaRefusalFallbackMiddleware(...)\` (\`lib/betafallback\`) + \`betafallback.WithBetaFallbackState\`; C# \`BetaRefusalFallbackHandler\` (\`Anthropic.Helpers\`) + \`BetaFallbackState.Create()\` scoped with \`using (state.Use()){...}\`. Java/Ruby/PHP and full runnable programs: each SDK repo ships a fallbacks example under \`examples/\` — WebFetch the repo from \`shared/live-sources.md\` rather than improvising.
+
+**3. Hand-rolled retry + fallback credit (raw HTTP, or SDKs without the middleware).** Detect the refusal via \`stop_reason\` and re-send the conversation as-is on a broader-availability model like \`claude-opus-4-8\` ({{FABLE_NAME}}'s thinking blocks are silently ignored by other models). **Fallback credit** (beta: Claude API, AWS, Bedrock, Vertex, Foundry) makes the retry cheaper — caches are per-model, so a plain retry pays cold cache-writes. With \`fallback-credit-2026-06-01\` (send on both original and retry), the refusal's \`stop_details\` carries \`fallback_credit_token\` (opaque; \`null\` when unavailable) and \`fallback_has_prefill_claim\`. Echo the token as the top-level \`fallback_credit_token\` request param on the retry and the cached span bills at cache-read rates. Rules: retry body must match the refused request **exactly** in every prompt-shaping field (\`system\`, \`messages\`, \`tools\`, \`tool_choice\`, \`thinking\` — don't strip thinking blocks); retry model must be in \`allowed_fallback_models\`; token expires in 5 min; Batches results carry no tokens. If \`fallback_has_prefill_claim\` is \`true\`, append one assistant message echoing the refused response's \`content\` (strip trailing whitespace from a final \`text\` block; omit unpaired \`tool_use\` blocks). On a 400 naming \`fallback_credit_token\`, retry without it (credit forfeited).
+
+**Migrating code built on the v1 preview.** If the code carries any v1 marker, migrate to the v2 shapes above and ship header + parameter changes together (v1 params under the v2 header = 400):
+
+| v1 marker (replace) | v2 |
+|---|---|
+| \`server-side-fallback-2026-06-09\` / \`-2026-06-02\` header | \`server-side-fallback-2026-06-01\` |
+| \`fallback: {model, on_partial}\` single object | \`fallbacks: [{model, ...}]\` array (1–3); \`on_partial\` gone (streams keep partial, non-streaming omits it); unknown entry keys 400 |
+| top-level \`response.fallback\` (\`from_model\`, \`reason\`) | never emitted — read \`fallback\` content blocks + \`usage.iterations\` |
+| \`event: fallback\` SSE with discard indices | no dedicated event; switch arrives as an ordinary \`content_block_start\`/\`stop\` of type \`fallback\` |
+| \`fallback_primary\` / \`fallback_retry\` iteration types | blocked attempts are plain \`message\`; the serving attempt is \`fallback_message\` |
+| \`reason: "sticky"\` | no reason field — detect via \`fallback_message\` + \`response.model\` |
+| \`recommended_model\` meaning "primary served the refusal" | now populated only when the fallback *couldn't run* (rate-limited/overloaded) |
+
+### Data retention requirement
+
+{{FABLE_NAME}} requires **30-day data retention** and is unavailable under zero data retention. Requests from a ZDR org return \`400 invalid_request_error\` — if a migration suddenly 400s with no obvious request problem, check the org's retention config before debugging the payload. On Bedrock/Vertex/Foundry, retention is set per platform.
+
+### What carries over unchanged
+
+Same Messages API and tool-use patterns as Opus-tier and Mythos Preview. At launch: \`output_config.effort\` (\`low\`/\`medium\`/\`high\`/\`xhigh\`/\`max\`), Task Budgets (beta \`task-budgets-2026-03-13\`), compaction (beta \`compact-2026-01-12\`), the memory tool, tool-call clearing via context editing, high-res vision (no downscaling cap, as on Opus 4.7+).
+
+### Behavioral shifts (prompt-tunable)
+
+The 4.8 behavioral shifts above apply; {{FABLE_NAME}}-specific deltas:
+
+- **Longer turns by default.** Hard tasks can run many minutes at higher effort (a 15-min single request is normal). Plan timeouts, streaming, async check-ins, and progress UX before migrating; structure work so callers check in asynchronously rather than blocking in one request.
+- **Consider all effort levels.** \`high\` for most tasks, \`xhigh\` for the most capability-sensitive, \`medium\`/\`low\` for routine. Low effort still performs very well — often beating prior models' \`xhigh\`/\`max\`. Reduce effort if a task completes correctly but slowly. At higher effort on routine work it can deliberate/refactor beyond the task — add a no-tidying instruction if so.
+- **De-prescribe migrated prompts and skills.** Prompts/skills written for prior models are often too prescriptive and *reduce* output quality. A/B with older step-by-step scaffolding removed; prefer stating goal + constraints over enumerating steps.
+- **Add a \`send_to_user\` tool** when an async agent must deliver content the user sees *exactly as written* mid-run — tool inputs are never summarized. Return a simple acknowledgement as the tool result.
+
+### {{FABLE_NAME}} Migration Checklist
+
+- [ ] **[BLOCKS]** Update \`model=\` to \`{{FABLE_ID}}\` (\`{{MYTHOS_ID}}\` for Mythos Preview migrators)
+- [ ] **[BLOCKS]** Remove all \`thinking\` configuration — \`{type: "disabled"}\` and \`{type: "enabled", budget_tokens: N}\` both 400; control depth with \`output_config.effort\`
+- [ ] **[BLOCKS]** Replace assistant prefill with structured outputs or system-prompt instructions
+- [ ] **[BLOCKS]** Confirm the org meets the 30-day data-retention requirement (ZDR orgs 400 on every request)
+- [ ] **[BLOCKS]** If thinking content is surfaced to users/logs: add \`thinking: {type: "adaptive", display: "summarized"}\` (default \`"omitted"\` renders empty)
+- [ ] **[TUNE]** Re-baseline cost/latency — token counts ~unchanged from Opus 4.7/4.8 and Mythos (same tokenizer); from Opus 4.6/Sonnet/Haiku/older use \`count_tokens\` per model
+- [ ] **[TUNE]** Add \`stop_reason == "refusal"\` handling before reading \`response.content\` (pre-output: empty + unbilled; mid-stream: partial billed — discard); opt into a fallback by default — server-side \`fallbacks\` (\`server-side-fallback-2026-06-01\`) where available, else SDK middleware or fallback credit (\`fallback-credit-2026-06-01\`)
+- [ ] **[TUNE]** Plan for minutes-long turns: timeouts, streaming, async check-ins, progress UX
+- [ ] **[TUNE]** Run an effort sweep including low/medium for routine workloads; add the no-tidying instruction if higher effort over-refactors
+- [ ] **[TUNE]** A/B with prior-model scaffolding removed — over-prescriptive prompts/skills reduce {{FABLE_NAME}} output quality
+
+---
+
 ## Verify the Migration
 
-After updating, spot-check that the new model is actually being used. Replace \`YOUR_TARGET_MODEL\` with the model string you migrated to (e.g. \`claude-opus-4-8\`, \`claude-opus-4-7\`, \`claude-sonnet-4-6\`, \`claude-haiku-4-5\`) and keep the assertion prefix in sync:
+After updating, spot-check that the new model is actually being used. Replace \`YOUR_TARGET_MODEL\` with the model string you migrated to (e.g. \`{{FABLE_ID}}\`, \`claude-opus-4-8\`, \`claude-opus-4-7\`, \`claude-sonnet-4-6\`, \`claude-haiku-4-5\`) and keep the assertion prefix in sync:
 
 \`\`\`python
 YOUR_TARGET_MODEL = "{{OPUS_ID}}"  # or "claude-opus-4-7", "claude-sonnet-4-6", "claude-haiku-4-5"

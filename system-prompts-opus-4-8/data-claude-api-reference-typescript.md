@@ -3,7 +3,7 @@ name: 'Data: Claude API reference — TypeScript'
 description: >-
   TypeScript SDK reference including installation, client initialization, basic
   requests, thinking, and multi-turn conversation
-ccVersion: 2.1.156
+ccVersion: 2.1.177
 -->
 # Claude API — TypeScript
 
@@ -203,15 +203,15 @@ If \`cache_read_input_tokens\` is zero across repeated identical-prefix requests
 
 ## Extended Thinking
 
-> **Opus 4.8, Opus 4.7, Opus 4.6, and Sonnet 4.6:** Use adaptive thinking. \`budget_tokens\` is removed on Opus 4.8 and 4.7 (400 if sent); deprecated on Opus 4.6 and Sonnet 4.6.
+> **Fable 5, Opus 4.8, Opus 4.7, Opus 4.6, and Sonnet 4.6:** Use adaptive thinking. \`budget_tokens\` is removed on Fable 5, Opus 4.8, and 4.7 (400 if sent); deprecated on Opus 4.6 and Sonnet 4.6.
 > **Older models:** Use \`thinking: {type: "enabled", budget_tokens: N}\` (must be < \`max_tokens\`, min 1024).
 
 \`\`\`typescript
-// Opus 4.8 / 4.7 / 4.6: adaptive thinking (recommended)
+// Fable 5 / Opus 4.8 / 4.7 / 4.6: adaptive thinking (recommended)
 const response = await client.messages.create({
   model: "{{OPUS_ID}}",
   max_tokens: 16000,
-  thinking: { type: "adaptive" },
+  thinking: { type: "adaptive", display: "summarized" }, // opt in; default omits thinking text on Fable 5 / Mythos 5 / Opus 4.8 / 4.7
   output_config: { effort: "high" }, // low | medium | high | max
   messages: [
     { role: "user", content: "Solve this math problem step by step..." },
@@ -283,7 +283,7 @@ const response = await client.messages.create({
 
 ### Compaction (long conversations)
 
-> **Beta, Opus 4.8, Opus 4.7, Opus 4.6, and Sonnet 4.6.** When conversations grow large, compaction automatically summarizes earlier context server-side. The API returns a \`compaction\` block; you must pass it back on subsequent requests — append \`response.content\`, not just the text.
+> **Beta, Fable 5, Opus 4.8, Opus 4.7, Opus 4.6, and Sonnet 4.6.** When conversations grow large, compaction automatically summarizes earlier context server-side. The API returns a \`compaction\` block; you must pass it back on subsequent requests — append \`response.content\`, not just the text.
 
 \`\`\`typescript
 import Anthropic from "@anthropic-ai/sdk";
@@ -340,10 +340,41 @@ When \`stop_reason\` is \`"refusal"\`, the response includes a \`stop_details\` 
 
 \`\`\`typescript
 if (response.stop_reason === "refusal" && response.stop_details) {
-  console.log(\`Category: \${response.stop_details.category}\`); // "cyber" | "bio" | null
+  console.log(\`Category: \${response.stop_details.category}\`); // e.g. "cyber" | "bio" | "reasoning_extraction" | "frontier_llm" | null — see docs for the full set
   console.log(\`Explanation: \${response.stop_details.explanation}\`);
 }
 \`\`\`
+
+### Refusal Fallbacks ({{FABLE_NAME}}) — opt in by default
+
+Opt-in (without it a refused request just stops). On a policy decline the API re-runs the same request on the fallback model inside the same call; the decline isn't billed unless it streamed partial output, and the rescue bills at the fallback's rates.
+
+\`\`\`typescript
+const response = await client.beta.messages.create({
+  model: "{{FABLE_ID}}",
+  max_tokens: 16000,
+  betas: ["server-side-fallback-2026-06-01"],
+  fallbacks: [{ model: "{{OPUS_ID}}" }],
+  messages: [{ role: "user", content: "..." }],
+});
+
+// One \`fallback\` block per model that ran and declined this turn
+for (const block of response.content) {
+  if (block.type === "fallback") {
+    console.log(\`\${block.from.model} declined; \${block.to.model} continued\`);
+  }
+}
+
+// Served-by signal — sticky turns carry no fallback block. The fallback can itself refuse, so pair with stop_reason.
+const fallbackRan = (response.usage.iterations ?? []).some(
+  (entry) => entry.type === "fallback_message",
+);
+if (fallbackRan && response.stop_reason !== "refusal") {
+  console.log(\`Served by \${response.model}\`);
+}
+\`\`\`
+
+\`stop_reason: "refusal"\` on the final response means the whole chain refused. Header must be exactly \`server-side-fallback-2026-06-01\`; rejected on the Batches API and unavailable on Bedrock, Vertex AI, and Microsoft Foundry — register the client-side \`betaRefusalFallbackMiddleware\` there instead.
 
 ---
 
