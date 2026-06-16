@@ -4,11 +4,11 @@ description: 'TOOL_BASE_DESCRIPTION for the Agent/Task tool. Referenced from age
 inlineBlobAnchor: "`Launch a new agent to handle complex, multi-step tasks\\. Each agent type has specific capabilities"
 inlineBlobKind: 'template'
 injectionGate: 'Agent tool loaded (default-on for coding sessions)'
-ccVersion: '2.1.139'
+ccVersion: '2.1.178'
 -->
 
 Launch a new agent to handle complex, multi-step tasks. Each agent type has specific capabilities and tools available to it.
 
-${J}${M}
+${X}
 
-${T?`When using the ${K9} tool, specify a subagent_type to use a specialized agent, or omit it to fork yourself — a fork inherits your full conversation context.`:`When using the ${K9} tool, specify a subagent_type parameter to select which agent type to use. If omitted, the general-purpose agent is used.`}
+${z?`When using the ${A_} tool, specify a subagent_type to use a specialized agent, or omit it to fork yourself — a fork inherits your full conversation context.`:`When using the ${A_} tool, specify a subagent_type parameter to select which agent type to use. If omitted, the general-purpose agent is used.`}

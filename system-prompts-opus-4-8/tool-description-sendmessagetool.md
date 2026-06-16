@@ -1,7 +1,7 @@
 <!--
 name: 'Tool Description: SendMessageTool'
 description: Agent teams version of SendMessageTool.
-ccVersion: 2.1.148
+ccVersion: 2.1.178
 -->
 # SendMessage
 

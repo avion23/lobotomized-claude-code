@@ -14,6 +14,9 @@ variables:
   - RUN_IN_BACKGROUND_NOTE
   - PARALLEL_AGENTS_NOTE
   - CONTEXT_RESTRICTION_NOTE
+shadows:
+  - tool-description-agent-usage-notes
+  - tool-description-agent-when-to-launch-subagents
 -->
 ${TOOL_BASE_DESCRIPTION}${HAS_PRO_RESTRICTION_NOTE?"":`
 

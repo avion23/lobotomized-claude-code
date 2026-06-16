@@ -4,7 +4,7 @@ description: >-
   Describes the DesignSync tool — reads/updates the user's claude.ai/design
   design-system projects through their claude.ai login, dispatching on a method
   field, paired with the /design-sync skill
-ccVersion: 2.1.162
+ccVersion: 2.1.178
 -->
 Read and update the user's claude.ai/design design-system projects through their claude.ai login. Pairs with the /design-sync skill, which owns the sync workflow: keep the local library in sync incrementally, one component at a time, never as a wholesale replace.
 

@@ -1,7 +1,7 @@
 <!--
 name: 'System Reminder: Team Coordination'
 description: System reminder for team coordination
-ccVersion: 2.1.148
+ccVersion: 2.1.178
 variables:
   - TEAM_OBJECT
 -->
