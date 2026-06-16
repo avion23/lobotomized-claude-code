@@ -1,14 +1,15 @@
 <!--
 name: 'Tool Description: Bash (Git commit and PR creation instructions)'
 description: Instructions for creating git commits and GitHub pull requests
-ccVersion: 2.1.162
+ccVersion: 2.1.178
 variables:
-  - BASH_TOOL_NAME
+  - LOADED_COMMANDS_CONTEXT
   - COMMIT_CO_AUTHORED_BY_CLAUDE_CODE
+  - BASH_TOOL_NAME
   - GET_TODO_TOOL_FN
   - TASK_TOOL_NAME
-  - EMPTY_STRING
   - PR_INSTRUCTIONS_PREFIX
+  - EMPTY_STRING
   - PR_GENERATED_WITH_CLAUDE_CODE
   - PR_COMMON_OPERATIONS_NOTE
 -->

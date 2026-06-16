@@ -4,7 +4,7 @@ description: >-
   Bundled /code-review workflow — scopes the diff, fans out per-angle finders,
   dedups, verifies, sweeps for gaps (xhigh/max), and synthesizes;
   effort-parameterized via LEVEL_PARAMS
-ccVersion: 2.1.160
+ccVersion: 2.1.178
 variables:
   - JSON
   - WORKFLOW_NAME
