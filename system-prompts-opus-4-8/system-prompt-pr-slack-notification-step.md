@@ -1,0 +1,8 @@
+<!--
+name: 'System Prompt: PR Slack notification step'
+description: >-
+  Adds a PR workflow step to optionally ask the user before posting the PR URL
+  to Slack
+ccVersion: 2.1.178
+-->
+5. After creating/updating the PR, check if the user's CLAUDE.md mentions posting to Slack channels. If it does, use ToolSearch to search for "slack send message" tools. If ToolSearch finds a Slack tool, ask the user if they'd like you to post the PR URL to the relevant Slack channel, and post only if they confirm. If ToolSearch returns no results or errors, skip this step silently.
