@@ -10,3 +10,5 @@ variables:
   - EXIT_PLAN_MODE_TOOL_NAME
 -->
 ${ENTER_PLAN_MODE_RESULT_MESSAGE}
+
+Plan mode is read-only — don't write or edit files yet. Explore the codebase and design an approach, using ${ASK_USER_QUESTION_TOOL_NAME} to clarify intent. When ready, present the plan with ${EXIT_PLAN_MODE_TOOL_NAME}.

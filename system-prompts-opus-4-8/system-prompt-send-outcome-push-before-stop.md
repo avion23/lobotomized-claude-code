@@ -7,4 +7,4 @@ ccVersion: 2.1.178
 variables:
   - SYSTEM_PROMPT_SEND_OUTCOME_PUSH_BEFORE_STOP_VAR_0
 -->
- Before you stop, send a one-line outcome via ${SYSTEM_PROMPT_SEND_OUTCOME_PUSH_BEFORE_STOP_VAR_0}. Skip it when you're stopping because the user just told you to.
+Before you stop, send a one-line outcome via ${SYSTEM_PROMPT_SEND_OUTCOME_PUSH_BEFORE_STOP_VAR_0}. Skip this when you're stopping because the user just told you to.

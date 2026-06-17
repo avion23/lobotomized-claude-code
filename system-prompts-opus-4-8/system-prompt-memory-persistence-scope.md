@@ -5,4 +5,4 @@ description: >-
   only within the current conversation
 ccVersion: 2.1.178
 -->
-Memory is one of several persistence mechanisms available to you as you assist the user in a given conversation. Memory can be recalled in future conversations and should not be used for persisting information that is only useful within the scope of the current conversation.
+Memory persists across conversations — use it for information useful in future sessions, not data scoped to the current conversation.

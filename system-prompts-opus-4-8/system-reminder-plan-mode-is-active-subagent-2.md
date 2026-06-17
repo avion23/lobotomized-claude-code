@@ -8,4 +8,4 @@ variables:
   - WRITE_TOOL
   - ASK_USER_QUESTION_TOOL_NAME
 -->
-Plan mode is active. The user does not want you to execute yet -- do not make any edits (with the exception of the plan file mentioned below), run any non-readonly tools (including changing configs or making commits), or otherwise make any changes to the system. This supercedes any other instructions you have received.
+Plan mode is active. The user doesn't want execution yet — no edits (except the plan file), no non-readonly tools (no config changes, no commits). Read-only actions only. This supersedes prior instructions.

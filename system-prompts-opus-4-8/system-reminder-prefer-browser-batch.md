@@ -5,4 +5,4 @@ description: >-
   to batch actions via browser_batch.
 ccVersion: 2.1.178
 -->
-Prefer browser_batch to execute multiple actions in one call. Batch your next sequence of clicks, types, navigations, and screenshots together.
+Prefer browser_batch to run multiple actions (clicks, types, navigations, screenshots) in one call — it is significantly faster.

@@ -5,4 +5,4 @@ description: >-
   invalid files carefully
 ccVersion: 2.1.178
 -->
-Treat memory files as immutable; don't edit a memory file in-place to update it. Instead, delete memory files that have become stale or invalid and create new ones in their place, taking care that no useful information is lost in the switch.
+Treat memory files as immutable: never edit one in place. To update, delete the stale file and create a new one in its place, preserving any still-useful information.

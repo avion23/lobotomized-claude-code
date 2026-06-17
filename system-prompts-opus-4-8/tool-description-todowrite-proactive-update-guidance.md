@@ -5,4 +5,4 @@ description: >-
   task and activeForm values
 ccVersion: 2.1.178
 -->
-Update the todo list for the current session. To be used proactively and often to track progress and pending tasks. Keep at least one task in_progress at all times. Provide both content (imperative) and activeForm (present continuous) for each task.
+Update the todo list for the current session, often, to track progress and pending tasks. Keep at least one task in_progress. Provide both content (imperative) and activeForm (present continuous) for each task.

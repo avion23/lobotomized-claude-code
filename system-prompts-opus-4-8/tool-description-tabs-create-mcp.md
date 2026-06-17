@@ -5,4 +5,4 @@ description: >-
   in the MCP tab group.
 ccVersion: 2.1.178
 -->
-Creates a new empty tab in the MCP tab group. Get the context using tabs_context_mcp at least once before using other browser automation tools so you know what tabs exist.
+Creates a new empty tab in the MCP tab group. Call tabs_context_mcp at least once before other browser automation tools so you know what tabs exist.

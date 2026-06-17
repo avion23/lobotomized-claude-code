@@ -7,4 +7,4 @@ ccVersion: 2.1.178
 variables:
   - TOOL_RESULT_ASKUSERQUESTION_ANSWERED_VAR_0
 -->
-Your questions have been answered: ${TOOL_RESULT_ASKUSERQUESTION_ANSWERED_VAR_0}.
+Your questions were answered: ${TOOL_RESULT_ASKUSERQUESTION_ANSWERED_VAR_0}. Continue with these answers.

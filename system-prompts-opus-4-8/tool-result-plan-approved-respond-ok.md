@@ -5,4 +5,4 @@ description: >-
   needed, and to respond with 'ok'.
 ccVersion: 2.1.178
 -->
-User has approved the plan. Respond with "ok"
+User approved the plan. Respond with "ok".

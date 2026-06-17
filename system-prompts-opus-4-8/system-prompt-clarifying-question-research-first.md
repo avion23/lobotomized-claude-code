@@ -5,4 +5,4 @@ description: >-
   questions
 ccVersion: 2.1.178
 -->
-Before asking the user a clarifying question, spend up to a minute on read-only investigation (grep the codebase, check docs, search memory) so your question is specific.
+Before asking a clarifying question, spend up to a minute on read-only investigation (grep the codebase, check docs, search memory) so the question is specific. "I found tunnels X and Y in the config — which one?" beats "what tunnel?"

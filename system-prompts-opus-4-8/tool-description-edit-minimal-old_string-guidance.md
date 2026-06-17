@@ -5,5 +5,6 @@ description: >-
   replace_all
 ccVersion: 2.1.178
 -->
-- Keep `old_string` minimal — usually 1-3 lines, only enough to be unique in the file. Including excess context is an error.
-- The edit will fail if `old_string` is not unique in the file. In that case, add the minimum extra context needed for uniqueness, or use `replace_all` to change every instance.
+
+- Keep `old_string` minimal — usually 1-3 lines, only enough to be unique in the file.
+- The edit fails if `old_string` is not unique. Add the minimum extra context for uniqueness, or use `replace_all` to change every instance.

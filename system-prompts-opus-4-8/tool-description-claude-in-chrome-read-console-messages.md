@@ -5,4 +5,4 @@ description: >-
   browser console output
 ccVersion: 2.1.178
 -->
-Read browser console messages (console.log, console.error, console.warn, etc.) from a specific tab, for debugging JavaScript errors and viewing application logs. Returns console messages from the current domain only. If you don't have a valid tab ID, use tabs_context_mcp first to get available tabs. Provide a pattern to filter messages to the relevant ones.
+Read browser console messages (log, error, warn, etc.) from a tab, scoped to the current domain. Filter with a pattern to avoid flooding output. If you don't have a valid tab ID, use tabs_context_mcp first.

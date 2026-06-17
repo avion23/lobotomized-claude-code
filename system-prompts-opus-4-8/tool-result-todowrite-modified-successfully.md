@@ -5,4 +5,4 @@ description: >-
   keep using the list
 ccVersion: 2.1.178
 -->
-Todos have been modified successfully.
+Todos modified successfully.

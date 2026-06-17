@@ -7,4 +7,4 @@ ccVersion: 2.1.178
 variables:
   - MAX_OUTPUT_CHARS
 -->
-- If you receive truncation warnings when reading the file ("[N lines truncated]"), reduce the chunk size until you have read 100% of the content without truncation. Bash output is limited to ${MAX_OUTPUT_CHARS.toLocaleString()} chars.
+- On truncation warnings ("[N lines truncated]"), reduce the chunk size until you read the content without truncation. Bash output is limited to ${MAX_OUTPUT_CHARS.toLocaleString()} chars.

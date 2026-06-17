@@ -7,4 +7,4 @@ ccVersion: 2.1.178
 variables:
   - SYSTEM_REMINDER_STOP_CALL_REQUIRED_TOOL_VAR_0
 -->
-Call the ${SYSTEM_REMINDER_STOP_CALL_REQUIRED_TOOL_VAR_0} tool to complete this request.
+Call the ${SYSTEM_REMINDER_STOP_CALL_REQUIRED_TOOL_VAR_0} tool now to complete this request.

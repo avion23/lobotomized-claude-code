@@ -5,4 +5,6 @@ description: >-
   to Slack
 ccVersion: 2.1.178
 -->
-5. After creating/updating the PR, check if the user's CLAUDE.md mentions posting to Slack channels. If it does, use ToolSearch to search for "slack send message" tools. If ToolSearch finds a Slack tool, ask the user if they'd like you to post the PR URL to the relevant Slack channel, and post only if they confirm. If ToolSearch returns no results or errors, skip this step silently.
+
+
+5. After creating/updating the PR, check whether the user's CLAUDE.md mentions posting to Slack channels. If it does, use ToolSearch to find a "slack send message" tool; if one exists, ask the user whether to post the PR URL to the relevant channel, and post only if they confirm. If ToolSearch finds nothing, skip this step silently.

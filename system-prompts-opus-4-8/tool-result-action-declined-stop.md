@@ -5,4 +5,4 @@ description: >-
   instructs the model to stop and wait
 ccVersion: 2.1.178
 -->
-The user declined this action. Stop and wait for the user to tell you how to proceed.
+The user declined this action. Stop and wait for the user to say how to proceed.

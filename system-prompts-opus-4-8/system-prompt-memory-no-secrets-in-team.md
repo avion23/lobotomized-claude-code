@@ -5,4 +5,4 @@ description: >-
   credentials) in shared team memories.
 ccVersion: 2.1.178
 -->
-- Avoid saving sensitive data within shared team memories. For example, don't save API keys or user credentials.
+- Don't save sensitive data (API keys, user credentials) in shared team memories.
