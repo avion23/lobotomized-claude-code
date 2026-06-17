@@ -170,11 +170,11 @@ const VERIFY_PROMPT = (claim, v) =>
   "**Supporting quote:** \\"" + claim.quote + "\\"\\n\\n" +
   "## Checklist\\n" +
   "1. Is the claim actually supported by the quote, or is it an overreach/misread?\\n" +
-  "2. WebSearch for contradicting evidence — does any credible source dispute or heavily qualify this?\\n" +
+  "2. WebSearch for BOTH contradicting AND corroborating evidence — does any credible source dispute it, and does any INDEPENDENT source confirm it? A claim no other source corroborates is a red flag.\\n" +
   "3. Is the source quality sufficient for the claim's strength? (extraordinary claims need primary sources)\\n" +
   "4. Is the claim outdated? (check dates — old claims about fast-moving fields are suspect)\\n" +
   "5. Is this a marketing claim / press release / cherry-picked benchmark / forum speculation?\\n\\n" +
-  "**refuted=true** if: unsupported by quote / contradicted / low-quality source for strong claim / outdated / marketing fluff.\\n" +
+  "**refuted=true** if: unsupported by quote / contradicted / uncorroborated (no independent source confirms it, unless it is a primary source stating its own result) / low-quality source for strong claim / outdated / marketing fluff.\\n" +
   "**refuted=false** ONLY if: claim is well-supported, current, and source quality matches claim strength.\\n" +
   "Default to refuted=true if uncertain.\\n\\nStructured output only. Evidence MUST be specific."
 
