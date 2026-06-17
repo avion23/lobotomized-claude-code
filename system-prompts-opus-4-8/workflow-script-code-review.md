@@ -86,17 +86,14 @@ const VERDICT_SCHEMA = {
   },
 }
 const REPORT_SCHEMA = {
-  type: "object", required: ["summary", "findings"],
+  type: "object", required: ["summary", "decisions"],
   properties: {
     summary: { type: "string" },
-    findings: { type: "array", items: {
-      type: "object", required: ["file", "summary", "failure_scenario", "verdict"],
+    decisions: { type: "array", items: {
+      type: "object", required: ["index"],
       properties: {
-        file: { type: "string" },
-        line: { type: "number" },
-        summary: { type: "string" },
-        failure_scenario: { type: "string" },
-        verdict: { enum: ["CONFIRMED", "PLAUSIBLE"] },
+        index: { type: "number", description: "the [i] label of a finding to keep in the report" },
+        merge: { type: "array", items: { type: "number" }, description: "[i] labels of findings that describe the same root cause, folded into this one" },
       },
     }},
   },
@@ -112,7 +109,7 @@ const scope = await agent(
   "\\n1. Determine the exact diff command(s) for the review and run them to confirm they produce a non-empty diff.\\n" +
   "2. List the changed files.\\n" +
   "3. Summarize what changed in one paragraph.\\n" +
-  "4. Read CLAUDE.md files relevant to the changed files and note conventions a reviewer should know.\\n\\n" +
+  "4. List the CLAUDE.md files that apply to the changed files (the user-level ~/.claude/CLAUDE.md, the repo-root CLAUDE.md, plus any CLAUDE.md or CLAUDE.local.md in a directory that is an ancestor of a changed file). Read each one that exists and note conventions a reviewer should know.\\n\\n" +
   "Return diffCommand exactly as a reviewer should run it. Structured output only.",
   { label: "scope", schema: SCOPE_SCHEMA }
 )
@@ -264,27 +261,54 @@ const block = ranked.map((c, i) =>
 
 const report = await agent(
   "## Synthesis: final code-review report\\n\\n" +
-  ranked.length + " findings survived independent verification (" + LEVEL + "-effort review).\\n\\n" + block + "\\n" +
+  ranked.length + " findings survived independent verification (" + LEVEL + "-effort review). They are numbered [0]-[" + (ranked.length - 1) + "] below.\\n\\n" + block + "\\n" +
   "## Instructions\\n" +
-  "1. Merge findings that describe the same defect (same root cause) — combine their evidence.\\n" +
-  "2. Rank most-severe first. Correctness bugs always outrank cleanup findings.\\n" +
-  "3. Keep at most " + P.maxFindings + " findings; drop the least severe beyond the cap.\\n" +
+  "Return decisions about findings BY INDEX — never re-emit finding text.\\n" +
+  "1. For each distinct defect, emit one decision with its index. When several findings describe the same defect (same root cause), keep one entry and list the others in its merge array.\\n" +
+  "2. Order decisions most-severe first. Correctness bugs always outrank cleanup findings.\\n" +
+  "3. Keep at most " + P.maxFindings + " decisions; omit the least severe beyond the cap.\\n" +
   "4. Write a 2-3 sentence summary of the review.\\n\\nStructured output only.",
   { label: "synthesize", schema: REPORT_SCHEMA }
 )
 
-// Synthesis skipped/errored — salvage the verified findings unmerged rather
-// than discarding the run.
-const findings = report
-  ? report.findings.slice(0, P.maxFindings)
-  : ranked.slice(0, P.maxFindings).map(c => ({
-      file: c.file, line: c.line, summary: c.summary, failure_scenario: c.failure_scenario, verdict: c.verdict,
-    }))
+// Assembler invariants:
+//   1. No silent drops while there is room: every verified finding either appears
+//      (as primary or merge note) or is omitted only because the cap is full.
+//   2. The displayed primary is the synthesizer's choice (d.index) — it picks the
+//      best-described representative; we only escalate the verdict label when a
+//      merged member is CONFIRMED.
+//   3. The summary describes the report actually returned.
+const decisions = report && Array.isArray(report.decisions) ? report.decisions : []
+const valid = i => Number.isInteger(i) && i >= 0 && i < ranked.length
+const loc = c => c.file + (c.line != null ? ":" + c.line : "")
+const claimedIdx = new Set()
+const claim = i => (valid(i) && !claimedIdx.has(i) ? (claimedIdx.add(i), true) : false)
+const findings = []
+for (const d of decisions) {
+  if (findings.length >= P.maxFindings) break
+  if (!claim(d.index)) continue
+  const c = ranked[d.index]
+  const merged = (Array.isArray(d.merge) ? d.merge : []).filter(claim).map(i => ranked[i])
+  const verdict = merged.some(m => m.verdict === "CONFIRMED") ? "CONFIRMED" : c.verdict
+  const also = merged.length > 0 ? " [same root cause also at: " + merged.map(loc).join(", ") + "]" : ""
+  findings.push({ file: c.file, line: c.line, summary: c.summary + also, failure_scenario: c.failure_scenario, verdict })
+}
+const usedDecisions = findings.length > 0
+let backfilled = 0
+for (let i = 0; i < ranked.length && findings.length < P.maxFindings; i++) {
+  if (claimedIdx.has(i)) continue
+  const c = ranked[i]
+  findings.push({ file: c.file, line: c.line, summary: c.summary, failure_scenario: c.failure_scenario, verdict: c.verdict })
+  backfilled++
+}
+const summary = usedDecisions && report
+  ? report.summary + (backfilled > 0 ? " (" + backfilled + " additional verified finding" + (backfilled === 1 ? "" : "s") + " appended unmerged.)" : "")
+  : "Synthesis step was skipped or its decisions were unusable — returning verified findings ranked, unmerged."
 
 return {
   level: LEVEL,
   target: TARGET || undefined,
-  summary: report ? report.summary : "Synthesis step was skipped or failed — returning verified findings unmerged.",
+  summary,
   findings,
   refuted: refuted.map(c => ({ file: c.file, line: c.line, summary: c.summary })),
   stats: { ...stats, reported: findings.length },
