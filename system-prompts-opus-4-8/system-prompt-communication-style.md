@@ -4,7 +4,7 @@ description: >-
   Brief one-sentence updates at key moments, short end-of-turn summary,
   format-to-task matching, no internal-deliberation narration, and minimal code
   comments
-ccVersion: 2.1.179
+ccVersion: 2.1.104
 -->
 # Text output (does not apply to tool calls)
 
