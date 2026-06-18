@@ -6,11 +6,11 @@ description: >-
   agent()/parallel()/pipeline()/phase(); env-gated behind CLAUDE_CODE_WORKFLOWS
 ccVersion: 2.1.178
 variables:
-  - WORKFLOW_TOOL_NAME
-  - WORKFLOW_SCRIPT_PATH_NOTE
-  - WORKFLOW_AGENT_ISOLATION_OPTION
-  - WORKFLOW_AGENT_ISOLATION_NOTE
-  - WORKFLOW_GROUP_PREFIX
+  - WORKFLOW_INVOCATION_QUALIFIER
+  - WORKFLOW_RESEND_NOTE
+  - WORKFLOW_ISOLATION_TYPE
+  - WORKFLOW_WORKTREE_NOTE
+  - WORKFLOW_GROUP_GLYPH
 -->
 Execute a workflow script that orchestrates multiple subagents deterministically. Workflows run in the background — this tool returns immediately with a task ID, and a \`<task-notification>\` arrives when the workflow completes. Use /workflows to watch live progress.
 

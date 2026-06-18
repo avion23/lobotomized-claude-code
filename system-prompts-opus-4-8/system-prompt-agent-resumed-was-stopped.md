@@ -1,0 +1,12 @@
+<!--
+name: 'System Prompt: Agent resumed (was stopped) result'
+description: >-
+  SendMessage tool_result reporting the target agent was stopped and resumed in
+  the background with the message
+ccVersion: 2.1.178
+variables:
+  - SYSTEM_PROMPT_AGENT_RESUMED_WAS_STOPPED_VAR_0
+  - SYSTEM_PROMPT_AGENT_RESUMED_WAS_STOPPED_VAR_1
+  - SYSTEM_PROMPT_AGENT_RESUMED_WAS_STOPPED_VAR_2
+-->
+Agent "${SYSTEM_PROMPT_AGENT_RESUMED_WAS_STOPPED_VAR_0.to}" was stopped (${SYSTEM_PROMPT_AGENT_RESUMED_WAS_STOPPED_VAR_1.status}); resumed it in the background with your message. You'll be notified when it finishes. Output: ${SYSTEM_PROMPT_AGENT_RESUMED_WAS_STOPPED_VAR_2.outputFile}
