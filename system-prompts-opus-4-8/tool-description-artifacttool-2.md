@@ -3,7 +3,7 @@ name: 'Tool Description: ArtifactTool'
 description: >-
   Tool description for ArtifactTool — renders an HTML or Markdown file to a
   default-private hosted web page on claude.ai
-ccVersion: 2.1.178
+ccVersion: 2.1.183
 -->
 Render an HTML or Markdown file to an Artifact — a default-private web page hosted on claude.ai that the user can later choose to share with teammates. Use this when an image, diagram, or rich HTML/Markdown would communicate more clearly than terminal text.
 
