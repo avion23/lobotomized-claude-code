@@ -156,7 +156,9 @@ For any field not in these tables, the JSON key in the Python example translates
 
 ## Explain every change you make
 
-For each edit, tell the user what changed and why. For prompt-tuning edits, quote before/after text, distinguish optional tuning from code edits required to avoid a 400, and offer a list the user can accept item-by-item.
+For each edit, tell the user what changed and why, and state the behavioral shift that motivates it. For example: "4.6 follows instructions more literally than 4.5, so `CRITICAL: YOU MUST use this tool` will overtrigger — dialing it back to `Use this tool when…` stops the overtriggering without losing the intent." The behavioral-shift rationale calibrates the user's judgment about *why* a change is needed, which is different from just quoting before/after text.
+
+For prompt-tuning edits, quote before/after text, distinguish optional tuning from code edits required to avoid a 400, and offer a list the user can accept item-by-item. Don't present an optional prompt change as mandatory — if skipping it won't cause an error, say so.
 
 ---
 

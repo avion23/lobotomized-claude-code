@@ -41,7 +41,6 @@ The surface is where a user — human or programmatic — meets the change. That
 | GUI | pixels | drive it under xvfb/Playwright, screenshot |
 | Library | package boundary | sample code through the public export — \`import pkg\`, not \`import ./src/...\` |
 | Prompt / agent config | the agent | run the agent, capture its behavior |
-| CI workflow | Actions | dispatch it, read the run |
 
 **Internal function? Not a surface.** Something in the repo calls it, and that caller ends at one of the rows above. Follow it there. A bash security gate's surface isn't the function's return value — it's the CLI prompting or auto-allowing when you type the command.
 
@@ -70,7 +69,7 @@ Smallest path that makes the changed code execute:
 - Changed error handling? Trigger the error.
 - Changed an internal function? Find the CLI command / request / render that reaches it, and run that.
 
-**Read your plan back before running.** If every step is build / typecheck / run test file, you've planned a CI rerun. Find a step that reaches the surface.
+**Read your plan back before running.** If every step is build / typecheck / run test file, you've planned a CI rerun. Find a step that reaches the surface, or report BLOCKED.
 
 **The verdict is table stakes; your observations are the signal.** You're the only reviewer who actually ran the thing — anything that made you pause, work around, or go "huh" is information the author doesn't have. Don't filter for "is this a bug"; surface anything you'd mention if they were next to you.
 
@@ -117,8 +116,7 @@ start; what you launched>
 ### Steps
 
 Each step is one thing you did to the **running app** and what it
-showed. Build/install/checkout are setup, not steps. Test runs and
-typecheck don't belong here — they're CI's output.
+showed. Build/install/checkout are setup, not steps.
 
 1. ✅/❌/⚠️/🔍 <what you did to the running app> → <what you observed>
    <evidence: the app's own output — pane capture, response body,
@@ -140,9 +138,6 @@ pause, it goes here — but the pause has to be yours, from running the
 app, not from reading the PR page. A red CI check or someone else's bot
 is already visible; relaying it isn't an observation. Claim/diff
 mismatch, pre-existing breakage, and env notes belong here too.
-
-Each probe gets a line even when it held — "🔍 empty \`--from\` → clean
-error" tells the author what *was* covered, which a bare PASS can't.
 
 Lead with ⚠️ for lines worth interrupting the reviewer for; plain
 bullets are context. Empty is fine if nothing stuck out — though that's

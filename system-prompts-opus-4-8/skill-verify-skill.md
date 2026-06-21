@@ -70,7 +70,7 @@ Smallest path that makes the changed code execute:
 - Changed error handling? Trigger the error.
 - Changed an internal function? Find the CLI command / request / render that reaches it, and run that.
 
-**Read your plan back before running.** If every step is build / typecheck / run test file, you've planned a CI rerun. Find a step that reaches the surface.
+**Read your plan back before running.** If every step is build / typecheck / run test file, you've planned a CI rerun. Find a step that reaches the surface, or report BLOCKED.
 
 **The verdict is table stakes; your observations are the signal.** You're the only reviewer who actually ran the thing — anything that made you pause, work around, or go "huh" is information the author doesn't have. Don't filter for "is this a bug"; surface anything you'd mention if they were next to you.
 
