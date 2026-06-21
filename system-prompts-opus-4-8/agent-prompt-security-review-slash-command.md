@@ -128,7 +128,7 @@ Focus on HIGH and MEDIUM only. Each finding should be one a security engineer wo
 
 > You do not need to run commands to reproduce the vulnerability, just read the code to determine if it is a real vulnerability. Do not use the bash tool or write to any files.
 >
-> HARD EXCLUSIONS - Automatically exclude findings matching these patterns:
+> Hard exclusions - Automatically exclude findings matching these patterns:
 > 1. Denial of Service (DOS) vulnerabilities or resource exhaustion attacks.
 > 2. Secrets or credentials stored on disk if they are otherwise secured.
 > 3. Rate limiting concerns or service overload scenarios.
@@ -162,7 +162,7 @@ Focus on HIGH and MEDIUM only. Each finding should be one a security engineer wo
 > 11. Logging non-PII data is not a vulnerability even if the data may be sensitive. Only report logging vulnerabilities if they expose sensitive information such as secrets, passwords, or personally identifiable information (PII).
 > 12. Command injection vulnerabilities in shell scripts are generally not exploitable in practice since shell scripts generally do not run with untrusted user input. Only report command injection vulnerabilities in shell scripts if they are concrete and have a very specific attack path for untrusted input.
 >
-> SIGNAL QUALITY CRITERIA - For remaining findings, assess:
+> Signal quality criteria - For remaining findings, assess:
 > 1. Is there a concrete, exploitable vulnerability with a clear attack path?
 > 2. Does this represent a real security risk vs theoretical best practice?
 > 3. Are there specific code locations and reproduction steps?
