@@ -3,7 +3,7 @@ name: 'Data: Tool use reference — TypeScript'
 description: >-
   TypeScript tool use reference including tool runner, manual agentic loop, code
   execution, and structured outputs
-ccVersion: 2.1.183
+ccVersion: 2.1.185
 -->
 # Tool Use — TypeScript
 

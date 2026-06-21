@@ -1,7 +1,7 @@
 <!--
-name: 'Data: Tool use reference — C#'
-description: Tool-use API reference doc (C# bindings).
-ccVersion: 2.1.183
+name: 'Data: Tool Use reference — C#'
+description: Tool Use reference for C# SDK
+ccVersion: 2.1.185
 -->
 # Tool Use — C#
 

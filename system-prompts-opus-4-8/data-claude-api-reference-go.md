@@ -1,7 +1,7 @@
 <!--
 name: 'Data: Claude API reference — Go'
 description: Go SDK reference
-ccVersion: 2.1.183
+ccVersion: 2.1.185
 -->
 # Claude API — Go
 

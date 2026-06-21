@@ -1,7 +1,7 @@
 <!--
-name: 'Data: Tool use reference — Ruby'
-description: Tool-use API reference doc (Ruby bindings).
-ccVersion: 2.1.183
+name: 'Data: Tool Use reference — Ruby'
+description: Tool Use reference for Ruby SDK
+ccVersion: 2.1.185
 -->
 # Tool Use — Ruby
 

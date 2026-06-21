@@ -3,16 +3,15 @@ name: 'Data: Claude API reference — Java'
 description: >-
   Java SDK reference including installation, client initialization, basic
   requests, streaming, and beta tool use
-ccVersion: 2.1.183
+ccVersion: 2.1.185
 -->
-
 # Claude API — Java
 
 > **Note:** The Java SDK supports the Claude API and beta tool use with annotated classes. Agent SDK is not yet available for Java.
 
 ## Package Reference
 
-Types are organized by package.
+Types are organized by package. If a class you need isn't shown in an example below, locate it via this table first — don't block on fetching SDK source over the network.
 
 | `import` prefix | Contains |
 |---|---|
@@ -28,7 +27,7 @@ Types are organized by package.
 
 ### Key types per feature
 
-The Endpoint column tells you whether to use `client.messages()` or `client.beta().messages()`.
+Write from this table instead of `javap`/jar inspection. Endpoint column tells you whether to use `client.messages()` or `client.beta().messages()`.
 
 | Feature | Endpoint | Key Java types / builder calls |
 |---|---|---|
@@ -45,7 +44,7 @@ The Endpoint column tells you whether to use `client.messages()` or `client.beta
 
 ### Discovering type and member names
 
-For a class or builder method not in the tables above, `jar tf <anthropic-java-core jar> | grep -i <term>` or `javap -classpath <jar> com.anthropic.models.…` locates names. Write the script with those names and let a `cannot find symbol` compile error point at any wrong member.
+If a class or builder method you need isn't in the tables above, `jar tf <anthropic-java-core jar> | grep -i <term>` or `javap -classpath <jar> com.anthropic.models.…` is fast enough to locate names. **Do not compile and run a separate reflection program** to enumerate members — the first build is slow enough to be backgrounded in many environments, trapping you in a polling loop. Write the script with the names you found and let the compiler error (`cannot find symbol`) point at any wrong member.
 
 ## Installation
 
@@ -243,3 +242,4 @@ try {
 ```
 
 ---
+

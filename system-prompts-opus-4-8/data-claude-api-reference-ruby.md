@@ -3,9 +3,8 @@ name: 'Data: Claude API reference — Ruby'
 description: >-
   Ruby SDK reference including installation, client initialization, basic
   requests, streaming, and beta tool runner
-ccVersion: 2.1.183
+ccVersion: 2.1.185
 -->
-
 # Claude API — Ruby
 
 > **Note:** The Ruby SDK supports the Claude API. A tool runner is available in beta via \`client.beta.messages.tool_runner()\`. Agent SDK is not yet available for Ruby.
@@ -105,7 +104,7 @@ if message.stop_reason == :refusal && message.stop_details
 end
 \`\`\`
 
-**Refusal fallbacks ({{FABLE_NAME}}) — opt in by default.** Without fallbacks a refused request simply stops. New \`{{FABLE_ID}}\` code should include the server-side \`fallbacks\` parameter (beta header \`server-side-fallback-2026-06-01\`, \`fallbacks: [{model: "{{OPUS_ID}}"}]\` on the beta messages call) by default. For the exact Ruby binding (and the client-side middleware for providers without server-side support) see the Ruby SDK repo's \`examples/\` from \`shared/live-sources.md\`; full semantics in \`shared/model-migration.md\` → Migrating to {{FABLE_NAME}} → \`refusal\` stop reason.
+**Refusal fallbacks ({{FABLE_NAME}}) — opt in by default.** Fallbacks are opt-in: without them a refused request simply stops. New \`{{FABLE_ID}}\` code should include the server-side \`fallbacks\` parameter (beta header \`server-side-fallback-2026-06-01\`, \`fallbacks: [{model: "{{OPUS_ID}}"}]\` on the beta messages call) by default. The exact Ruby binding (and the client-side middleware for providers without server-side support) is not documented here — WebFetch the Ruby SDK repo's \`examples/\` from \`shared/live-sources.md\`; full semantics in \`shared/model-migration.md\` → Migrating to {{FABLE_NAME}} → \`refusal\` stop reason.
 
 ---
 

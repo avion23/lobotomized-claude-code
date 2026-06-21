@@ -1,7 +1,7 @@
 <!--
-name: 'Data: Tool use reference — Go'
-description: Tool-use API reference doc (Go bindings).
-ccVersion: 2.1.183
+name: 'Data: Tool Use reference — Go'
+description: Tool Use reference for Go SDK
+ccVersion: 2.1.185
 -->
 # Tool Use — Go
 

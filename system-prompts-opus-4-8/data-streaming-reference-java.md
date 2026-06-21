@@ -1,7 +1,7 @@
 <!--
 name: 'Data: Streaming reference — Java'
-description: Streaming API reference doc (Java bindings).
-ccVersion: 2.1.183
+description: Streaming reference for Java SDK
+ccVersion: 2.1.185
 -->
 # Streaming — Java
 

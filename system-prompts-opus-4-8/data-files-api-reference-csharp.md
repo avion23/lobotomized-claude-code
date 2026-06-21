@@ -1,7 +1,7 @@
 <!--
 name: 'Data: Files API reference — C#'
-description: Files API reference doc (C# bindings).
-ccVersion: 2.1.183
+description: Files API reference for C# SDK
+ccVersion: 2.1.185
 -->
 # Files API — C#
 

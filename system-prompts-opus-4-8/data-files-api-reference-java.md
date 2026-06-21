@@ -1,7 +1,7 @@
 <!--
 name: 'Data: Files API reference — Java'
-description: Files API reference doc (Java bindings).
-ccVersion: 2.1.183
+description: Files API reference for Java SDK
+ccVersion: 2.1.185
 -->
 # Files API — Java
 

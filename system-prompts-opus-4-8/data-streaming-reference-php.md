@@ -1,7 +1,7 @@
 <!--
 name: 'Data: Streaming reference — PHP'
-description: Streaming API reference doc (PHP bindings).
-ccVersion: 2.1.183
+description: Streaming reference for PHP SDK
+ccVersion: 2.1.185
 -->
 # Streaming — PHP
 

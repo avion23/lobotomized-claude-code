@@ -1,7 +1,7 @@
 <!--
 name: 'Data: Streaming reference — Go'
-description: Streaming API reference doc (Go bindings).
-ccVersion: 2.1.183
+description: Streaming reference for Go SDK
+ccVersion: 2.1.185
 -->
 # Streaming — Go
 

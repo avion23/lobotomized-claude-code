@@ -1,7 +1,7 @@
 <!--
-name: 'Data: Tool use reference — Java'
-description: Tool-use API reference doc (Java bindings).
-ccVersion: 2.1.183
+name: 'Data: Tool Use reference — Java'
+description: Tool Use reference for Java SDK
+ccVersion: 2.1.185
 -->
 # Tool Use — Java
 

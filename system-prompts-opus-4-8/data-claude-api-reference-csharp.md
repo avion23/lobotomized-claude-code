@@ -3,16 +3,15 @@ name: 'Data: Claude API reference — C#'
 description: >-
   C# SDK reference including installation, client initialization, basic
   requests, streaming, and tool use
-ccVersion: 2.1.183
+ccVersion: 2.1.185
 -->
-
 # Claude API — C#
 
 > **Note:** The C# SDK is the official Anthropic SDK for C#. Tool use is supported via the Messages API with a beta `BetaToolRunner` for automatic tool execution loops. The SDK also supports Microsoft.Extensions.AI IChatClient integration with function invocation and Managed Agents (beta).
 
 ## Namespace Reference
 
-Types are organized by namespace. Locate a type via this table before fetching SDK source.
+Types are organized by namespace. If a type you need isn't shown in an example below, locate it via this table first — don't block on fetching SDK source over the network.
 
 | `using` | Contains |
 |---|---|
@@ -30,7 +29,7 @@ Types are organized by namespace. Locate a type via this table before fetching S
 
 ### Key types per feature
 
-Endpoint column tells you whether to use `client.Messages.*` or `client.Beta.Messages.*`.
+Write from this table instead of reflecting the SDK assembly. Endpoint column tells you whether to use `client.Messages.*` or `client.Beta.Messages.*`.
 
 | Feature | Endpoint | Key C# types (namespace per table above) |
 |---|---|---|
@@ -47,13 +46,15 @@ Endpoint column tells you whether to use `client.Messages.*` or `client.Beta.Mes
 
 ### Discovering type and member names
 
-For a type or member not in the tables above, `strings ~/.nuget/packages/anthropic/*/lib/*/Anthropic.dll | grep -i <term>` locates class and property names. **Do not escalate to a `dotnet run` reflection probe** — the first compile is slow enough to be backgrounded in many environments, trapping you in a polling loop. Write `Program.cs` using the names `strings | grep` found; a wrong member name surfaces as `error CS1061: 'X' does not contain a definition for 'Y'` in a few seconds.
+If a type or member you need isn't in the tables above, `strings ~/.nuget/packages/anthropic/*/lib/*/Anthropic.dll | grep -i <term>` is fast and sufficient for locating class and property names. **Do not escalate to a `dotnet run` reflection probe** to dump members precisely — the first compile is slow enough to be backgrounded in many environments, trapping you in a polling loop. Instead, write `Program.cs` using the names `strings | grep` found; if a member name is wrong the compiler error (`error CS1061: 'X' does not contain a definition for 'Y'`) points at it in a few seconds, faster than any reflection probe.
 
-`strings` will not surface wire-format snake_case field names (`output_tokens`, `stop_reason`) — those are stored in the DLL differently. **C# properties are the PascalCase equivalent of the wire field** (`response.Usage.OutputTokens`, `response.StopReason`). Given a wire field name from the docs, write the PascalCase property and compile; do not probe for the snake_case string.
+Note that `strings` will not surface wire-format snake_case field names (`output_tokens`, `stop_reason`) — those are stored in the DLL differently. **C# properties are the PascalCase equivalent of the wire field** (`response.Usage.OutputTokens`, `response.StopReason`). If you know the wire field name from the docs, write the PascalCase property and compile; do not probe for the snake_case string.
 
 ### Minimal working skeleton
 
-Write a plain `Program.cs` body — `using` statements followed by top-level statements. Do **not** add a `#!/usr/bin/env dotnet` shebang or `#:package Anthropic@*` directive: those are .NET file-based-app syntax and fail with `CS1024: Preprocessor directive expected` when compiled via an existing `.csproj`. The standard setup (per the [C# quickstart](https://docs.claude.com/en/docs/get-started): `dotnet new console` → `dotnet add package Anthropic` → edit `Program.cs` → `dotnet run`) provides the `.csproj` and package reference.
+**Write a plain `Program.cs` body** — `using` statements followed by top-level statements, as below. Do **not** add a `#!/usr/bin/env dotnet` shebang or `#:package Anthropic@*` directive: those are .NET file-based-app syntax and fail with `CS1024: Preprocessor directive expected` when the file is compiled via an existing `.csproj`. The standard project setup (per the [C# quickstart](https://docs.claude.com/en/docs/get-started): `dotnet new console` → `dotnet add package Anthropic` → edit `Program.cs` → `dotnet run`) provides the `.csproj` and package reference.
+
+Start from this — it compiles as-is. Fill in the feature-specific fields; do not spend turns running reflection or XML-doc inspection to discover type names first.
 
 ```csharp
 using System;
@@ -93,7 +94,7 @@ var response = await client.Beta.Messages.Create(new MessageCreateParams
 Console.WriteLine(response);
 ```
 
-If a type name the feature needs isn't in this file, write it following the naming pattern in the Namespace Reference above and fix from compiler output.
+If a type name the feature needs isn't in this file, write it following the naming pattern in the Namespace Reference above and fix from compiler output — producing a `Program.cs` and iterating beats researching.
 
 ### Common C# compile errors
 

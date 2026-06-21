@@ -1,7 +1,7 @@
 <!--
-name: 'Data: Platform Availability'
-description: Provider-platform feature-availability table the model consults.
-ccVersion: 2.1.183
+name: 'Data: Platform availability matrix'
+description: Feature availability matrix across provider platforms
+ccVersion: 2.1.185
 -->
 # Platform Availability
 
