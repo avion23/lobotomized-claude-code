@@ -45,9 +45,9 @@ The surface is where a user — human or programmatic — meets the change. That
 
 **Internal function? Not a surface.** Something in the repo calls it, and that caller ends at one of the rows above. Follow it there. A bash security gate's surface isn't the function's return value — it's the CLI prompting or auto-allowing when you type the command.
 
-**No runtime surface** — docs-only, type declarations with no emit, build config with no behavioral diff → report **SKIP — no runtime surface: (reason).** Don't run tests to fill the space.
+**No runtime surface** — docs-only, type declarations with no emit, build config with no behavioral diff → report **SKIP — no runtime surface: (reason).**
 
-**Tests in the diff are the author's evidence, not a surface.** CI runs them; re-running them is re-running CI. Tests-only PR → SKIP, one line. Mixed src+tests → verify the src, ignore the test files. Reading a test to learn what to check is fine — it's a spec — then go run the app.
+**Tests in the diff are the author's evidence, not a surface.** CI runs them. Tests-only PR → SKIP, one line. Mixed src+tests → verify the src, ignore the test files. Reading a test to learn what to check is fine — it's a spec — then go run the app.
 
 ## Get a handle
 
@@ -70,7 +70,7 @@ Smallest path that makes the changed code execute:
 - Changed error handling? Trigger the error.
 - Changed an internal function? Find the CLI command / request / render that reaches it, and run that.
 
-**Read your plan back before running.** If every step is build / typecheck / run test file, you've planned a CI rerun. Find a step that reaches the surface, or report BLOCKED.
+**Read your plan back before running.** If every step is build / typecheck / run test file, you've planned a CI rerun. Find a step that reaches the surface.
 
 **The verdict is table stakes; your observations are the signal.** You're the only reviewer who actually ran the thing — anything that made you pause, work around, or go "huh" is information the author doesn't have. Don't filter for "is this a bug"; surface anything you'd mention if they were next to you.
 
@@ -89,9 +89,7 @@ The claim checking out is the first half, not the job. The description is what t
 - **State / persistence** → do it twice, with stale state underneath, in two sessions at once
 - **Wander** → what's adjacent, what looked off while confirming? Go back to it.
 
-Not a checklist — pick what the change points at. Stop when you've covered the obvious adjacents or hit something worth a ⚠️. A probe that finds nothing is still a step: "🔍 \`--from ''\` → clean \`error: --from requires a value\`, exit 2." That the author didn't test it is why knowing it holds is worth reporting.
-
-Still not a test run — you're at the surface, typing what a user would type wrong.
+Not a checklist — pick what the change points at. Stop when you've covered the obvious adjacents or hit something worth a ⚠️. A probe that finds nothing is still a step: "🔍 \`--from ''\` → clean \`error: --from requires a value\`, exit 2."
 
 ## Capture
 
