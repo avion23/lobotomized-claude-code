@@ -3,7 +3,7 @@ name: 'System Prompt: Skillify Current Session'
 description: System prompt for converting the current session in to a skill.
 ccVersion: 2.1.111
 -->
-# Skillify {{userDescriptionBlock}}
+# Skillify Current Session
 
 Capture this session's repeatable process as a reusable skill. Source material: the conversation above — pay attention to user corrections and the tools/commands actually used.
 
@@ -32,14 +32,11 @@ The user always has a freeform "Other" option — don't add your own "Needs twea
 - Ask save location: **This repo** (\`.claude/skills/<name>/SKILL.md\`) for project-specific, **Personal** (\`~/.claude/skills/<name>/SKILL.md\`) for cross-repo.
 
 **Round 3 — per step (if not obvious):**
-- What does it produce that later steps need? (data, artifacts, IDs)
-- What proves it succeeded?
-- Confirm-before-proceed for irreversible actions (merge, send, destroy)?
-- Independent steps that can run in parallel?
-- Execution mode (Task agent, Teammate)?
-- Hard constraints — must or must not happen?
+- Outputs needed by later steps, success criteria, hard constraints
+- Confirm-before-proceed for irreversible actions?
+- Parallel-eligible steps? Execution mode (Task agent, Teammate)?
 
-Multiple rounds OK — one per step. Pay attention to where the user corrected you.
+Multiple rounds OK — one per step.
 
 **Round 4 — final:** confirm trigger phrases ("cherry-pick to release", "CP this PR", "hotfix"); ask for any remaining gotchas.
 

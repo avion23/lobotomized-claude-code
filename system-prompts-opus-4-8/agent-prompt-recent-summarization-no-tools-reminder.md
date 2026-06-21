@@ -7,4 +7,4 @@ ccVersion: 2.1.178
 -->
 
 
-Respond with plain text only, no tool calls — 
+Respond with plain text only, no tool calls.

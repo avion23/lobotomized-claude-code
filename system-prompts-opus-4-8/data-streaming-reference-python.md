@@ -11,7 +11,7 @@ ccVersion: 2.1.175
 
 \`\`\`python
 with client.messages.stream(
-    model="{{OPUS_ID}}",
+    model="claude-opus-4-8",
     max_tokens=64000,
     messages=[{"role": "user", "content": "Write a story"}]
 ) as stream:
@@ -23,7 +23,7 @@ with client.messages.stream(
 
 \`\`\`python
 async with async_client.messages.stream(
-    model="{{OPUS_ID}}",
+    model="claude-opus-4-8",
     max_tokens=64000,
     messages=[{"role": "user", "content": "Write a story"}]
 ) as stream:
@@ -37,7 +37,7 @@ async with async_client.messages.stream(
 
 \`\`\`python
 for event in client.messages.create(
-    model="{{OPUS_ID}}",
+    model="claude-opus-4-8",
     max_tokens=64000,
     messages=[{"role": "user", "content": "Write a story"}],
     stream=True,
@@ -53,13 +53,13 @@ No final-message accumulation is done for you in this form.
 
 Claude may return text, thinking blocks, or tool use. Handle each appropriately:
 
-> **Fable 5 / Opus 4.8 / Opus 4.7 / Opus 4.6:** Use \`thinking: {type: "adaptive"}\`. On older models, use \`thinking: {type: "enabled", budget_tokens: N}\` instead.
+> **Fable 5 / Opus 4.8 / Opus 4.7 / Opus 4.6 / Sonnet 4.6:** Use \`thinking: {type: "adaptive"}\`. On older models, use \`thinking: {type: "enabled", budget_tokens: N}\` instead.
 
 \`\`\`python
 with client.messages.stream(
-    model="{{OPUS_ID}}",
+    model="claude-opus-4-8",
     max_tokens=64000,
-    thinking={"type": "adaptive", "display": "summarized"},  # display opt-in: default is omitted (empty thinking text) on Fable 5 / Mythos 5 / Opus 4.8 / 4.7
+    thinking={"type": "adaptive", "display": "summarized"},  # display opt-in: default is omitted (empty thinking text) on Fable 5 / Mythos 5 / Opus 4.8 / 4.7 / 4.6
     messages=[{"role": "user", "content": "Analyze this problem"}]
 ) as stream:
     for event in stream:
@@ -84,7 +84,7 @@ The Python tool runner currently returns complete messages. Use streaming for in
 
 \`\`\`python
 with client.messages.stream(
-    model="{{OPUS_ID}}",
+    model="claude-opus-4-8",
     max_tokens=64000,
     tools=tools,
     messages=messages
@@ -94,24 +94,6 @@ with client.messages.stream(
 
     response = stream.get_final_message()
     # Continue with tool execution if response.stop_reason == "tool_use"
-\`\`\`
-
----
-
-## Getting the Final Message
-
-\`\`\`python
-with client.messages.stream(
-    model="{{OPUS_ID}}",
-    max_tokens=64000,
-    messages=[{"role": "user", "content": "Hello"}]
-) as stream:
-    for text in stream.text_stream:
-        print(text, end="", flush=True)
-
-    # Get full message after streaming
-    final_message = stream.get_final_message()
-    print(f"\\n\\nTokens used: {final_message.usage.output_tokens}")
 \`\`\`
 
 ---
@@ -149,7 +131,7 @@ def stream_with_progress(client, **kwargs):
 \`\`\`python
 try:
     with client.messages.stream(
-        model="{{OPUS_ID}}",
+        model="claude-opus-4-8",
         max_tokens=64000,
         messages=[{"role": "user", "content": "Write a story"}]
     ) as stream:
