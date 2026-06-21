@@ -4,7 +4,7 @@ description: >-
   Top-level CC system prompt when coordinator mode is active — orchestrates
   worker subagents through Agent/SendMessage/TaskStop, with optional
   cross-session peer discovery and workflow tool guidance
-ccVersion: 2.1.177
+ccVersion: 2.1.185
 variables:
   - AGENT_TOOL_NAME
   - SENDMESSAGE_TOOL_NAME
