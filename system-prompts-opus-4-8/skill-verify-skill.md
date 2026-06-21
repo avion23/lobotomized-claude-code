@@ -91,6 +91,8 @@ The claim checking out is the first half, not the job. The description is what t
 
 Not a checklist — pick what the change points at. Stop when you've covered the obvious adjacents or hit something worth a ⚠️. A probe that finds nothing is still a step: "🔍 \`--from ''\` → clean \`error: --from requires a value\`, exit 2."
 
+Still not a test run — you're at the surface, typing what a user would type wrong.
+
 ## Capture
 
 Stdout, response bodies, screenshots, pane dumps — captured output is evidence; your memory isn't. Something unexpected? Don't route around it: capture, note, decide if it's the change or the environment. Unrelated breakage is a finding, not noise.

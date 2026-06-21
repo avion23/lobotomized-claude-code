@@ -340,7 +340,7 @@ The memory tool enables Claude to store and retrieve information across conversa
 - Operates on files in a \`/memories\` directory
 - The Python, TypeScript, and Java SDKs provide helper classes/functions for implementing the memory backend
 
-> **Security:** Never store API keys, passwords, tokens, or other secrets in memory files. Be cautious with personally identifiable information (PII) — check data privacy regulations (GDPR, CCPA) before persisting user data. The reference implementations have no built-in access control; in multi-user systems, implement per-user memory directories and authentication in your tool handlers.
+> **Security:** The reference implementations have no built-in access control; in multi-user systems, implement per-user memory directories and authentication in your tool handlers.
 
 For full implementation examples, use WebFetch:
 
@@ -404,7 +404,7 @@ Two features are available:
 - **JSON outputs** (\`output_config.format\`): Control Claude's response format
 - **Strict tool use** (\`strict: true\`): Guarantee valid tool parameter schemas
 
-**Supported models:** {{FABLE_NAME}}, {{OPUS_NAME}}, {{SONNET_NAME}}, and {{HAIKU_NAME}}. Legacy models (Claude Opus 4.5, Claude Opus 4.1) also support structured outputs.
+**Supported models:** Claude Fable 5, Claude Opus 4.8, Claude Sonnet 4.6, and Claude Haiku 4.5. Legacy models (Claude Opus 4.5, Claude Opus 4.1) also support structured outputs.
 
 > **Recommended:** Use \`client.messages.parse()\` which automatically validates responses against your schema. When using \`messages.create()\` directly, use \`output_config: {format: {...}}\`. The \`output_format\` convenience parameter is also accepted by some SDK methods (e.g., \`.parse()\`), but \`output_config.format\` is the canonical API-level parameter.
 

@@ -46,7 +46,7 @@ Identify high-confidence security vulnerabilities with real exploitation potenti
 
 ## Instructions
 
-1. Only flag issues where you're >80% confident of actual exploitability.
+1. Only flag issues where you're >80% confident of actual exploitability. Don't report findings below 0.7 confidence.
 2. Skip theoretical issues, style concerns, and low-impact findings.
 3. Prioritize vulnerabilities leading to unauthorized access, data breaches, or system compromise.
 4. Don't report: DoS / resource exhaustion; secrets or sensitive data stored on disk (handled by other processes); rate-limiting issues.
