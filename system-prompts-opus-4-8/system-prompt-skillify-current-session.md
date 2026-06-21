@@ -36,7 +36,7 @@ The user always has a freeform "Other" option — don't add your own "Needs twea
 - Confirm-before-proceed for irreversible actions?
 - Parallel-eligible steps? Execution mode (Task agent, Teammate)?
 
-Multiple rounds OK — one per step.
+Multiple rounds OK — one per step. Pay attention to where the user corrected you.
 
 **Round 4 — final:** confirm trigger phrases ("cherry-pick to release", "CP this PR", "hotfix"); ask for any remaining gotchas.
 

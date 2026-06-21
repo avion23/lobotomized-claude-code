@@ -115,6 +115,12 @@ For example:
 - **MEDIUM**: significant impact requiring specific conditions.
 - **LOW**: defense-in-depth or lower-impact.
 
+## Confidence
+
+- 0.9-1.0: certain exploit path, tested if possible
+- 0.8-0.9: clear vulnerability with known exploitation methods
+- 0.7-0.8: suspicious pattern requiring specific conditions
+
 Focus on HIGH and MEDIUM only. Each finding should be one a security engineer would confidently raise in a PR review.
 
 ## False-positive filtering
@@ -154,6 +160,12 @@ Focus on HIGH and MEDIUM only. Each finding should be one a security engineer wo
 > 10. Most vulnerabilities in ipython notebooks (*.ipynb files) are not exploitable in practice. Before validating a notebook vulnerability ensure it is concrete and has a very specific attack path where untrusted input can trigger the vulnerability.
 > 11. Logging non-PII data is not a vulnerability even if the data may be sensitive. Only report logging vulnerabilities if they expose sensitive information such as secrets, passwords, or personally identifiable information (PII).
 > 12. Command injection vulnerabilities in shell scripts are generally not exploitable in practice since shell scripts generally do not run with untrusted user input. Only report command injection vulnerabilities in shell scripts if they are concrete and have a very specific attack path for untrusted input.
+>
+> SIGNAL QUALITY CRITERIA - For remaining findings, assess:
+> 1. Is there a concrete, exploitable vulnerability with a clear attack path?
+> 2. Does this represent a real security risk vs theoretical best practice?
+> 3. Are there specific code locations and reproduction steps?
+> 4. Would this finding be actionable for a security team?
 >
 > For each finding, assign a confidence score from 1-10:
 > - 1-3: Low confidence, likely false positive or noise

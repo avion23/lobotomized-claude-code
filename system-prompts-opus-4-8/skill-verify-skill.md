@@ -139,6 +139,9 @@ app, not from reading the PR page. A red CI check or someone else's bot
 is already visible; relaying it isn't an observation. Claim/diff
 mismatch, pre-existing breakage, and env notes belong here too.
 
+Each probe gets a line even when it held — "🔍 empty \`--from\` → clean
+error" tells the author what *was* covered, which a bare PASS can't.
+
 Lead with ⚠️ for lines worth interrupting the reviewer for; plain
 bullets are context. Empty is fine if nothing stuck out — though that's
 rare.>
