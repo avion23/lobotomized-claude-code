@@ -60,30 +60,24 @@ const response = await client.messages.create({
 });
 \`\`\`
 
-### Mid-conversation system messages (beta, model-gated)
+### Mid-conversation system messages (model-gated)
 
 For operator instructions that arrive mid-conversation (mode switches, injected state), append \`{role: "system", ...}\` to \`messages\` instead of editing top-level \`system\` — this preserves the cached prefix and carries operator authority. Must follow a user message; cannot be \`messages[0]\`. Unsupported models return a 400 (\`role 'system' is not supported on this model\`). See \`shared/prompt-caching.md\` for when to use this vs. top-level \`system\`.
 
 \`\`\`typescript
-// SDK types for role:"system" in messages are pending — pass the beta header
-// directly until the SDK updates, then switch to client.beta.messages.create
-// with betas: ["mid-conversation-system-2026-04-07"].
-const response = await client.messages.create(
-  {
-    model: MODEL_ID, // must support mid-conversation system messages
-    max_tokens: 16000,
-    system: [
-      { type: "text", text: STABLE_SYSTEM, cache_control: { type: "ephemeral" } },
-    ],
-    messages: [
-      ...history,
-      { role: "user", content: userMessage },
-      // @ts-expect-error — role:"system" pending SDK types
-      { role: "system", content: "Terse mode enabled — keep responses under 40 words." },
-    ],
-  },
-  { headers: { "anthropic-beta": "mid-conversation-system-2026-04-07" } },
-);
+// No beta header needed — use regular client.messages.create.
+const response = await client.messages.create({
+  model: MODEL_ID, // must support mid-conversation system messages
+  max_tokens: 16000,
+  system: [
+    { type: "text", text: STABLE_SYSTEM, cache_control: { type: "ephemeral" } },
+  ],
+  messages: [
+    ...history,
+    { role: "user", content: userMessage },
+    { role: "system", content: "Terse mode enabled — keep responses under 40 words." },
+  ],
+});
 \`\`\`
 
 ---

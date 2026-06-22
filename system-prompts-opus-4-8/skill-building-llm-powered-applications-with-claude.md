@@ -217,7 +217,7 @@ See `{lang}/claude-api/README.md` (Compaction section) for code examples; full d
 
 **Prefix match.** Any byte change in the prefix invalidates everything after it. Render order is `tools` → `system` → `messages`. Keep stable content first (frozen system prompt, deterministic tool list); put volatile content (timestamps, per-request IDs, varying questions) after the last `cache_control` breakpoint.
 
-**Mid-conversation operator instructions** (beta header `mid-conversation-system-2026-04-07`, on supporting models): append `{"role": "system", ...}` to `messages[]` instead of editing top-level `system`. Preserves the cached prefix and is the prompt-injection-safe operator channel. See `shared/prompt-caching.md` § Mid-conversation system messages.
+**Mid-conversation operator instructions** (model-gated, no beta header): append `{"role": "system", ...}` to `messages[]` instead of editing top-level `system`. Preserves the cached prefix and is the prompt-injection-safe operator channel. See `shared/prompt-caching.md` § Mid-conversation system messages.
 
 **Top-level auto-caching** (`cache_control: {type: "ephemeral"}` on `messages.create()`) is simplest when you don't need fine-grained placement. Max 4 breakpoints per request. Minimum cacheable prefix is ~1024 tokens — shorter prefixes silently won't cache.
 
