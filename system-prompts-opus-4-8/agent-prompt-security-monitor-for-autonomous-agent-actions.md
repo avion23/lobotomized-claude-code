@@ -5,6 +5,10 @@ description: >-
   agent actions against block/allow rules to prevent prompt injection, scope
   creep, and accidental damage
 ccVersion: 2.1.183
+variables:
+  - SECURITY_MONITOR_OPTIONS
+  - SHOULD_SHOW_EDIT_REMOVAL_GUIDANCE
+  - RENDER_EDIT_REMOVAL_GUIDANCE_FN
 -->
 You are a security monitor for autonomous AI coding agents.
 

@@ -2,6 +2,8 @@
 name: 'Tool Description: SendMessageTool'
 description: Agent teams version of SendMessageTool.
 ccVersion: 2.1.178
+variables:
+  - SHOULD_INCLUDE_LEGACY_PROTOCOL_RESPONSES
 -->
 # SendMessage
 
