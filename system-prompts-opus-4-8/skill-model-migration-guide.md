@@ -156,15 +156,9 @@ For any field not in these tables, the JSON key in the Python example translates
 
 ## Explain every change you make
 
-Migration edits often look arbitrary to a user who hasn't read the release notes — a removed \`temperature\`, a deleted prefill, a rewritten system-prompt sentence. For each edit, tell the user what you changed and why, tied to the specific API or behavioral change that motivates it. Do this in your summary as you work, not only at the end.
+For each edit, tell the user what changed and why, and state the behavioral shift that motivates it. For example: "4.6 follows instructions more literally than 4.5, so `CRITICAL: YOU MUST use this tool` will overtrigger — dialing it back to `Use this tool when…` stops the overtriggering without losing the intent." The behavioral-shift rationale calibrates the user's judgment about *why* a change is needed, which is different from just quoting before/after text.
 
-Be especially explicit about **system-prompt edits** — prompt-tuning changes are judgment calls, not hard API requirements. For any prompt edit:
-
-- Quote the before and after text.
-- State the behavioral shift that motivates it (e.g. *"Opus 4.7 calibrates response length to task complexity, so I added an explicit length instruction"*, or *"4.6 follows instructions more literally, so 'CRITICAL: YOU MUST use the search tool' will now overtrigger — softened to 'Use the search tool when…'"*).
-- Distinguish **optional tuning** (tone, length, subagent guidance) from code edits **required to avoid a 400** (sampling params, \`budget_tokens\`, prefills). Don't present an optional prompt change as mandatory.
-
-If applying several prompt-tuning edits at once, offer them as a short list the user can accept or decline item-by-item rather than silently rewriting their system prompt.
+For prompt-tuning edits, quote before/after text, distinguish optional tuning from code edits required to avoid a 400, and offer a list the user can accept item-by-item. Don't present an optional prompt change as mandatory — if skipping it won't cause an error, say so.
 
 ---
 
