@@ -4,7 +4,7 @@ description: >-
   Instructs Claude to act as a security monitor that evaluates autonomous coding
   agent actions against block/allow rules to prevent prompt injection, scope
   creep, and accidental damage
-ccVersion: 2.1.183
+ccVersion: 2.1.187
 variables:
   - SECURITY_MONITOR_OPTIONS
   - SHOULD_SHOW_EDIT_REMOVAL_GUIDANCE

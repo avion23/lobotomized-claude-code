@@ -1,80 +1,72 @@
 <!--
 name: 'Skill: artifact-design'
 description: >-
-  Bundled artifact-design skill — Create distinctive, production-grade frontend
-  interfaces with high design quality. Use when building web components, pages,
-  or applications. Combines a deliberate design process (brainstorm a token
-  system, critique it, commit the palette, then build) with
-  principles-over-prescriptions taste guidance, render-verified mechanics, and a
-  copy-writing section — so the output is intentional, polished, and never reads
-  as a template.
-ccVersion: 2.1.183
+  Bundled artifact-design skill — design fundamentals for Artifacts. Calibrate
+  the treatment to what the request actually calls for (utilitarian
+  doc/plan/memo vs. editorial landing page/app), apply the every-artifact
+  fundamentals (precedence, type, neutrals, layout, AI-slop avoidance, clean
+  build, copy, UI-vs-document), then run the editorial process only when the
+  read says so — so output is intentional, polished, and never reads as a
+  template.
+ccVersion: 2.1.187
 -->
 
 ---
 name: artifact-design
-description: Create distinctive, production-grade frontend interfaces with high design quality. Use when building web components, pages, or applications. Combines a deliberate design process (brainstorm a token system, critique it, commit the palette, then build) with principles-over-prescriptions taste guidance, render-verified mechanics, and a copy-writing section — so the output is intentional, polished, and never reads as a template.
+description: Design guidance and fundamentals for Artifacts.
 ---
 
-Make deliberate, opinionated choices about palette, typography, and layout that are specific to this subject. Where it serves the subject, take one real aesthetic risk you can justify. Don't default to a generic look — but when the user pins a visual direction, follow it exactly; their words always win.
+Pitch every artifact's visual identity at the treatment the task actually calls for. Make deliberate choices about palette, typography, and layout specific to this subject; avoid templated designs. When the user pins a visual direction, follow it exactly — their words always win.
 
-## Ground it in the subject
+## Read the request first
 
-If the subject isn't clear from context, pin it yourself before designing: name one concrete subject, its audience, and the page's single job, and state your choice. Use any memory of the user's preferences or prior designs as a hint. Distinctive choices come from the subject's own world — its materials, instruments, artifacts, vernacular. Build with the real content throughout, not lorem ipsum.
+Calibrate the treatment, not whether to design. A doc deserves the same craft as a landing page; what changes is the treatment it's delivered in.
 
-## Design system precedence
+A utilitarian treatment — a plan, a memo, a demo — gets real typographic hierarchy, considered spacing, and a proper palette, but doesn't get over-designed: most pages don't need a flashy, gigantic hero. An editorial treatment — a landing page, a game, an app or tool they'll keep or share — earns the process below.
 
-Look for an existing design system first: CLAUDE.md, a tokens or theme file, existing component styles. When one exists, apply it exactly; the process below only fills gaps. Precedence: the user's words > the project's existing design system > choices you make below.
+The fundamentals apply to everything. The editorial process runs only when the read above says so.
 
-## Design principles
+## Fundamentals for every artifact
 
-- **The hero is a thesis.** Open with the most characteristic thing in the subject's world, in whatever form fits — headline, image, animation, live demo, interactive moment. A big number with a small label, stats, and a gradient accent is the template answer; use it only if it's genuinely best here.
-- **Typography carries the personality.** Pair display and body faces deliberately — not the families you'd reach for on any project — with a clear type scale and intentional weights, widths, spacing. Make the type treatment itself memorable.
-- **Structure is information.** Numbering, eyebrows, dividers, and labels should encode something true about the content, not decorate it. Numbered markers (01 / 02 / 03) are right only when the content is genuinely a sequence. Make a structural device earn its place before adding it.
-- **Motion is deliberate.** Decide where — and whether — animation serves the subject. One orchestrated moment lands harder than scattered effects.
-- **Match complexity to the vision.** Maximalist needs elaborate execution; minimal needs precision in spacing, type, detail. Cap it either way: at most two of {vivid accent, dense atmosphere, kinetic motion} run at full intensity at once.
+**Honor what's already there.** Look for an existing design system first — CLAUDE.md, a tokens or theme file, existing component styles. When one exists, apply it; everything below fills gaps and never overrides. Precedence: the user's words > the project's existing system > your choices.
 
-## Process: brainstorm a token plan, critique, build
+**Ground it in the subject.** If the subject isn't clear, pin it: one concrete subject, its audience, the page's single job. The subject's own world — its materials, instruments, vernacular — is where distinctive choices come from. Use any memory of the user's preferences or prior designs as a hint. Build with real content throughout, never lorem.
 
-Work in two passes. **First**, draft a compact token system:
+**Pair typefaces.** Typography carries the page even when the page isn't about typography. The Artifact CSP blocks font CDNs — don't link a webfont URL and risk a silent fallback; inline the face as an `@font-face` data URI. Keep running text near 65 characters wide, set a type scale and stay on it, give headings `text-wrap: balance` and uppercase labels a touch of letter-spacing.
 
+**Choose neutrals, don't default to them.** A pure mid-grey reads as unconsidered; a grey biased slightly toward the accent reads as chosen. Pure white and near-black are fine grounds when they suit the subject — the point is the neutral was picked, not inherited.
+
+**Let layout do the spacing.** Lay out sibling groups with flex or grid and `gap`, not per-element margins that collapse or double. Wide content — tables, code, diagrams — gets `overflow-x: auto` on its own container so the page never scrolls sideways. Use `font-variant-numeric: tabular-nums` wherever digits line up in columns.
+
+**Avoid AI-generated design.** It clusters around a few looks: warm cream (#F4F1EA) with a serif display and terracotta accent; near-black with a lone acid-green or vermilion pop; broadsheet hairline rules with dense columns; a purple-to-blue gradient hero on white; Inter or Space Grotesk as the "safe" face; emoji section markers; everything centered; `rounded-lg` everywhere. Where nothing is specified, don't spend your freedom on one of these defaults.
+
+**Build cleanly.** Look at the render before declaring done — overlapping elements, cascade collisions, and silent font fallbacks hide in the gap between source and output. Close every non-void element, double-quote attributes, give keyboard focus a visible state, respect `prefers-reduced-motion`. For decorative graphics, reach for Canvas or WebGL over hand-authored SVG path data.
+
+**CSS rules.** Watch selector specificities — it's easy to generate classes that cancel each other out (a type-based `.section` fighting an element-based `.cta` over padding/margins). Structure the cascade so it doesn't silently undo your spacing.
+
+**Writing the copy.** Words are design material, not decoration. Write from the user's side of the screen — name things by what people recognize, not how the system is built (a person manages *notifications*, not *webhook config*). Active voice; a control says exactly what happens ("Publish", then a toast that says "Published"). Errors explain what went wrong and how to fix it — no apologies, no vagueness. Specific beats clever.
+
+**Structure is information.** Numbering, eyebrows, dividers, and labels should encode something true about the content, not decorate it. Numbered markers (01 / 02 / 03) are right only when the content actually is a sequence — a real process or typed timeline where order carries information the reader needs. Question whether a structural device earns its place before adding it.
+
+**When it's a UI, not a document.** A dashboard or tool is scanned and operated, not read top-to-bottom, so the craft shifts from typography to information design. Surface the summary before the detail; encode state in form as well as number — a pill, chip, or severity stripe — so what needs attention reads at a glance. Semantic color (good / warning / critical) is separate from the accent hue and doesn't count as your accent. Give sparklines and charts the same care as type. What's interactive should look interactive.
+
+## Process
+
+Before writing code, sketch a compact token system:
 - **Color**: the palette as 4–6 named hex values.
-- **Type**: typefaces for 2+ roles — a characterful display face used with restraint, a complementary body face, and a utility face for captions/data if needed.
-- **Layout**: the concept in one or two sentences, sketched with ASCII wireframes so you can compare options cheaply.
+- **Type**: typefaces for 2+ roles — a characterful display face used with restraint, a complementary body face, and a utility face for captions or data if needed.
+- **Layout**: the concept in one or two sentences.
 
-**Then** review the plan against the subject: work the same prompt in your head and see if you land in the same place; if any part reads like the generic default, revise it and note what changed. Only then write the code, following the revised plan exactly.
+Then build, deriving every color and type decision from the plan.
 
-When writing CSS, watch selector specificities — it's easy to generate classes that cancel each other out (a type-based `.section` fighting an element-based `.cta` over padding/margins). Structure the cascade so it doesn't silently undo your spacing.
+## When the request is editorial
 
-## Commit the palette
+Make opinionated calls, and take one real aesthetic risk where it serves the work.
 
-Reason about color once, up front; after that the code is transcription. Pin the palette in your thinking (never echoed to the user):
+Review the plan against the subject before building: if any part reads like the generic default you'd produce for any similar page, revise it and note what you changed. Only after confirming the plan's uniqueness, write the code, following the revised plan exactly.
 
-```
-<palette_commit>
-frame:  <band> / <hue-family>
-ground: #XXXXXX
-text:   #XXXXXX
-accent: #XXXXXX
-accent-2: #XXXXXX (optional)
-</palette_commit>
-```
-
-The `ground:` hex must read as a member of the named band/family — if the hex alone wouldn't tell you the family, the tint has drifted. In code, define `--ground`, `--text`, `--accent` at `:root` by copying these hexes; every color derives from them. If the accent vibrates or muds against the ground, shift it toward analogous or drop a saturation band rather than replacing it.
-
-## Build cleanly
-
-Look at the render before declaring done — cascade collisions and silent font fallbacks hide there. Write canonical HTML/CSS: close every non-void element, double-quote attribute values, visible keyboard focus, `prefers-reduced-motion` respected. Lay out sibling groups with flex/grid + `gap`, not per-element margins. Generate decorative graphics with Canvas/WebGL rather than hand-authored SVG paths.
-
-## Writing the copy
-
-You usually write the copy yourself, and generic copy makes a design feel as templated as generic layout.
-
-- Write from the end user's side of the screen. Name things by what people control and recognize, never by how the system is built (a person manages notifications, not webhook config). Specific beats clever.
-- Use active voice. A control says exactly what happens: "Save changes," not "Submit." An action keeps its name through the flow — the button that says "Publish" produces a toast that says "Published."
-- An error explains what went wrong and how to fix it, in the interface's voice; it doesn't apologize or stay vague. An empty screen is an invitation to act, not a dead end.
-- Keep the register conversational: plain verbs, sentence case, no filler, tone matched to the brand. Let each element do exactly one job.
-
-## Restraint
-
-Spend your boldness in one place. Let the one memorable thing be memorable; keep everything around it quiet and disciplined, and cut any decoration that doesn't serve the subject.
+- **The hero is a thesis** — open with the most characteristic thing in the subject's world (headline, image, live demo, interactive moment).
+- **Typography carries the personality.** Pair display and body faces deliberately — not the families you'd reach for on any other project — with a clear type scale and intentional weights, widths, spacing. Make the type treatment itself memorable.
+- **Motion is deliberate.** Decide where — and whether — animation serves the subject. One orchestrated moment lands harder than scattered effects; extra animation reads as machine-generated.
+- **Match complexity to the vision.** Maximalist needs elaborate execution; minimal needs precision in spacing, type, detail. Cap it so at most two of {vivid accent, dense atmosphere, kinetic motion} run at full intensity at once.
+- **Spend your boldness in one place;** keep everything around it quiet. If the accent fights the ground, shift it toward analogous or drop saturation rather than replacing it.

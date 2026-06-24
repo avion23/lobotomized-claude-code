@@ -1,7 +1,7 @@
 <!--
 name: 'Tool Description: Read MCP Resource'
 description: descriptionForModel for the ReadMcpResource tool.
-ccVersion: 2.1.186
+ccVersion: 2.1.187
 variables:
   - TOOL_DESCRIPTION_READ_MCP_RESOURCE_VAR_0
 -->
