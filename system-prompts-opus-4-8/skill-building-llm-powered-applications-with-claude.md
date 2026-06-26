@@ -30,6 +30,18 @@ Don't guess SDK usage. Function names, class names, namespaces, method signature
 
 Unless the user requests otherwise: use {{OPUS_NAME}} — model string `{{OPUS_ID}}`. Default to adaptive thinking (`thinking: {type: "adaptive"}`) for anything non-trivial. Default to streaming for long input/output or high `max_tokens` (avoids request timeouts) — use `.get_final_message()` / `.finalMessage()` if you don't need per-event handling.
 
+## API Drift — Your Training Prior May Be Stale
+
+Several Claude API shapes changed in 2025–2026. Verify recalled patterns against the `{lang}/` files before writing — the most frequent drift points:
+
+| Area | Stale prior | Current API |
+|---|---|---|
+| Extended thinking | `thinking: {type: "enabled", budget_tokens: N}` | Claude 4.6+: `thinking: {type: "adaptive"}`. `budget_tokens` deprecated on Opus/Sonnet 4.6, rejected with 400 on Fable 5 / Opus 4.8 / 4.7. Pre-4.6 still uses `budget_tokens`. |
+| Web search / web fetch tool type | `web_search_20250305`, `web_fetch_20250910` | `web_search_20260209`, `web_fetch_20260209` (dynamic filtering) on Opus 4.8/4.7/4.6 and Sonnet 4.6. Older models keep the basic variants; on Vertex AI only basic `web_search_20250305` (no web fetch). |
+| PHP parameter names | snake_case named args (`max_tokens`) | Top-level named args are camelCase (`maxTokens`). Nested array keys vary by feature (`'taskBudget'`, `'skillID'`, `'mcp_server_name'`) — copy the exact key from the documented example; don't bulk-convert. |
+
+The `{lang}/` files are authoritative over recalled patterns.
+
 ---
 
 ## Subcommands
@@ -227,6 +239,111 @@ For placement patterns, architectural guidance, and the silent-invalidator audit
 
 ---
 
+## Fast Mode (Quick Reference)
+
+**Research preview, Opus 4.8 / 4.7 / 4.6.** Both 4.6 and 4.7 fast mode are deprecated — after removal, `speed: "fast"` silently falls back to standard on 4.6 and errors on 4.7. **Opus 4.8 is the durable fast-capable tier** — don't auto-substitute; leave the caller's fast-mode model string in place and flag the deprecation. Fast mode runs the same model at up to 2.5x output tokens/sec at premium pricing. Required on every request: the **beta** messages endpoint (`client.beta.messages.…`), beta flag `fast-mode-2026-02-01`, and `speed: "fast"` as a top-level request parameter (not a header, not `extra_body`).
+
+```python
+client.beta.messages.create(
+    model="claude-opus-4-8", max_tokens=4096,
+    speed="fast", betas=["fast-mode-2026-02-01"],
+    messages=[...],
+)
+```
+
+`response.usage.speed` reports which speed was used. Fast mode has its own rate limit; on 429, retry after `retry-after` or drop `speed` and fall back to standard (switching speed invalidates prompt cache). Not available with Batch API, Priority Tier, Claude Platform on AWS, or third-party platforms.
+
+---
+
+## Task Budgets (Quick Reference)
+
+**Beta, Fable 5 / Opus 4.8 / 4.7.** A task budget gives Claude a token ceiling for an agentic loop so it paces itself and finishes gracefully instead of being cut off. Set `task_budget` inside `output_config` on `client.beta.messages.stream(...)` with beta flag `task-budgets-2026-03-13` — use streaming so a large `max_tokens` doesn't hit HTTP timeouts:
+
+```python
+with client.beta.messages.stream(
+    model="claude-opus-4-8", max_tokens=128000,
+    output_config={"effort": "high", "task_budget": {"type": "tokens", "total": 64000}},
+    betas=["task-budgets-2026-03-13"],
+    messages=[...], tools=[...],
+) as stream:
+    response = stream.get_final_message()
+```
+
+`task_budget` fields: `type` (always `"tokens"`), `total`, optional `remaining` (defaults to `total`). The budget counts what Claude generates plus the tool results it reads this turn — **not** the full history you resend. Leave `remaining` unset in the normal loop (the server tracks the countdown); only pass it when you compact or rewrite history between requests and the server can't derive prior spend.
+
+---
+
+## Provider Clients (Quick Reference)
+
+When targeting Claude on a third-party platform, use that platform's dedicated client class — not the first-party `Anthropic()` client with a `base_url` override. After construction the client exposes the same `messages.create` / `.stream` surface.
+
+### Amazon Bedrock
+
+Use the **Mantle** client (Messages-API Bedrock endpoint). Bedrock model IDs take an `anthropic.` prefix (e.g. `"anthropic.{{OPUS_ID}}"`). Region required.
+
+| Language | Client |
+|---|---|
+| Python | `from anthropic import AnthropicBedrockMantle` → `AnthropicBedrockMantle(aws_region="…")` |
+| TypeScript | `import { AnthropicBedrockMantle } from "@anthropic-ai/bedrock-sdk"` → `new AnthropicBedrockMantle({ awsRegion: "…" })` |
+| Go | `bedrock.NewMantleClient(ctx, bedrock.MantleClientConfig{ AWSRegion: "…" })` |
+| Java | `AnthropicOkHttpClient.builder().backend(BedrockMantleBackend.fromEnv()).build()` (`com.anthropic.bedrock.backends`) |
+| C# | `new AnthropicBedrockMantleClient(new() { AwsRegion = "…" })` (package `Anthropic.Bedrock`) |
+| PHP | `use Anthropic\Bedrock\MantleClient;` → `new MantleClient(awsRegion: '…')` |
+| Ruby | `Anthropic::BedrockMantleClient.new(aws_region: "…")` |
+
+`AnthropicBedrock` / `BedrockClient` / `BedrockBackend` (without `Mantle`) are the legacy `bedrock-runtime` InvokeModel path — prefer Mantle for new code.
+
+### Microsoft Foundry
+
+| Language | Client |
+|---|---|
+| Python | `from anthropic import AnthropicFoundry` → `AnthropicFoundry(api_key=…, resource="…")` |
+| TypeScript | `import AnthropicFoundry from "@anthropic-ai/foundry-sdk"` → `new AnthropicFoundry({ … })` |
+| Java | `AnthropicOkHttpClient.builder().backend(FoundryBackend.fromEnv()).build()` (`com.anthropic.foundry.backends`) |
+| C# | `new AnthropicFoundryClient(new AnthropicFoundryApiKeyCredentials(…))` (package `Anthropic.Foundry`) |
+| PHP | `Foundry\Client::withCredentials(…)` |
+
+Go and Ruby have no Foundry client. For Ruby, fall back to `Anthropic::Client.new(base_url: "<foundry endpoint>")` (Entra ID auth not built in).
+
+### Google Cloud Vertex AI
+
+Two required constructor args: GCP `project_id` and `region`. Vertex model IDs take **no prefix** — current-generation models use the bare first-party ID (e.g. `"{{OPUS_ID}}"`); dated-snapshot models use an `@` version separator (e.g. `claude-opus-4-5@20251101`, **not** `claude-opus-4-5-20251101`). Auth is GCP ADC (`gcloud auth application-default login`); no Anthropic API key. `region` can be `"global"` (recommended), a multi-region (`"us"`/`"eu"`), or a specific region.
+
+| Language | Client |
+|---|---|
+| Python | `from anthropic import AnthropicVertex` → `AnthropicVertex(project_id="…", region="…")` (install `"anthropic[vertex]"`) |
+| TypeScript | `import { AnthropicVertex } from "@anthropic-ai/vertex-sdk"` → `new AnthropicVertex({ projectId, region })` |
+| Go | `import "github.com/anthropics/anthropic-sdk-go/vertex"` → `anthropic.NewClient(vertex.WithGoogleAuth(ctx, region, projectID))` |
+| Java | `AnthropicOkHttpClient.builder().backend(VertexBackend.builder().region("…").project("…").build()).build()` (`com.anthropic.vertex.backends`) |
+| C# | `new AnthropicClient { Backend = new VertexBackend(projectId, region) }` (package `Anthropic.Vertex`) |
+| PHP | `use Anthropic\Vertex;` → `Vertex\Client::fromEnvironment(location: '…', projectId: '…')` — note `location`, not `region` |
+| Ruby | `Anthropic::VertexClient.new(region: "…", project_id: "…")` |
+
+---
+
+## Context Editing (Quick Reference)
+
+**Beta.** Context editing **clears** old tool results or thinking blocks before the model sees them; it is **not** compaction (which summarizes). On `client.beta.messages.*` with beta `context-management-2025-06-27`, pass `context_management.edits` with a strategy type:
+
+```python
+client.beta.messages.create(
+    model="{{OPUS_ID}}", max_tokens=4096,
+    betas=["context-management-2025-06-27"],
+    context_management={"edits": [{"type": "clear_tool_uses_20250919"}]},
+    tools=[...], messages=[...],
+)
+```
+
+Strategy types: `clear_tool_uses_20250919` (clears old tool results; optional `clear_tool_inputs: true` also clears the tool_use params) and `clear_thinking_20251015` (clears thinking blocks). Don't use `compact_20260112` or beta `compact-2026-01-12` — those are the separate compaction feature.
+
+---
+
+## Mid-Conversation System Messages (Quick Reference)
+
+**Model-gated, no beta header.** Append `{"role": "system", "content": "…"}` to the `messages` array (not the top-level `system` field) to add an operator instruction mid-conversation without invalidating the cached prefix. Use the regular `client.messages.create` — there is no beta. A mid-conversation system message must follow a `user` message (or an `assistant` message ending in server-tool use), and must be the last entry in `messages` or be followed by an `assistant` turn — it can't be `messages[0]`. Availability: `shared/platform-availability.md`. See `shared/prompt-caching.md` § Mid-conversation system messages.
+
+---
+
 ## Managed Agents (Beta)
 
 A third surface: server-managed stateful agents with Anthropic-hosted tool execution. Create a persisted, versioned Agent config (`POST /v1/agents`), then start Sessions that reference it. Each session provisions a container as the agent's workspace — bash, file ops, code execution run there; the agent loop runs on Anthropic's orchestration layer and acts on the container via tools. The session streams events; you send messages and tool results back.
@@ -250,6 +367,62 @@ Available on the first-party API and Claude Platform on AWS. **Not** available o
 **When the user asks "how do I write the client code for X":** read `shared/managed-agents-client-patterns.md` — lossless stream reconnect, `processed_at` queued/processed gate, interrupt, `tool_confirmation` round-trip, the idle/terminated break gate, post-idle status race, stream-first ordering, file-mount gotchas, keeping credentials host-side via custom tools, etc.
 
 **When the user wants the agent to run on a schedule** (cron, "every night", "weekly report"): read `shared/managed-agents-scheduled-deployments.md` — deployments fire sessions autonomously on a cron cadence, with per-firing run records and lifecycle controls (pause/unpause/archive).
+
+---
+
+## Server Tools (Quick Reference)
+
+Server-side tools run on Anthropic's infrastructure — no client-side execution loop. Declare in `tools`; results arrive as content blocks in the same response. **No beta header** unless noted. Prefer the latest type variant your model supports. The `_20260209` web search / web fetch variants (dynamic filtering) require Opus 4.8/4.7/4.6 or Sonnet 4.6; basic variants for older models are noted below.
+
+| Tool | `type` | `name` | Key optional params | Result block type |
+|---|---|---|---|---|
+| Web search | `web_search_20260209` | `web_search` | `max_uses`, `allowed_domains`/`blocked_domains`, `user_location` | `web_search_tool_result` → `.content` is a list of `web_search_result` |
+| Web fetch | `web_fetch_20260209` | `web_fetch` | `max_uses`, `allowed_domains`/`blocked_domains`, `citations`, `max_content_tokens` | `web_fetch_tool_result` → `.content` is a `web_fetch_result` with a `document` block |
+| Code execution | `code_execution_20260521` | `code_execution` | none | `bash_code_execution_tool_result` → `.content.stdout` / `.stderr` / `.return_code` |
+| Tool search (regex) | `tool_search_tool_regex_20251119` | `tool_search_tool_regex` | mark other tools `defer_loading: true` | `tool_search_tool_result` |
+| Tool search (BM25) | `tool_search_tool_bm25_20251119` | `tool_search_tool_bm25` | mark other tools `defer_loading: true` | `tool_search_tool_result` |
+
+`web_search_20260209` / `web_fetch_20260209` have built-in dynamic filtering — code execution runs under the hood, so don't separately declare `code_execution` (a second execution environment confuses the model). For models older than Opus 4.6 / Sonnet 4.6, use `web_search_20250305` / `web_fetch_20250910`; on Vertex AI only basic `web_search_20250305` is available. `code_execution_20260120` (REPL persistence + programmatic tool calling) runs on Opus 4.5+ / Sonnet 4.5+. **Go only**: `code_execution_20260521` lives under `client.Beta.Messages.New` with `Betas: []anthropic.AnthropicBeta{"code-execution-2025-08-25"}`; `code_execution_20260120` uses the non-beta `client.Messages.New`. Web fetch only fetches URLs already in the conversation. Provider availability varies — see `shared/platform-availability.md`. See `shared/tool-use-concepts.md` for `pause_turn` handling.
+
+---
+
+## Document & File Input (Quick Reference)
+
+**PDF (base64, no beta):** `{"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": <b64 string>}}` in user content, before the text block. Base64 must have no newlines. Limits: 32 MB request, 600 pages (100 for 200K-context models). Java: `ContentBlockParam.ofDocument(DocumentBlockParam... Base64PdfSource.builder().data(...))`.
+
+**Files API (beta `files-api-2025-04-14`):** upload via `client.beta.files.upload(...)` → response `id` is the `file_id`. Reference as `{"type": "document", "source": {"type": "file", "file_id": "..."}}` for PDF/text, or `{"type": "image", ...}` for images — content-block type must match the file's MIME type. The beta header is required on **both** the upload and the `messages.create` that references the file. Availability: `shared/platform-availability.md`.
+
+**Citations (no beta):** set `citations: {enabled: true}` on each `document` block (all or none). The response splits into multiple `text` blocks; cited blocks carry a `citations` array. Each citation has `cited_text`, `document_index`, `document_title`, and a location by `type`: `char_location` (`start_char_index`/`end_char_index`) for text, `page_location` (`start_page_number`/`end_page_number`, 1-indexed) for PDF, `content_block_location` for custom content. Incompatible with `output_config.format`.
+
+---
+
+## Tool Use Patterns (Quick Reference)
+
+**Strict tool use (no beta):** set `strict: true` as a top-level field on the tool definition (alongside `name`/`description`/`input_schema`), **not** on `tool_choice`. Schema needs `additionalProperties: false` + `required`. Guarantees `tool_use.input` validates exactly. Go: `Strict: anthropic.Bool(true)` + `additionalProperties` via `InputSchema.ExtraFields`; Java: `.strict(true)` + `.putAdditionalProperty("additionalProperties", JsonValue.from(false))`.
+
+**Parallel tool use (default on):** one assistant message may contain multiple `tool_use` blocks. Execute them concurrently, then return **all** `tool_result` blocks in a **single** user message (don't split across messages). For a failed tool, return `tool_result` with `is_error: true` — don't drop it.
+
+**Tool Runner (SDK beta helper):** drives the tool-call loop via `client.beta.messages.*`. Python: `@beta_tool` + `client.beta.messages.tool_runner(...)` → `runner.until_done()`. TypeScript: `betaZodTool({...})` from `@anthropic-ai/sdk/helpers/beta/zod` + `client.beta.messages.toolRunner(...)` → `await runner`. Go: `toolrunner.NewBetaToolFromJSONSchema(...)` + `client.Beta.Messages.NewToolRunner(...)` → `.RunToCompletion(ctx)`. Java requires `.addBeta("structured-outputs-2025-11-13")`. Ruby: `Anthropic::BaseTool` subclass + `client.beta.messages.tool_runner(...)`. PHP: `BetaRunnableTool` + `->toolRunner(...)`. C#: raw JSON-schema tools + `BetaToolRunner` via `client.Beta.Messages.ToolRunner(...)`.
+
+**Programmatic tool calling (no beta header):** Claude calls your custom tool from inside code execution. Add `{"type": "code_execution_20260120", "name": "code_execution"}` **and** set `"allowed_callers": ["code_execution_20260120"]` on your custom tool. Opus 4.5+ / Sonnet 4.5+ (availability: `shared/platform-availability.md`). When responding to a pending programmatic call, the user message must contain **only** `tool_result` blocks (no text). Not compatible with `strict: true`, `disable_parallel_tool_use`, forced `tool_choice`, or MCP tools.
+
+---
+
+## Other API Surfaces (Quick Reference)
+
+**Message Batches (no beta):** `client.messages.batches.create(requests=[{custom_id, params}, ...])` → poll `client.messages.batches.retrieve(id).processing_status` until `"ended"` → stream `client.messages.batches.results(id)`. Each result has `.custom_id` + `.result.type` (`succeeded`/`errored`/`canceled`/`expired`); on success read `.result.message.content`. Python wraps requests as `Request(custom_id=..., params=MessageCreateParamsNonStreaming(...))`. Results arrive in **any order** — key by `custom_id`, never position.
+
+**Models API (no beta):** `client.models.list()` (auto-paginates) and `client.models.retrieve("{{OPUS_ID}}")`. Each model object has `id`, `display_name`, `created_at`, and — since Mar 2026 — `max_input_tokens` (context window), `max_tokens` (output cap), and `capabilities`. There is no `context_window` field.
+
+**Stop details (GA, Opus 4.7+):** `response.stop_details` is populated **only when `stop_reason == "refusal"`** (`type: "refusal"`, `category: "cyber"|"bio"|null`, `explanation`). It's `null` for every other `stop_reason` — always guard before reading.
+
+**Client config (no beta):** `timeout` default 10 min; **units differ by SDK** — Python/Ruby: seconds; TypeScript: **milliseconds**; Go `option.WithRequestTimeout(time.Duration)`; Java `Duration`; C# `TimeSpan`. TS scales the default up to 60 min for large `max_tokens` on non-streaming; Java scales for streaming (non-streaming 30s–10 min). `max_retries`/`maxRetries` default 2 (retries 408/409/429/5xx + connection errors). `base_url` (or `ANTHROPIC_BASE_URL`). Per-request override: Python `client.with_options(timeout=5.0)...`; TS `client.messages.create({...}, {timeout: 5_000})`; Ruby `request_options: {timeout: 5}`. Timeouts are retried — wall-clock can reach `timeout × (max_retries+1)`.
+
+---
+
+## Workload Identity Federation (Quick Reference)
+
+**GA, no beta header.** Construct the normal zero-arg client (`Anthropic()` / `new Anthropic()` / `anthropic.NewClient()` / `AnthropicOkHttpClient.fromEnv()`); the SDK auto-detects WIF when **all** of `ANTHROPIC_FEDERATION_RULE_ID`, `ANTHROPIC_ORGANIZATION_ID`, `ANTHROPIC_SERVICE_ACCOUNT_ID`, and `ANTHROPIC_IDENTITY_TOKEN_FILE` (or `ANTHROPIC_IDENTITY_TOKEN`) are set, exchanges the JWT at `/v1/oauth/token`, and auto-refreshes. `ANTHROPIC_WORKSPACE_ID` doesn't gate activation — required only when the federation rule spans multiple workspaces (else 400 `workspace_id_required`), optional otherwise. `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN` (even empty) outrank WIF, and a set `ANTHROPIC_PROFILE` also wins (a missing named profile is an error, not a fall-through) — unset all three.
 
 ---
 
@@ -300,10 +473,36 @@ Use WebFetch for the latest documentation when the user asks for "latest"/"curre
 - **Fable 5 / Opus 4.8 / 4.7 thinking:** adaptive only. `thinking: {type: "enabled", budget_tokens: N}` returns 400 — `budget_tokens` is fully removed (with `temperature`, `top_p`, `top_k`). Use `thinking: {type: "adaptive"}`. 4.8 inherits this surface from 4.7 with no new breaking changes; Fable 5 adds one — an explicit `{type: "disabled"}` 400s (accepted on 4.7/4.8), so omit the param instead.
 - **Opus 4.6 / Sonnet 4.6 thinking:** use `thinking: {type: "adaptive"}` — don't use `budget_tokens` for new code (deprecated on both; transitional escape hatch in `shared/model-migration.md` doesn't apply to 4.7/4.8). For older models, `budget_tokens` < `max_tokens` (minimum 1024), or it errors.
 - **Prefill removed (Fable 5 + 4.6/4.7/4.8):** last-assistant-turn prefills return 400 on Fable 5, Opus 4.6/4.7/4.8 and Sonnet 4.6. Use structured outputs (`output_config.format`) or system-prompt instructions to control format. (Exception: redeeming a fallback credit with `fallback_has_prefill_claim: true` echoes the refused assistant message back — see the migration guide's refusal section.)
+- **Fable 5 `refusal` stop reason:** safety classifiers may decline (HTTP 200, `stop_reason: "refusal"`; pre-output: empty `content`, unbilled; mid-stream: partial output billed — discard it). Check `stop_reason` before reading `response.content[0]`. To retry on another model, replay history as-is (other models drop the refused model's thinking blocks, unbilled). Fallbacks are opt-in — new `{{FABLE_ID}}` code should include the server-side `fallbacks` parameter by default; see the {{FABLE_NAME}} section above.
+- **Fable 5 tokenizer:** same as Opus 4.8 — counts roughly unchanged from 4.7/4.8. From 4.6/Sonnet/Haiku/older, counts differ (~1×–1.35× the tokens) — re-measure with `count_tokens` once per model.
 - **Confirm migration scope before editing:** when asked to migrate without a named file/directory/list, ask which scope first (whole working dir, a subdirectory, or specific files). Don't edit until confirmed. "migrate my codebase", "upgrade to Sonnet 4.6", bare "migrate to Opus 4.8" are still ambiguous — they say what, not where. Proceed without asking only when an exact file/directory/list is named. See `shared/model-migration.md` Step 0.
 - **`max_tokens` defaults:** don't lowball it — hitting the cap truncates mid-thought. Non-streaming: default `~16000` (under SDK HTTP timeouts). Streaming: default `~64000`. Go lower only with a reason: classification (`~256`), cost caps, deliberately short outputs, or `max_tokens: 0` for cache pre-warming (see `shared/prompt-caching.md` → Pre-warming).
 - **128K output tokens:** Fable 5, Opus 4.6/4.7/4.8 support up to 128K `max_tokens`, but the SDKs require streaming for values that large. Use `.stream()` with `.get_final_message()` / `.finalMessage()`.
 - **Tool call JSON parsing (Fable 5 + 4.6/4.7/4.8):** these may produce different JSON string escaping in tool-call `input` (Unicode, forward-slash). Always parse with `json.loads()` / `JSON.parse()` — never raw string matching on the serialized input.
 - **Structured outputs (all models):** use `output_config: {format: {...}}`, not the deprecated `output_format` parameter on `messages.create()`.
 - **Don't reimplement SDK functionality:** use `stream.finalMessage()` instead of wrapping `.on()` events in `new Promise()`; use typed exception classes (`Anthropic.RateLimitError`, etc.) instead of string-matching errors; use SDK types (`Anthropic.MessageParam`, `Anthropic.Tool`, `Anthropic.Message`, etc.) instead of redefining interfaces.
+- **Don't research SDK types — write first.** If a type name isn't shown in the docs included in this skill, write the file from the namespace/package tables in the language-specific doc and let the compiler point you to the right name. A quick `strings` / `jar tf` / `javap` against the installed SDK is fine for locating names; don't escalate to WebFetch/repo-clones/reflection programs before writing. A wrong type name is recoverable; a session spent on discovery with no file written is not.
+- **Error handling — catch a chain, not one broad class.** A single `except APIStatusError` / `catch (AnthropicServiceException)` / `rescue APIError` loses the retryable (429, ≥500, network) vs non-retryable (400/404) distinction. Write a most-specific-first chain — `NotFoundError` → `RateLimitError` → `APIStatusError` → `APIConnectionError` (Go: `errors.As` into `*anthropic.Error`, then `switch apierr.StatusCode`). Class names per language: `shared/error-codes.md`.
+- **Bash and text-editor tools are Anthropic-defined, schema-less.** Declare `{"type": "bash_20250124", "name": "bash"}` / `{"type": "text_editor_20250728", "name": "str_replace_based_edit_tool"}` — no `input_schema`. A custom tool with your own schema named `"bash"` is a different tool. Handler paths in `shared/tool-use-concepts.md` § Client-Side Tools.
+- **Advisor tool model pairing.** The advisor tool's `model` must be at least as capable as the request's top-level `model` (e.g. executor `claude-sonnet-4-6` → advisor `claude-opus-4-8`/`-4-7`); an invalid pair returns 400. Table in `shared/tool-use-concepts.md` § Advisor.
+- **Use a model the feature supports.** Fast mode is Opus 4.8/4.7/4.6 (4.6/4.7 deprecated; 4.8 is the durable tier — don't auto-substitute, leave the caller's model string and flag the deprecation); task budgets are Fable 5 / Opus 4.8/4.7 only; the advisor tool needs a valid executor↔advisor pair. If the prompt names a model the feature doesn't support, use a supported one and note the substitution.
+- **Bedrock / Foundry: use the platform client class.** Bedrock → the `…BedrockMantle…` client with `anthropic.`-prefixed model IDs (`AnthropicBedrock`/`BedrockBackend` without `Mantle` is legacy). Foundry → `AnthropicFoundry`/`FoundryBackend`/`AnthropicFoundryClient` (C#, Java, PHP, Python, TypeScript); Go and Ruby have no Foundry client (Ruby falls back to first-party client + custom `base_url`). Table in the Provider Clients section above.
+- **Agent Skills ≠ Managed Agents.** To generate a `.pptx`/`.xlsx`/etc. via Agent Skills, call `client.beta.messages.create` with `container={"skills": [...]}`, the `code_execution_20260521` tool, and both `code-execution-2025-08-25` + `skills-2025-10-02` betas — not `client.beta.agents`/`sessions`/`environments` (that's Managed Agents).
+- **MCP connector needs both halves.** `mcp_servers=[{type:"url", url, name}]` alone is rejected — also add `tools=[{type:"mcp_toolset", mcp_server_name:<same name>}]` with beta `mcp-client-2025-11-20`.
+- **Context editing ≠ compaction.** Context editing *clears* tool results and thinking; compaction *summarizes* history. For context editing use `context_management.edits` with `clear_tool_uses_20250919` (or `clear_thinking_20251015`) on `client.beta.messages.*` with beta `context-management-2025-06-27` — not the `compact_20260112` type or `compact-2026-01-12` beta.
+- **`inference_geo` is a direct top-level request parameter** — `client.messages.create(..., inference_geo="us")` / `.inferenceGeo("us")`, not in `extra_body`. Opus 4.6 / Sonnet 4.6 and later; `response.usage.inference_geo` reports where inference ran.
+- **Fine-grained tool streaming is not a beta feature.** Set `eager_input_streaming: true` on the tool definition and call the regular `client.messages.stream(...)` — no beta header, no `client.beta.*` path.
+- **Cache diagnostics is beta.** `client.beta.messages.*` with beta `cache-diagnosis-2026-04-07`. Pass `diagnostics: {previous_message_id: null}` on the first turn, `{previous_message_id: <prev response id>}` after; result on `response.diagnostics`.
+- **Memory tool type is `memory_20250818`.** Declare `{"type": "memory_20250818", "name": "memory"}`. Go uses the beta-namespace type on `client.Beta.Messages.New`; Python/TS/Ruby/PHP/C# use non-beta `client.messages.create`; Java has both. Python/TS provide `BetaAbstractMemoryTool` / `betaMemoryTool` helpers for the backend.
+- **Don't define custom types for SDK data structures:** use `Anthropic.MessageParam` for messages, `Anthropic.Tool` for definitions, `Anthropic.ToolUseBlock` / `Anthropic.ToolResultBlockParam` for tool results, `Anthropic.Message` for responses — defining your own duplicates the SDK and loses type safety.
+- **Server-tool errors don't raise.** Web search/fetch errors return HTTP 200 with a result block whose `content` is a single error object (e.g. `{error_code: "max_uses_exceeded"}`), not a raised exception. For web search a success `content` is a *list*, an error `content` is an *object* — branch before indexing.
+- **Code execution output block type:** `code_execution_20260521` returns `bash_code_execution_tool_result` (with `.content.stdout`), not the legacy bare `code_execution_tool_result`. Match on the correct type.
+- **Tool search: never defer everything.** The search tool itself must not have `defer_loading: true`, and at least one tool must be non-deferred, or the API returns 400 `All tools have defer_loading set`.
+- **`strict: true` goes on the tool, not `tool_choice`.** It's a sibling of `name`/`description`/`input_schema` on the tool definition; on `tool_choice` it does nothing.
+- **Parallel tool results go in ONE user message.** Splitting `tool_result` blocks across multiple user messages silently trains Claude to stop making parallel calls.
+- **Citations + structured outputs are incompatible.** `citations: {enabled: true}` on a document plus `output_config.format` returns 400.
+- **Batch results are unordered.** Match by `custom_id`, never by position.
+- **Vertex model IDs have no prefix.** Unlike Bedrock's `anthropic.`-prefixed IDs, Vertex takes the bare first-party ID for current-generation models; dated-snapshot models use an `@` separator (e.g. `claude-haiku-4-5@20251001`).
+- **`stop_details` is `null` unless `stop_reason == "refusal"`.** Guard before reading `.category`.
+- **WIF auth: unset `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, and `ANTHROPIC_PROFILE`.** All three outrank Workload Identity Federation (the keys even when set to `""`; a missing named profile is an error, not a fall-through). `unset` them, don't blank them.
 - **Report and document output:** for reports/documents/visualizations, the code execution sandbox has `python-docx`, `python-pptx`, `matplotlib`, `pillow`, and `pypdf` pre-installed. Claude can generate formatted files (DOCX, PDF, charts) and return them via the Files API — prefer this over plain stdout text for "report"/"document" requests.
