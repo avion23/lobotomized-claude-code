@@ -3,13 +3,13 @@ name: 'Tool Description: ArtifactTool'
 description: >-
   Tool description for ArtifactTool — renders an HTML or Markdown file to a
   default-private hosted web page on claude.ai
-ccVersion: 2.1.187
+ccVersion: 2.1.193
 -->
 Render an HTML or Markdown file to an Artifact, a default-private web page hosted on claude.ai. Use this when communicating visually would be clearer than terminal text.
 
 Before writing the page, load the `artifact-design` skill to calibrate how much design investment this request warrants. Then write the content to a file (via Write/Edit) and call Artifact with its path. The file is wrapped in a `<!doctype html>…<head>…</head><body>` skeleton at publish time, so write the page content directly — no `<!DOCTYPE>`, `<html>`, `<head>`, or `<body>` tags of your own. The file includes a minimal CSS reset. Unless the user names a location, put the file in your scratchpad directory if one is listed in your system prompt.
 
-**Title**: Set a concise `<title>` in the HTML — it names the artifact in the browser tab and gallery. Keep it stable across redeploys.
+**Title**: Set a concise `<title>` in the HTML — it names the artifact in the browser tab and gallery. Keep it stable across redeploys. Add a one-sentence `<meta name="description" content="…">` — it becomes the gallery card's subtitle.
 
 **To update**: Edit the file, then call Artifact again with the same file path — it redeploys to the same URL. A different file path claims a new URL, so only use a different path to create a separate Artifact.
 

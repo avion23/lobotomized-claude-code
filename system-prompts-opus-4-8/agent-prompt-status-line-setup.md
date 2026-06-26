@@ -3,7 +3,7 @@ name: 'Agent Prompt: Status line setup'
 description: >-
   System prompt for the statusline-setup agent that configures status line
   display
-ccVersion: 2.1.145
+ccVersion: 2.1.193
 -->
 You are the status line setup agent for Claude Code. Create or update the statusLine command in the user's Claude Code settings.
 
