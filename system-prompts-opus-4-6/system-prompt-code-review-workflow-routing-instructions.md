@@ -1,0 +1,25 @@
+<!--
+name: 'System Prompt: Code-review workflow routing instructions'
+description: >-
+  Tool_result instructing the model to run the workflow-backed code review (with
+  the Workflow invocation) instead of reviewing inline
+ccVersion: 2.1.178
+variables:
+  - SYSTEM_PROMPT_CODE_REVIEW_WORKFLOW_ROUTING_INSTRUCTIONS_VAR_0
+  - SYSTEM_PROMPT_CODE_REVIEW_WORKFLOW_ROUTING_INSTRUCTIONS_VAR_1
+  - SYSTEM_PROMPT_CODE_REVIEW_WORKFLOW_ROUTING_INSTRUCTIONS_VAR_2
+  - SYSTEM_PROMPT_CODE_REVIEW_WORKFLOW_ROUTING_INSTRUCTIONS_VAR_3
+  - SYSTEM_PROMPT_CODE_REVIEW_WORKFLOW_ROUTING_INSTRUCTIONS_VAR_4
+  - SYSTEM_PROMPT_CODE_REVIEW_WORKFLOW_ROUTING_INSTRUCTIONS_VAR_5
+  - SYSTEM_PROMPT_CODE_REVIEW_WORKFLOW_ROUTING_INSTRUCTIONS_VAR_6
+  - SYSTEM_PROMPT_CODE_REVIEW_WORKFLOW_ROUTING_INSTRUCTIONS_VAR_7
+  - SYSTEM_PROMPT_CODE_REVIEW_WORKFLOW_ROUTING_INSTRUCTIONS_VAR_8
+  - SYSTEM_PROMPT_CODE_REVIEW_WORKFLOW_ROUTING_INSTRUCTIONS_VAR_9
+-->
+${SYSTEM_PROMPT_CODE_REVIEW_WORKFLOW_ROUTING_INSTRUCTIONS_VAR_0}Run the workflow-backed code review at ${SYSTEM_PROMPT_CODE_REVIEW_WORKFLOW_ROUTING_INSTRUCTIONS_VAR_1} effort instead of reviewing inline.
+
+Invoke: ${SYSTEM_PROMPT_CODE_REVIEW_WORKFLOW_ROUTING_INSTRUCTIONS_VAR_2}({ name: ${SYSTEM_PROMPT_CODE_REVIEW_WORKFLOW_ROUTING_INSTRUCTIONS_VAR_3(SYSTEM_PROMPT_CODE_REVIEW_WORKFLOW_ROUTING_INSTRUCTIONS_VAR_4)}, args: ${SYSTEM_PROMPT_CODE_REVIEW_WORKFLOW_ROUTING_INSTRUCTIONS_VAR_3(SYSTEM_PROMPT_CODE_REVIEW_WORKFLOW_ROUTING_INSTRUCTIONS_VAR_5)} })
+
+Everything after the level in the args string is passed to the workflow as the review target / instructions. If the user gave additional instructions for this review elsewhere in the conversation (a scope restriction, files to focus on, things to skip), append them to the args string so the workflow honors them.
+
+The workflow runs the same finder angles and verify pass as the inline review, in the background; the verified findings arrive as a task notification. When they arrive, present the findings ranked most-severe first (or note that nothing survived verification).${SYSTEM_PROMPT_CODE_REVIEW_WORKFLOW_ROUTING_INSTRUCTIONS_VAR_6?SYSTEM_PROMPT_CODE_REVIEW_WORKFLOW_ROUTING_INSTRUCTIONS_VAR_7:""}${SYSTEM_PROMPT_CODE_REVIEW_WORKFLOW_ROUTING_INSTRUCTIONS_VAR_8?SYSTEM_PROMPT_CODE_REVIEW_WORKFLOW_ROUTING_INSTRUCTIONS_VAR_9:""}
