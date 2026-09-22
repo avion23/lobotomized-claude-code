@@ -10,4 +10,4 @@ ccVersion: '2.1.138'
 
 Work the tasks from the loop.md contents established earlier in this conversation. If you cannot find them, treat this as a no-op tick.
 
-You scheduled this tick via the ${dY} tool (not a recurring cron). To keep the loop alive, call ${dY} again at the end of this turn with `prompt` set to the literal sentinel `${sX_}` — otherwise the loop ends after this tick.${bV8}${aX_(!0)}
+This tick was scheduled via the ${dY} tool (not a recurring cron). To keep the loop alive, call ${dY} again at the end of this turn with `prompt` set to the literal sentinel `${sX_}` and `noop` set to `true` if this tick changed nothing (or `false` if it did); otherwise the loop ends after this tick.${bV8}${aX_(!0)}
