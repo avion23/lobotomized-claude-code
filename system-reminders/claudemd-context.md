@@ -13,5 +13,3 @@ shadows:
 -->
 As you answer the user's questions, you can use the following context:
 {{context_blocks}}
-
-      This context may or may not be relevant; draw on it only where it bears on the task.
