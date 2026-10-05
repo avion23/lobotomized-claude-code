@@ -1,0 +1,12 @@
+<!--
+name: availableModels Hyphenate Version Suggestion
+description: >-
+  Suggests rewriting a dotted version number with a hyphen so an availableModels
+  entry can match a model ID.
+ccVersion: 2.1.284
+variables:
+  - DATA_SETTINGS_AVAILABLE_MODELS_HYPHEN_VERSION_SUGGESTION_VAR_0
+  - DATA_SETTINGS_AVAILABLE_MODELS_HYPHEN_VERSION_SUGGESTION_VAR_1
+  - DATA_SETTINGS_AVAILABLE_MODELS_HYPHEN_VERSION_SUGGESTION_VAR_2
+-->
+${DATA_SETTINGS_AVAILABLE_MODELS_HYPHEN_VERSION_SUGGESTION_VAR_0} To allow a version, write it with a hyphen: "${DATA_SETTINGS_AVAILABLE_MODELS_HYPHEN_VERSION_SUGGESTION_VAR_1(DATA_SETTINGS_AVAILABLE_MODELS_HYPHEN_VERSION_SUGGESTION_VAR_2)}".

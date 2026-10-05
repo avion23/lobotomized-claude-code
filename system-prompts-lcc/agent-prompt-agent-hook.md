@@ -1,13 +1,14 @@
 <!--
 name: 'Agent Prompt: Agent Hook'
 description: Prompt for an 'agent hook'
-ccVersion: 2.1.246
+ccVersion: 2.1.284
 variables:
   - HOOK_EVALUATION_TASK_PROMPT
   - TRANSCRIPT_PATH
+  - IS_REMOTE_HOOK_CALL
   - STRUCTURED_OUTPUT_TOOL_NAME
 -->
-${HOOK_EVALUATION_TASK_PROMPT} ${TRANSCRIPT_PATH!==void 0?`The conversation transcript is available at: ${TRANSCRIPT_PATH}`:"This call is being served for another machine's session; there is no local conversation transcript to read."}
+${HOOK_EVALUATION_TASK_PROMPT} ${TRANSCRIPT_PATH!==void 0?`The conversation transcript is available at: ${TRANSCRIPT_PATH}`:IS_REMOTE_HOOK_CALL?"This call is being served for another machine's session; there is no local conversation transcript to read.":"There is no conversation transcript file to read here; ignore transcript_path in the hook input."}
 
 Use the available tools to inspect the codebase and verify the condition.
 

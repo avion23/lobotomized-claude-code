@@ -3,6 +3,6 @@ name: 'Tool Parameter: Artifact db query options'
 description: >-
   The `query` parameter description on the Artifact tool input schema, covering
   paging, where clauses and ordering for read_db list/query.
-ccVersion: 2.1.224
+ccVersion: 2.1.284
 -->
-Options for db_op 'list' and 'query': `limit` and `cursor` (from a prior result's `next_cursor`) page through a collection; `where` clauses ([field, operator, value] triples) and `order_by` filter and order a 'query' only.
+Options for db_op 'list' and 'query': `limit` (1-1000, default 100) and `cursor` (from a prior result's `next_cursor`) page through a collection; `where` clauses ([field, operator, value] triples) and `order_by` filter and order a 'query' only. A query with `order_by` is a single page: it returns at most `limit` documents in that order and never a `next_cursor`, so pass the `limit` you mean (up to 1000), or drop `order_by` and page with `cursor` to read a whole collection.

@@ -4,7 +4,7 @@ description: >-
   Instructs Claude to act as a security monitor that evaluates autonomous coding
   agent actions against block/allow rules to prevent prompt injection, scope
   creep, and accidental damage
-ccVersion: 2.1.274
+ccVersion: 2.1.286
 variables:
   - HOST_CONTEXT_LINE_GUIDANCE
   - PASTED_CONTENT_TRUST_RULE_BLOCK

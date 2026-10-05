@@ -1,8 +1,9 @@
 <!--
-name: 'Skill: Plugin Authoring Description'
+name: 'Skill: Plugin authoring description'
 description: >-
-  Trigger description of the plugin-authoring skill that tells the model to load
-  it before writing or debugging a function-hooks plugin.
-ccVersion: 2.1.261
+  Description of the plugin-authoring skill for writing Claude Code mods
+  (function-hook plugins with panes, bands, status lines, toasts) that
+  hot-reload in-session
+ccVersion: 2.1.284
 -->
-Write or debug a Claude Code plugin made of function hooks (a hooks module exporting register(on, options), hooks ($, e, next) on events like tool.call, prompt.submit, ui.render, session.start). Load it before writing or changing such a plugin; it says where the exact types come from, how to run a plugin under development, and where the engine reports what it refused.
+Make a mod: a live pane, band, status line, toast or hook inside Claude Code (terminal or desktop Code tab), written as a plugin of function hooks that hot-reloads in this session. Load before writing or debugging a hooks module.

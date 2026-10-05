@@ -1,0 +1,12 @@
+<!--
+name: deniedModels Hyphenate Version Suggestion
+description: >-
+  Suggests rewriting a dotted version number with a hyphen so a deniedModels
+  entry can match a model ID.
+ccVersion: 2.1.284
+variables:
+  - DATA_SETTINGS_DENIED_MODELS_HYPHEN_VERSION_SUGGESTION_VAR_0
+  - DATA_SETTINGS_DENIED_MODELS_HYPHEN_VERSION_SUGGESTION_VAR_1
+  - DATA_SETTINGS_DENIED_MODELS_HYPHEN_VERSION_SUGGESTION_VAR_2
+-->
+${DATA_SETTINGS_DENIED_MODELS_HYPHEN_VERSION_SUGGESTION_VAR_0} To block a version, write it with a hyphen: "${DATA_SETTINGS_DENIED_MODELS_HYPHEN_VERSION_SUGGESTION_VAR_1(DATA_SETTINGS_DENIED_MODELS_HYPHEN_VERSION_SUGGESTION_VAR_2)}".

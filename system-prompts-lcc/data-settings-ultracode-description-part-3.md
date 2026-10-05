@@ -4,6 +4,6 @@ description: >-
   Description of the `ultracode` setting in Claude Code's settings JSON schema.
   The model reads it through /update-config and settings validation errors; it
   is also shown to users in the settings help.
-ccVersion: 2.1.276
+ccVersion: 2.1.284
 -->
-interactive toggles never persist it. Requires workflows to be enabled and an xhigh-capable model.
+interactive toggles never persist it. Requires workflows to be enabled and a model that supports ultracode.
