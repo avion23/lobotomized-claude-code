@@ -9,7 +9,7 @@ The user thinks another Claude Code session on this machine is frozen, stuck, or
 
 ## What to look for
 
-Scan for other Claude Code processes, excluding the current one (exclude the PID running this prompt). Process names are typically `claude` (installed) or `cli` (native dev build).
+Scan for other Claude Code processes, excluding the current one (exclude `process.pid`, the PID running this prompt). Process names are typically `claude` (installed) or `cli` (native dev build).
 
 Signs of a stuck session:
 - **High CPU (≥90%) sustained** — likely an infinite loop. Sample twice, 1-2s apart, to rule out a transient spike.
