@@ -9,6 +9,6 @@ Clear, concise description of what this command does in active voice. Never use 
 
 Say what the command does in plain words: do not echo the command's text, its flags, or file paths - the user reads this description, often without seeing the command.
 
-For simple commands (git, npm, standard CLI tools), keep it brief (5-10 words):
+For simple commands (git, npm, standard CLI tools), keep it brief (5-10 words): git status → "Show working tree status".
 
-For commands that are harder to parse at a glance (piped commands, obscure flags, etc.), add enough context to clarify what it does:
+For commands that are harder to parse at a glance (piped commands, obscure flags), add enough context to clarify what it does: curl -s url | jq '.data[]' → "Fetch JSON from URL and extract data array elements".
