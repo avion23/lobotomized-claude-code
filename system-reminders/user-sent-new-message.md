@@ -1,9 +1,9 @@
 <!--
 name: User-sent-new-message wrapper
 description: >-
-  Wraps a user message that arrives mid-turn. Carries the "IMPORTANT: After
-  completing your current task, you MUST address" framing. Empty .md = no
-  wrapping (just the message text).
+  Wraps a user message that arrives mid-turn. Stock tells the model to address
+  it as the running turn continues. Empty .md = no wrapping (just the message
+  text).
 ccVersion: 2.1.141
 placeholders:
   - message
@@ -11,4 +11,4 @@ placeholders:
 User added mid-turn:
 {{message}}
 
-After finishing your current task, address this message.
+Address this message now, in this turn.

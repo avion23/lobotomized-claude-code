@@ -8,7 +8,7 @@
 
 ### Claude Code's system prompts, cut down and rewritten for the model that's actually running them.
 
-[![Claude Code](https://img.shields.io/badge/Claude%20Code-2.1.288-d97757?style=flat-square)](https://claude.com/claude-code)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-2.1.280-d97757?style=flat-square)](https://claude.com/claude-code)
 [![model](https://img.shields.io/badge/tuned%20for-Opus%205.5%20%2B%20Fable%205.1-8a63d2?style=flat-square)](#one-set-every-model)
 [![patched with](https://img.shields.io/badge/applied%20with-tweakcc--fixed-cb3837?style=flat-square)](https://github.com/skrabe/tweakcc-fixed)
 

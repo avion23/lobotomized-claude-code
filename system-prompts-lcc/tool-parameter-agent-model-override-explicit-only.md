@@ -5,4 +5,4 @@ description: >-
   the user explicitly asked for one.
 ccVersion: 2.1.251
 -->
-
+ Set only when the user names a model; otherwise omit so the worker uses the default.

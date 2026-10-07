@@ -5,4 +5,4 @@ description: >-
   the override is ignored and must not be set.
 ccVersion: 2.1.251
 -->
-
+ Ignored in this session; omit it.

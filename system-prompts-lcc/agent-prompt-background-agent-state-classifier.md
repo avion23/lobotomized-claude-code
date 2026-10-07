@@ -75,3 +75,13 @@ Stickiness: you're given the previous state. Don't move done→working or failed
 (blocked — agent has not delivered)
 "I found the bug in auth.ts:42. Want me to fix it or just report?"
 → {"state":"blocked","detail":"found null-check bug at auth.ts:42; awaiting fix-vs-report","tempo":"blocked","needs":"fix it or just report?","output":{}}
+
+## Output
+
+Respond with only this JSON, no code fences:
+{"state":"<working|blocked|done|failed>","detail":"<one line, ≤64 chars>","tempo":"<active|idle|blocked>","needs":"<when blocked: the exact ask; omit otherwise>","output":{"result":"<one-sentence deliverable headline, ≤180 chars; omit when working>"}}
+
+- "detail": the lock-screen headline, about 64 characters: the concrete thing (file, function, error, number, finding) and what happened to it ("fixed auth race in middleware.ts, tests green", not "completed task"). No parentheticals, URLs, or second clause; the rest goes in output.result.
+- "tempo": "active" = computing; "idle" = waiting on something external (CI, timer, reviewer); "blocked" = waiting on the user.
+- "needs": when blocked, the exact action the user should take, copied as closely as possible from the tail. Omit otherwise.
+- "output.result": one-sentence headline of a finished deliverable (direct answer, produced URL/path, command to run). A `result:` line in the tail is the result. Use {} when still working or when it would only restate the state.

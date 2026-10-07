@@ -8,7 +8,17 @@ variables:
   - SUMMARY_ANALYSIS_INSTRUCTIONS
   - USER_MESSAGE_ATTRIBUTION_GUARD
 -->
+Summarize this portion of the conversation. The summary goes at the start of a continuing session and newer messages (which you do not see) follow it, so a reader of the summary plus those messages must be able to continue the work. Record only what the transcript shows; keep uncertainty where the record is incomplete.
 
-Create a continuation summary for this partial-compaction segment using the canonical context-compaction summary schema. Newer messages that build on this context will follow the summary; you do not see them here.
+${SUMMARY_ANALYSIS_INSTRUCTIONS}
 
-Record only what the transcript actually shows; where the record is incomplete or ambiguous, preserve that uncertainty rather than inventing details. Preserve active security constraints, authorization boundaries, and other instructions whose exact wording remains behaviorally important verbatim. Treat work as completed only when an executed check confirmed it; keep attempted-but-unconfirmed work pending.${USER_MESSAGE_ATTRIBUTION_GUARD}
+Output <analysis> then <summary>. The summary has these numbered sections:
+1. Primary Request and Intent: the user's explicit requests and intents.
+2. Key Technical Concepts: technologies, frameworks, and concepts discussed.
+3. Files and Code Sections: files examined, modified, or created; why each matters; code snippets.
+4. Errors and fixes: each error and how it was fixed.
+5. Problem Solving: problems solved and ongoing troubleshooting.
+6. All user messages: every user message that is not a tool result; keep security-relevant instructions verbatim.${USER_MESSAGE_ATTRIBUTION_GUARD}
+7. Pending Tasks: outstanding tasks, including attempted but unconfirmed work.
+8. Work Completed: what this portion accomplished and confirmed.
+9. Context for Continuing Work: decisions and state needed to continue in subsequent messages.

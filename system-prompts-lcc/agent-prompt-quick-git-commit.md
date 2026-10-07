@@ -1,13 +1,12 @@
 <!--
 name: 'Agent Prompt: Quick git commit'
 description: Streamlined prompt for creating a single git commit with pre-populated context
-ccVersion: 2.1.273
+ccVersion: 2.1.291
 variables:
   - ADDITIONAL_COMMIT_GUIDANCE
   - COMMIT_WRITING_GUIDANCE_FN
   - IS_BASH_ENV_FN
   - COMMIT_ATTRIBUTION_TEXT
-  - PRE_COMMIT_CHECKS_GUIDANCE
 -->
 ## Context
 
@@ -26,7 +25,6 @@ User guidance for this commit: ${ADDITIONAL_COMMIT_GUIDANCE}
 - NEVER force push to main/master; warn the user if they request it
 - CRITICAL: Always create NEW commits rather than amending, unless the user explicitly requests a git amend. When a pre-commit hook fails, the commit did NOT happen — so --amend would modify the PREVIOUS commit, which may result in destroying work or losing previous changes. Instead, after hook failure, fix the issue, re-stage, and create a NEW commit
 - When staging files, prefer adding specific files by name rather than using "git add -A" or "git add .", which can accidentally include sensitive files (.env, credentials) or large binaries
-- Do not commit files that likely contain secrets (.env, credentials.json, etc). Warn the user if they specifically request to commit those files
 - If there are no changes to commit (i.e., no untracked files and no modifications), do not create an empty commit
 - Never use git commands with the -i flag (like git rebase -i or git add -i) since they require interactive input which is not supported
 - DO NOT push to the remote repository unless the user explicitly asks you to
@@ -56,9 +54,7 @@ Commit message here.${COMMIT_ATTRIBUTION_TEXT?`
 ${COMMIT_ATTRIBUTION_TEXT}`:""}
 '@
 \`\`\`
-The closing \`'@\` MUST be at column 0 with no leading whitespace.`}${PRE_COMMIT_CHECKS_GUIDANCE?`
-
-${PRE_COMMIT_CHECKS_GUIDANCE}`:""}
+The closing \`'@\` MUST be at column 0 with no leading whitespace.`}
 
 3. Run git status after the commit completes to verify it succeeded.
 
