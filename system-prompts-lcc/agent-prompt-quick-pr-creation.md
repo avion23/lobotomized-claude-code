@@ -37,7 +37,6 @@ variables:
 - Don't run destructive/irreversible git commands (push --force, hard reset, etc.) unless the user explicitly asks.
 - Don't skip hooks (--no-verify, --no-gpg-sign, etc.) unless the user explicitly asks.
 - Don't force push to main/master; warn the user if they request it.
-- Don't commit files likely to contain secrets (.env, credentials.json, etc.).
 - Don't use git \`-i\` flags (rebase -i, add -i) — they require interactive input, which isn't supported.
 - When staging files, add specific files by name rather than using "git add -A" or "git add ." — bulk adds can accidentally include sensitive files (.env, credentials) or large binaries
 

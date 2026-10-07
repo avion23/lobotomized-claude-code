@@ -6,4 +6,4 @@ description: >-
 ccVersion: 2.1.231
 -->
 
-The user opted into this at setup. Do not read these files yourself; they carry inline secrets.
+The user opted into this at setup.
