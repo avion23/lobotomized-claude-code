@@ -9,5 +9,6 @@ inlineBlobAnchor: >-
 inlineBlobKind: template
 injectionGate: always on
 ccVersion: 2.1.141
-nuked: empty body = suppressed (duplicate of the inline context-management paragraph; model loses nothing).
 -->
+# Context management
+When the conversation grows long, earlier context is summarized and carried into the next context window, so work continues — don't wrap up early or hand off mid-task.
