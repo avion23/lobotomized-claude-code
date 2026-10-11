@@ -310,9 +310,7 @@ write-back only; \`{on: false}\` (or a state without \`hold\`) lifts it.
    additions (they will read as your marks), but freehand strokes,
    plain lines and pasted pictures cannot carry over - so tell the
    user what a rebuild would lose and publish over their board only if
-   they say yes; keeping the same artifact keeps the link working. While
-   you work, at most one plain line about what you are delivering ("I've
-   read your board - adding my questions to it"); the rest waits for step 4.
+   they say yes; keeping the same artifact keeps the link working.
    Only if neither \`node\` nor \`bun\` is available, do the same by hand:
    keep every top-level key (\`v\`, \`savedAt\`, \`builtAt\`, \`held\`, \`heldIds\`, \`tomb\`,
    \`pub\`, \`pingCount\`, \`ping\`, \`hold\` - and any other key present) and the \`els\` array untouched, append your additions
