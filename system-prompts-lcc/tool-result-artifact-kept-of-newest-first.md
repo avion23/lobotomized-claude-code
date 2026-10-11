@@ -1,0 +1,13 @@
+<!--
+name: Artifact retained versions heading
+description: >-
+  Artifact retained versions heading. Emitted by the concrete model-context
+  route documented below.
+ccVersion: 2.1.296
+variables:
+  - TOOL_RESULT_ARTIFACT_KEPT_OF_NEWEST_FIRST_VAR_0
+  - TOOL_RESULT_ARTIFACT_KEPT_OF_NEWEST_FIRST_VAR_1
+  - TOOL_RESULT_ARTIFACT_KEPT_OF_NEWEST_FIRST_VAR_2
+  - TOOL_RESULT_ARTIFACT_KEPT_OF_NEWEST_FIRST_VAR_3
+-->
+${TOOL_RESULT_ARTIFACT_KEPT_OF_NEWEST_FIRST_VAR_0.length} ${TOOL_RESULT_ARTIFACT_KEPT_OF_NEWEST_FIRST_VAR_1(TOOL_RESULT_ARTIFACT_KEPT_OF_NEWEST_FIRST_VAR_0.length,"version")} kept of ${TOOL_RESULT_ARTIFACT_KEPT_OF_NEWEST_FIRST_VAR_2(TOOL_RESULT_ARTIFACT_KEPT_OF_NEWEST_FIRST_VAR_3.url)}, newest first:

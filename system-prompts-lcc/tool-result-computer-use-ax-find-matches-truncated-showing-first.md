@@ -1,0 +1,9 @@
+<!--
+name: 'Computer use ax_find: showing first N of M'
+description: Truncation lead of app_ax_find matches result
+ccVersion: 2.1.296
+variables:
+  - TOOL_RESULT_COMPUTER_USE_AX_FIND_MATCHES_TRUNCATED_SHOWING_FIRST_VAR_0
+  - TOOL_RESULT_COMPUTER_USE_AX_FIND_MATCHES_TRUNCATED_SHOWING_FIRST_VAR_1
+-->
+showing first ${TOOL_RESULT_COMPUTER_USE_AX_FIND_MATCHES_TRUNCATED_SHOWING_FIRST_VAR_0.length} of ${TOOL_RESULT_COMPUTER_USE_AX_FIND_MATCHES_TRUNCATED_SHOWING_FIRST_VAR_1.length} matches — 

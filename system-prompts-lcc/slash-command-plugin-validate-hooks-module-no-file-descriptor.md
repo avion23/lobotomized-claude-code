@@ -1,0 +1,12 @@
+<!--
+name: 'Slash command: plugin validate hooks module no file descriptor free'
+description: >-
+  Error reported when a hooks module file could not be read because no file
+  descriptor was free
+ccVersion: 2.1.296
+variables:
+  - SLASH_COMMAND_PLUGIN_VALIDATE_HOOKS_MODULE_NO_FILE_DESCRIPTOR_VAR_0
+  - SLASH_COMMAND_PLUGIN_VALIDATE_HOOKS_MODULE_NO_FILE_DESCRIPTOR_VAR_1
+  - SLASH_COMMAND_PLUGIN_VALIDATE_HOOKS_MODULE_NO_FILE_DESCRIPTOR_VAR_2
+-->
+${SLASH_COMMAND_PLUGIN_VALIDATE_HOOKS_MODULE_NO_FILE_DESCRIPTOR_VAR_0}: ${SLASH_COMMAND_PLUGIN_VALIDATE_HOOKS_MODULE_NO_FILE_DESCRIPTOR_VAR_1}: not read, no file descriptor free (${SLASH_COMMAND_PLUGIN_VALIDATE_HOOKS_MODULE_NO_FILE_DESCRIPTOR_VAR_2})

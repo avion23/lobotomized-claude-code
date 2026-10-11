@@ -1,0 +1,10 @@
+<!--
+name: 'Data: Task Notification Remote Task Blocked'
+description: Task-notification summary when a remote task is blocked waiting on input.
+ccVersion: 2.1.296
+variables:
+  - DATA_TASK_NOTIFICATION_REMOTE_TASK_BLOCKED_VAR_0
+  - DATA_TASK_NOTIFICATION_REMOTE_TASK_BLOCKED_VAR_1
+  - DATA_TASK_NOTIFICATION_REMOTE_TASK_BLOCKED_VAR_2
+-->
+${DATA_TASK_NOTIFICATION_REMOTE_TASK_BLOCKED_VAR_0}${DATA_TASK_NOTIFICATION_REMOTE_TASK_BLOCKED_VAR_1.title}" is blocked: ${DATA_TASK_NOTIFICATION_REMOTE_TASK_BLOCKED_VAR_2}

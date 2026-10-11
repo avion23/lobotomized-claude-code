@@ -1,0 +1,10 @@
+<!--
+name: 'Tool result: agent toolset write failed'
+description: Agent toolset write tool error wrapping a filesystem failure.
+ccVersion: 2.1.296
+variables:
+  - TOOL_RESULT_AGENT_TOOLSET_WRITE_FAILED_VAR_0
+  - TOOL_RESULT_AGENT_TOOLSET_WRITE_FAILED_VAR_1
+  - TOOL_RESULT_AGENT_TOOLSET_WRITE_FAILED_VAR_2
+-->
+write: ${TOOL_RESULT_AGENT_TOOLSET_WRITE_FAILED_VAR_0(TOOL_RESULT_AGENT_TOOLSET_WRITE_FAILED_VAR_1,TOOL_RESULT_AGENT_TOOLSET_WRITE_FAILED_VAR_2)}

@@ -1,0 +1,11 @@
+<!--
+name: 'Hooks module: export assigned elsewhere'
+description: >-
+  Hooks-module validation refusal: the exported function name is assigned to
+  elsewhere
+ccVersion: 2.1.296
+variables:
+  - SLASH_COMMAND_PLUGIN_VALIDATE_HOOKS_MODULE_EXPORT_ASSIGNED_ELSEWHERE_VAR_0
+  - SLASH_COMMAND_PLUGIN_VALIDATE_HOOKS_MODULE_EXPORT_ASSIGNED_ELSEWHERE_VAR_1
+-->
+${SLASH_COMMAND_PLUGIN_VALIDATE_HOOKS_MODULE_EXPORT_ASSIGNED_ELSEWHERE_VAR_0} ("${SLASH_COMMAND_PLUGIN_VALIDATE_HOOKS_MODULE_EXPORT_ASSIGNED_ELSEWHERE_VAR_1}") is assigned to elsewhere

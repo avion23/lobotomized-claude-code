@@ -1,0 +1,15 @@
+<!--
+name: 'Auto-mode recon: sensitive gitignore patterns'
+description: >-
+  Sensitive-looking .gitignore patterns subsection of the Repo facts recon
+  section.
+ccVersion: 2.1.296
+variables:
+  - DATA_AUTO_MODE_RECON_SENSITIVE_GITIGNORE_PATTERNS_VAR_0
+  - DATA_AUTO_MODE_RECON_SENSITIVE_GITIGNORE_PATTERNS_VAR_1
+  - DATA_AUTO_MODE_RECON_SENSITIVE_GITIGNORE_PATTERNS_VAR_2
+-->
+
+#### Sensitive-looking .gitignore patterns
+${DATA_AUTO_MODE_RECON_SENSITIVE_GITIGNORE_PATTERNS_VAR_0.map((DATA_AUTO_MODE_RECON_SENSITIVE_GITIGNORE_PATTERNS_VAR_1)=>`- \`${DATA_AUTO_MODE_RECON_SENSITIVE_GITIGNORE_PATTERNS_VAR_2(DATA_AUTO_MODE_RECON_SENSITIVE_GITIGNORE_PATTERNS_VAR_1)}\``).join(`
+`)}

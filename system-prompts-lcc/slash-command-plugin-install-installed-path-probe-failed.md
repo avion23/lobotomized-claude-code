@@ -1,0 +1,12 @@
+<!--
+name: 'Plugin install: installed plugin path probe failed'
+description: >-
+  Plugin install failure when probing an already-installed plugin's path through
+  the storage backend fails.
+ccVersion: 2.1.296
+variables:
+  - SLASH_COMMAND_PLUGIN_INSTALL_INSTALLED_PATH_PROBE_FAILED_VAR_0
+  - SLASH_COMMAND_PLUGIN_INSTALL_INSTALLED_PATH_PROBE_FAILED_VAR_1
+  - SLASH_COMMAND_PLUGIN_INSTALL_INSTALLED_PATH_PROBE_FAILED_VAR_2
+-->
+Failed to probe ${SLASH_COMMAND_PLUGIN_INSTALL_INSTALLED_PATH_PROBE_FAILED_VAR_0}: ${SLASH_COMMAND_PLUGIN_INSTALL_INSTALLED_PATH_PROBE_FAILED_VAR_1(SLASH_COMMAND_PLUGIN_INSTALL_INSTALLED_PATH_PROBE_FAILED_VAR_2)}

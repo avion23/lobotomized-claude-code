@@ -1,0 +1,11 @@
+<!--
+name: '/plugin validate: errors found'
+description: 'Header counting the errors found in one validated file, before the error list.'
+ccVersion: 2.1.296
+variables:
+  - SLASH_COMMAND_PLUGIN_VALIDATE_ERRORS_FOUND_VAR_0
+  - SLASH_COMMAND_PLUGIN_VALIDATE_ERRORS_FOUND_VAR_1
+  - SLASH_COMMAND_PLUGIN_VALIDATE_ERRORS_FOUND_VAR_2
+-->
+${SLASH_COMMAND_PLUGIN_VALIDATE_ERRORS_FOUND_VAR_0.cross} Found ${SLASH_COMMAND_PLUGIN_VALIDATE_ERRORS_FOUND_VAR_1.errors.length} ${SLASH_COMMAND_PLUGIN_VALIDATE_ERRORS_FOUND_VAR_2(SLASH_COMMAND_PLUGIN_VALIDATE_ERRORS_FOUND_VAR_1.errors.length,"error")}:
+
