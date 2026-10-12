@@ -1,0 +1,16 @@
+<!--
+name: '/plugin marketplace: installLocation owned by other — remedy'
+description: >-
+  Second half of the corrupted-installLocation error naming the other registered
+  marketplace and telling the user to run the remove command (or remove the
+  entry) and re-add it.
+ccVersion: 2.1.296
+variables:
+  - >-
+    SLASH_COMMAND_PLUGIN_MARKETPLACE_INSTALL_LOCATION_OWNED_BY_OTHER_REMEDY_VAR_0
+  - >-
+    SLASH_COMMAND_PLUGIN_MARKETPLACE_INSTALL_LOCATION_OWNED_BY_OTHER_REMEDY_VAR_1
+  - >-
+    SLASH_COMMAND_PLUGIN_MARKETPLACE_INSTALL_LOCATION_OWNED_BY_OTHER_REMEDY_VAR_2
+-->
+'${SLASH_COMMAND_PLUGIN_MARKETPLACE_INSTALL_LOCATION_OWNED_BY_OTHER_REMEDY_VAR_0(SLASH_COMMAND_PLUGIN_MARKETPLACE_INSTALL_LOCATION_OWNED_BY_OTHER_REMEDY_VAR_1)}'. ${SLASH_COMMAND_PLUGIN_MARKETPLACE_INSTALL_LOCATION_OWNED_BY_OTHER_REMEDY_VAR_2?`Run \`${SLASH_COMMAND_PLUGIN_MARKETPLACE_INSTALL_LOCATION_OWNED_BY_OTHER_REMEDY_VAR_2}\``:"Remove the entry"} and re-add it.

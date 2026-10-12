@@ -1,0 +1,12 @@
+<!--
+name: 'Tool Result: artifact publish file upload status error'
+description: >-
+  Artifact publish error when a staged file upload answered with a non-200
+  status from the frame, quoting the response.
+ccVersion: 2.1.296
+variables:
+  - TOOL_RESULT_ARTIFACT_PUBLISH_FILE_UPLOAD_STATUS_ERROR_VAR_0
+  - TOOL_RESULT_ARTIFACT_PUBLISH_FILE_UPLOAD_STATUS_ERROR_VAR_1
+  - TOOL_RESULT_ARTIFACT_PUBLISH_FILE_UPLOAD_STATUS_ERROR_VAR_2
+-->
+file upload ${TOOL_RESULT_ARTIFACT_PUBLISH_FILE_UPLOAD_STATUS_ERROR_VAR_0.status}: ${TOOL_RESULT_ARTIFACT_PUBLISH_FILE_UPLOAD_STATUS_ERROR_VAR_1(TOOL_RESULT_ARTIFACT_PUBLISH_FILE_UPLOAD_STATUS_ERROR_VAR_0.data)}.${TOOL_RESULT_ARTIFACT_PUBLISH_FILE_UPLOAD_STATUS_ERROR_VAR_2}

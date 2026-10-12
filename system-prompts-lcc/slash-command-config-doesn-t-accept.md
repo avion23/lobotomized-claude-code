@@ -1,0 +1,14 @@
+<!--
+name: Configuration hook rejects a rewritten value
+description: >-
+  Configuration hook rejects a rewritten value. Emitted by the concrete
+  model-context route documented below.
+ccVersion: 2.1.296
+variables:
+  - SLASH_COMMAND_CONFIG_DOESN_T_ACCEPT_VAR_0
+  - SLASH_COMMAND_CONFIG_DOESN_T_ACCEPT_VAR_1
+  - SLASH_COMMAND_CONFIG_DOESN_T_ACCEPT_VAR_2
+  - SLASH_COMMAND_CONFIG_DOESN_T_ACCEPT_VAR_3
+  - SLASH_COMMAND_CONFIG_DOESN_T_ACCEPT_VAR_4
+-->
+${SLASH_COMMAND_CONFIG_DOESN_T_ACCEPT_VAR_0.label} doesn't accept "${SLASH_COMMAND_CONFIG_DOESN_T_ACCEPT_VAR_1(SLASH_COMMAND_CONFIG_DOESN_T_ACCEPT_VAR_2(SLASH_COMMAND_CONFIG_DOESN_T_ACCEPT_VAR_3))}".${SLASH_COMMAND_CONFIG_DOESN_T_ACCEPT_VAR_4}

@@ -1,0 +1,12 @@
+<!--
+name: 'Tool Result: EnterWorktree Path Resolve Failed'
+description: >-
+  EnterWorktree error when the worktree path or repository paths cannot be
+  resolved.
+ccVersion: 2.1.296
+variables:
+  - TOOL_RESULT_ENTERWORKTREE_PATH_RESOLVE_FAILED_VAR_0
+  - TOOL_RESULT_ENTERWORKTREE_PATH_RESOLVE_FAILED_VAR_1
+  - TOOL_RESULT_ENTERWORKTREE_PATH_RESOLVE_FAILED_VAR_2
+-->
+Cannot enter worktree: ${TOOL_RESULT_ENTERWORKTREE_PATH_RESOLVE_FAILED_VAR_0}: ${TOOL_RESULT_ENTERWORKTREE_PATH_RESOLVE_FAILED_VAR_1(TOOL_RESULT_ENTERWORKTREE_PATH_RESOLVE_FAILED_VAR_2)}

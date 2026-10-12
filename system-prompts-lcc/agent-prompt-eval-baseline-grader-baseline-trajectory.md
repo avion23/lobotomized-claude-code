@@ -1,0 +1,11 @@
+<!--
+name: Eval baseline grader — baseline trajectory
+description: Baseline trajectory block of the baseline-grader judge prompt.
+ccVersion: 2.1.296
+variables:
+  - AGENT_PROMPT_EVAL_BASELINE_GRADER_BASELINE_TRAJECTORY_VAR_0
+  - AGENT_PROMPT_EVAL_BASELINE_GRADER_BASELINE_TRAJECTORY_VAR_1
+-->
+
+BASELINE trajectory:
+${AGENT_PROMPT_EVAL_BASELINE_GRADER_BASELINE_TRAJECTORY_VAR_0(AGENT_PROMPT_EVAL_BASELINE_GRADER_BASELINE_TRAJECTORY_VAR_1)}

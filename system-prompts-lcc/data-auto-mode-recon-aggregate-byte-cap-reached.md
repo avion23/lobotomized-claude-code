@@ -1,0 +1,14 @@
+<!--
+name: 'Auto-mode recon: aggregate byte cap reached'
+description: >-
+  Note that the aggregate byte cap was reached and remaining transcripts were
+  not scanned.
+ccVersion: 2.1.296
+variables:
+  - DATA_AUTO_MODE_RECON_AGGREGATE_BYTE_CAP_REACHED_VAR_0
+  - DATA_AUTO_MODE_RECON_AGGREGATE_BYTE_CAP_REACHED_VAR_1
+  - DATA_AUTO_MODE_RECON_AGGREGATE_BYTE_CAP_REACHED_VAR_2
+  - DATA_AUTO_MODE_RECON_AGGREGATE_BYTE_CAP_REACHED_VAR_3
+-->
+
+_Aggregate byte cap reached (${DATA_AUTO_MODE_RECON_AGGREGATE_BYTE_CAP_REACHED_VAR_0.round(DATA_AUTO_MODE_RECON_AGGREGATE_BYTE_CAP_REACHED_VAR_1.aggregateCap/1048576)} MiB) — remaining ${DATA_AUTO_MODE_RECON_AGGREGATE_BYTE_CAP_REACHED_VAR_2} ${DATA_AUTO_MODE_RECON_AGGREGATE_BYTE_CAP_REACHED_VAR_3(DATA_AUTO_MODE_RECON_AGGREGATE_BYTE_CAP_REACHED_VAR_2,"transcript")} not scanned._

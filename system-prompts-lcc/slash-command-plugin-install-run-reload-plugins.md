@@ -1,0 +1,10 @@
+<!--
+name: 'Slash Command: /plugin — installed, run /reload-plugins to activate'
+description: >-
+  Appended to a /plugin install result when the plugin needs /reload-plugins to
+  activate.
+ccVersion: 2.1.296
+variables:
+  - SLASH_COMMAND_PLUGIN_INSTALL_RUN_RELOAD_PLUGINS_VAR_0
+-->
+${SLASH_COMMAND_PLUGIN_INSTALL_RUN_RELOAD_PLUGINS_VAR_0.message} Run /reload-plugins to activate.

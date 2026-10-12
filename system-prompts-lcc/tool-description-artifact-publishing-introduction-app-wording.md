@@ -6,4 +6,4 @@ description: >-
   until the person chooses publication.
 ccVersion: 2.1.269
 -->
-The Artifact tool renders an HTML file as an Artifact: a web page hosted on claude.ai that is private by default.
+The Artifact tool renders an HTML file as an Artifact: a web page hosted on claude.ai that is private by default. Claude uses it only when the person asks for a page or an artifact, for example because a visual would be clearer than terminal text.

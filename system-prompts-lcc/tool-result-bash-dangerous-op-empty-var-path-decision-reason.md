@@ -1,0 +1,12 @@
+<!--
+name: 'Dangerous op: possibly-empty variable path reason'
+description: >-
+  Decision reason for rm/rmdir on a path from a possibly-empty variable (bG
+  template).
+ccVersion: 2.1.296
+variables:
+  - TOOL_RESULT_BASH_DANGEROUS_OP_EMPTY_VAR_PATH_DECISION_REASON_VAR_0
+  - TOOL_RESULT_BASH_DANGEROUS_OP_EMPTY_VAR_PATH_DECISION_REASON_VAR_1
+  - TOOL_RESULT_BASH_DANGEROUS_OP_EMPTY_VAR_PATH_DECISION_REASON_VAR_2
+-->
+on possibly-empty variable path: ${TOOL_RESULT_BASH_DANGEROUS_OP_EMPTY_VAR_PATH_DECISION_REASON_VAR_0} (${TOOL_RESULT_BASH_DANGEROUS_OP_EMPTY_VAR_PATH_DECISION_REASON_VAR_1}${TOOL_RESULT_BASH_DANGEROUS_OP_EMPTY_VAR_PATH_DECISION_REASON_VAR_2})

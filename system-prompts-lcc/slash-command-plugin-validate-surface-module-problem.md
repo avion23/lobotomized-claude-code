@@ -1,0 +1,12 @@
+<!--
+name: 'Slash Command: Plugin Validate Surface Module Problem'
+description: >-
+  Plugin validation error when a hooks module's surface module cannot be linked
+  or read.
+ccVersion: 2.1.296
+variables:
+  - SLASH_COMMAND_PLUGIN_VALIDATE_SURFACE_MODULE_PROBLEM_VAR_0
+  - SLASH_COMMAND_PLUGIN_VALIDATE_SURFACE_MODULE_PROBLEM_VAR_1
+  - SLASH_COMMAND_PLUGIN_VALIDATE_SURFACE_MODULE_PROBLEM_VAR_2
+-->
+${SLASH_COMMAND_PLUGIN_VALIDATE_SURFACE_MODULE_PROBLEM_VAR_0}: surface module ${SLASH_COMMAND_PLUGIN_VALIDATE_SURFACE_MODULE_PROBLEM_VAR_1.split("/").join(SLASH_COMMAND_PLUGIN_VALIDATE_SURFACE_MODULE_PROBLEM_VAR_2)} 

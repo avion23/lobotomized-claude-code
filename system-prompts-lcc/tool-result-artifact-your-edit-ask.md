@@ -1,0 +1,15 @@
+<!--
+name: 'Artifact: Artifact read Edit-rule consent note'
+description: >-
+  Artifact read Edit-rule consent note. Consent prose which is emitted to the
+  model on rejected or unanswered permission requests.
+ccVersion: 2.1.296
+variables:
+  - TOOL_RESULT_ARTIFACT_YOUR_EDIT_ASK_VAR_0
+  - TOOL_RESULT_ARTIFACT_YOUR_EDIT_ASK_VAR_1
+  - TOOL_RESULT_ARTIFACT_YOUR_EDIT_ASK_VAR_2
+  - TOOL_RESULT_ARTIFACT_YOUR_EDIT_ASK_VAR_3
+  - TOOL_RESULT_ARTIFACT_YOUR_EDIT_ASK_VAR_4
+  - TOOL_RESULT_ARTIFACT_YOUR_EDIT_ASK_VAR_5
+-->
+Your Edit ask ${TOOL_RESULT_ARTIFACT_YOUR_EDIT_ASK_VAR_0>1?"rules cover":"rule covers"} ${TOOL_RESULT_ARTIFACT_YOUR_EDIT_ASK_VAR_1(TOOL_RESULT_ARTIFACT_YOUR_EDIT_ASK_VAR_2.map((TOOL_RESULT_ARTIFACT_YOUR_EDIT_ASK_VAR_3)=>TOOL_RESULT_ARTIFACT_YOUR_EDIT_ASK_VAR_4(TOOL_RESULT_ARTIFACT_YOUR_EDIT_ASK_VAR_5(TOOL_RESULT_ARTIFACT_YOUR_EDIT_ASK_VAR_3).trim()||"(unprintable path)",256)))}.

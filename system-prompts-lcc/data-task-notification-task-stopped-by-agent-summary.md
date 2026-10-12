@@ -1,0 +1,10 @@
+<!--
+name: 'Task notification: task stopped by another agent summary'
+description: Task-notification summary that a background task was stopped by another agent.
+ccVersion: 2.1.296
+variables:
+  - DATA_TASK_NOTIFICATION_TASK_STOPPED_BY_AGENT_SUMMARY_VAR_0
+  - DATA_TASK_NOTIFICATION_TASK_STOPPED_BY_AGENT_SUMMARY_VAR_1
+  - DATA_TASK_NOTIFICATION_TASK_STOPPED_BY_AGENT_SUMMARY_VAR_2
+-->
+Task "${DATA_TASK_NOTIFICATION_TASK_STOPPED_BY_AGENT_SUMMARY_VAR_0}" was stopped by ${DATA_TASK_NOTIFICATION_TASK_STOPPED_BY_AGENT_SUMMARY_VAR_1(DATA_TASK_NOTIFICATION_TASK_STOPPED_BY_AGENT_SUMMARY_VAR_2)}

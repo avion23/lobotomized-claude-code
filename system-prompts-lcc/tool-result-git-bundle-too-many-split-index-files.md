@@ -1,0 +1,10 @@
+<!--
+name: 'Git bundle: too many split-index files'
+description: 'Bundle failure detail: too many sharedindex files in the git dir'
+ccVersion: 2.1.296
+variables:
+  - TOOL_RESULT_GIT_BUNDLE_TOO_MANY_SPLIT_INDEX_FILES_VAR_0
+  - TOOL_RESULT_GIT_BUNDLE_TOO_MANY_SPLIT_INDEX_FILES_VAR_1
+  - TOOL_RESULT_GIT_BUNDLE_TOO_MANY_SPLIT_INDEX_FILES_VAR_2
+-->
+more than ${TOOL_RESULT_GIT_BUNDLE_TOO_MANY_SPLIT_INDEX_FILES_VAR_0} split-index files (sharedindex.*) stand in ${TOOL_RESULT_GIT_BUNDLE_TOO_MANY_SPLIT_INDEX_FILES_VAR_1(TOOL_RESULT_GIT_BUNDLE_TOO_MANY_SPLIT_INDEX_FILES_VAR_2,TOOL_RESULT_GIT_BUNDLE_TOO_MANY_SPLIT_INDEX_FILES_VAR_2.gitDir)}

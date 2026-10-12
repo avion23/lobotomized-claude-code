@@ -1,0 +1,12 @@
+<!--
+name: 'Slash Command: /terminal-setup — set scroll sensitivity yourself'
+description: >-
+  Tells the user which editor setting and value to set by hand for smoother
+  scrolling.
+ccVersion: 2.1.296
+variables:
+  - SLASH_COMMAND_TERMINAL_SETUP_SCROLL_SENSITIVITY_MANUAL_HINT_VAR_0
+  - SLASH_COMMAND_TERMINAL_SETUP_SCROLL_SENSITIVITY_MANUAL_HINT_VAR_1
+  - SLASH_COMMAND_TERMINAL_SETUP_SCROLL_SENSITIVITY_MANUAL_HINT_VAR_2
+-->
+For smoother scrolling, set "${SLASH_COMMAND_TERMINAL_SETUP_SCROLL_SENSITIVITY_MANUAL_HINT_VAR_0}": ${SLASH_COMMAND_TERMINAL_SETUP_SCROLL_SENSITIVITY_MANUAL_HINT_VAR_1} in ${SLASH_COMMAND_TERMINAL_SETUP_SCROLL_SENSITIVITY_MANUAL_HINT_VAR_2} settings.

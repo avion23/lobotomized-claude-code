@@ -1,0 +1,12 @@
+<!--
+name: 'Tool Result: AppifactRepl calls summary'
+description: >-
+  AppifactRepl tool_result line counting artifact calls run, refused and images
+  attached.
+ccVersion: 2.1.296
+variables:
+  - TOOL_RESULT_APPIFACT_REPL_CALLS_SUMMARY_VAR_0
+  - TOOL_RESULT_APPIFACT_REPL_CALLS_SUMMARY_VAR_1
+  - TOOL_RESULT_APPIFACT_REPL_CALLS_SUMMARY_VAR_2
+-->
+[${TOOL_RESULT_APPIFACT_REPL_CALLS_SUMMARY_VAR_0}] ${TOOL_RESULT_APPIFACT_REPL_CALLS_SUMMARY_VAR_1.ran} artifact ${TOOL_RESULT_APPIFACT_REPL_CALLS_SUMMARY_VAR_1.ran===1?"call":"calls"} ran, ${TOOL_RESULT_APPIFACT_REPL_CALLS_SUMMARY_VAR_1.refused} refused${TOOL_RESULT_APPIFACT_REPL_CALLS_SUMMARY_VAR_2===0?"":`, ${TOOL_RESULT_APPIFACT_REPL_CALLS_SUMMARY_VAR_2} ${TOOL_RESULT_APPIFACT_REPL_CALLS_SUMMARY_VAR_2===1?"image":"images"} attached`}

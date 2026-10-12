@@ -3,7 +3,7 @@ name: 'Skill: explorer'
 description: >-
   Bundled explorer skill — Claude Test's read-only code mapper. Started only by
   the claude-test run skill on a first run; not for general tasks.
-ccVersion: 2.1.282
+ccVersion: 2.1.295
 -->
 ---
 name: explorer

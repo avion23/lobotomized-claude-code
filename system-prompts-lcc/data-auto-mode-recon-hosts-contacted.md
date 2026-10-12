@@ -1,0 +1,13 @@
+<!--
+name: 'Auto-mode recon: hosts contacted'
+description: Hosts contacted subsection of the recent-usage recon section.
+ccVersion: 2.1.296
+variables:
+  - DATA_AUTO_MODE_RECON_HOSTS_CONTACTED_VAR_0
+  - DATA_AUTO_MODE_RECON_HOSTS_CONTACTED_VAR_1
+  - DATA_AUTO_MODE_RECON_HOSTS_CONTACTED_VAR_2
+-->
+
+#### Hosts contacted
+${DATA_AUTO_MODE_RECON_HOSTS_CONTACTED_VAR_0.map(([DATA_AUTO_MODE_RECON_HOSTS_CONTACTED_VAR_1,DATA_AUTO_MODE_RECON_HOSTS_CONTACTED_VAR_2])=>`- ${DATA_AUTO_MODE_RECON_HOSTS_CONTACTED_VAR_1} (${DATA_AUTO_MODE_RECON_HOSTS_CONTACTED_VAR_2}×)`).join(`
+`)}
