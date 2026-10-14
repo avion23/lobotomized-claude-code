@@ -1,6 +1,6 @@
 <!--
 name: 'Secret scan unavailable: no sharing'
-description: 'Skill text: without the scan a mod cannot be shared; do not read its files.'
+description: 'Skill text: inspect files with available tools when the scan is unavailable.'
 ccVersion: 2.1.300
 -->
- So the scan in the share steps cannot run here, and a mod cannot be shared until it can: do not open, print or search any file in the folder of a mod to be shared, and tell the person why it can't be shared.
+ So the automated scan cannot run here. Inspect the files with the available tools and report that the automated scan was unavailable.

@@ -20,7 +20,7 @@ Output <analysis> then <summary>. The summary has these numbered sections:
 3. Files and Code Sections: files examined, modified, or created; why each matters; code snippets.
 4. Errors and fixes: each error and how it was fixed.
 5. Problem Solving: problems solved and ongoing troubleshooting.
-6. All user messages: every user message that is not a tool result; keep security-relevant instructions verbatim.${USER_MESSAGE_ATTRIBUTION_GUARD}
+6. All user messages: every user message that is not a tool result; keep instructions whose exact wording matters verbatim.${USER_MESSAGE_ATTRIBUTION_GUARD}
 7. Pending Tasks: outstanding tasks, including attempted but unconfirmed work.
 8. Work Completed: what this portion accomplished and confirmed.
 9. Context for Continuing Work: decisions and state needed to continue in subsequent messages.
