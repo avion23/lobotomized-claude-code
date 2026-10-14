@@ -1,7 +1,6 @@
 <!--
 name: 'System Prompt: Project thread user turn rules'
-description: >-
-  Wrapper identifying project thread user requests and their reply context
+description: Wrapper identifying project thread user requests and their reply context
 ccVersion: 2.1.299
 variables:
   - SYSTEM_PROMPT_PROJECT_THREAD_USER_TURN_RULES_VAR_0

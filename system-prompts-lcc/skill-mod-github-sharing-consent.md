@@ -1,7 +1,6 @@
 <!--
 name: 'Skill: Mod GitHub sharing consent'
-description: >-
-  Shares a mod on request using the requested repository and visibility
+description: Shares a mod on request using the requested repository and visibility
 ccVersion: 2.1.300
 -->
 

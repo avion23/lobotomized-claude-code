@@ -1,8 +1,8 @@
 <!--
 name: 'System Prompt: Project thread unanchored marker consent'
 description: >-
-  Interprets unanchored messages from their own request and context, asking
-  only for missing action or target details
+  Interprets unanchored messages from their own request and context, asking only
+  for missing action or target details
 ccVersion: 2.1.299
 variables:
   - SYSTEM_PROMPT_PROJECT_THREAD_UNANCHORED_MARKER_CONSENT_VAR_0
