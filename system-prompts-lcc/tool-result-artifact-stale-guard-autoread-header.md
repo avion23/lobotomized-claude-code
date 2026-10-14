@@ -1,12 +1,13 @@
 <!--
-name: 'Tool Result: Artifact Stale Guard Auto-Read Header'
+name: 'Tool Result: Artifact stale guard autoread header'
 description: >-
-  Returned to the model before automatically read live artifact content when a
-  stale-version publish guard is triggered.
-ccVersion: 2.1.295
+  Introduces live artifact source that now counts as viewed and requires merging
+  before republishing.
+ccVersion: 2.1.299
 variables:
   - TOOL_RESULT_ARTIFACT_STALE_GUARD_AUTOREAD_HEADER_VAR_0
   - TOOL_RESULT_ARTIFACT_STALE_GUARD_AUTOREAD_HEADER_VAR_1
+  - TOOL_RESULT_ARTIFACT_STALE_GUARD_AUTOREAD_HEADER_VAR_10
   - TOOL_RESULT_ARTIFACT_STALE_GUARD_AUTOREAD_HEADER_VAR_2
   - TOOL_RESULT_ARTIFACT_STALE_GUARD_AUTOREAD_HEADER_VAR_3
   - TOOL_RESULT_ARTIFACT_STALE_GUARD_AUTOREAD_HEADER_VAR_4
@@ -16,6 +17,6 @@ variables:
   - TOOL_RESULT_ARTIFACT_STALE_GUARD_AUTOREAD_HEADER_VAR_8
 -->
 ${TOOL_RESULT_ARTIFACT_STALE_GUARD_AUTOREAD_HEADER_VAR_0} That version now counts as viewed; its content and how to merge onto it follow.
-${TOOL_RESULT_ARTIFACT_STALE_GUARD_AUTOREAD_HEADER_VAR_1} so no published content is lost, then publish again — do not resend your previous content unchanged.${TOOL_RESULT_ARTIFACT_STALE_GUARD_AUTOREAD_HEADER_VAR_2}${TOOL_RESULT_ARTIFACT_STALE_GUARD_AUTOREAD_HEADER_VAR_3}${TOOL_RESULT_ARTIFACT_STALE_GUARD_AUTOREAD_HEADER_VAR_4}
+${TOOL_RESULT_ARTIFACT_STALE_GUARD_AUTOREAD_HEADER_VAR_1} so no published content is lost, then ${TOOL_RESULT_ARTIFACT_STALE_GUARD_AUTOREAD_HEADER_VAR_10?"send the same publish, edits included, again; do not publish your file unmerged":"publish again — do not resend your previous content unchanged"}.${TOOL_RESULT_ARTIFACT_STALE_GUARD_AUTOREAD_HEADER_VAR_2}${TOOL_RESULT_ARTIFACT_STALE_GUARD_AUTOREAD_HEADER_VAR_3}${TOOL_RESULT_ARTIFACT_STALE_GUARD_AUTOREAD_HEADER_VAR_4}
 ${TOOL_RESULT_ARTIFACT_STALE_GUARD_AUTOREAD_HEADER_VAR_5(TOOL_RESULT_ARTIFACT_STALE_GUARD_AUTOREAD_HEADER_VAR_6)}${TOOL_RESULT_ARTIFACT_STALE_GUARD_AUTOREAD_HEADER_VAR_7}
 ${TOOL_RESULT_ARTIFACT_STALE_GUARD_AUTOREAD_HEADER_VAR_8.lead}${TOOL_RESULT_ARTIFACT_STALE_GUARD_AUTOREAD_HEADER_VAR_8.body}${TOOL_RESULT_ARTIFACT_STALE_GUARD_AUTOREAD_HEADER_VAR_8.tail}

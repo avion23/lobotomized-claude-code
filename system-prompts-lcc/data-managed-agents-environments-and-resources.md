@@ -4,7 +4,7 @@ description: >-
   claude-api skill reference file (Managed Agents environments and resources)
   inlined as <doc> or extracted for the model to Read when the skill's Reading
   Guide points to it.
-ccVersion: 2.1.296
+ccVersion: 2.1.300
 -->
 # Managed Agents - Environments & Resources
 
@@ -12,13 +12,11 @@ ccVersion: 2.1.296
 
 Creating a session requires an \`environment_id\`. Environments are **reusable configuration templates** for spinning up containers in Anthropic's infrastructure.
 
-**Environment names must be unique.** Creating an environment with an existing name returns 409.
-
 ### Networking
 
 | Network Policy   | Description                                                   |
 | ---------------- | ------------------------------------------------------------- |
-| \`unrestricted\`   | Full egress (except legal blocklist)                          |
+| \`unrestricted\`   | Full egress (except for a general safety blocklist)           |
 | \`limited\`        | Deny-by-default; opt in via \`allowed_hosts\` / \`allow_package_managers\` / \`allow_mcp_servers\` |
 
 \`\`\`json
@@ -32,7 +30,7 @@ Creating a session requires an \`environment_id\`. Environments are **reusable c
 }
 \`\`\`
 
-All three \`limited\` fields are optional. \`allow_package_managers\` (default \`false\`) permits PyPI/npm/etc.; \`allow_mcp_servers\` (default \`false\`) permits the agent's configured MCP server endpoints without listing them in \`allowed_hosts\`.
+All three \`limited\` fields are optional. \`allow_package_managers\` (default \`false\`) permits PyPI/npm/etc.; \`allow_mcp_servers\` (default \`false\`) permits the agent's configured MCP server endpoints without listing them in \`allowed_hosts\`. In \`allowed_hosts\`, a bare hostname matches that exact host: \`example.com\` does not match \`www.example.com\`. \`*.example.com\` matches every subdomain of \`example.com\`, but not \`example.com\` itself.
 
 **MCP caveat:** Under \`limited\` networking, either set \`allow_mcp_servers: true\` or add each MCP server domain to \`allowed_hosts\`. Otherwise creating a session for an agent that declares those servers fails with a 400 naming the blocked hosts.
 

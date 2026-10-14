@@ -4,7 +4,7 @@ description: >-
   claude-api skill reference file (Managed Agents tools and skills) inlined as
   <doc> or extracted for the model to Read when the skill's Reading Guide points
   to it.
-ccVersion: 2.1.296
+ccVersion: 2.1.300
 -->
 # Managed Agents - Tools & Skills
 
@@ -438,7 +438,7 @@ Skills reach the agent two ways: **attached** through the agent's \`skills\` arr
 | **Pre-built Anthropic skills** | Common document tasks (PowerPoint, Excel, Word, PDF). Reference by name (e.g. \`xlsx\`). |
 | **Custom skills** | Skills you've created in your organization via the Skills API. Reference by \`skill_id\` + optional \`version\`. |
 
-**Max 20 skills per agent.** Agent creation uses \`managed-agents-2026-04-01\`; the separate Skills API (for managing custom skill definitions) is out of beta and needs no beta header.
+**Max 500 skills per session, counted once across all its agents.** Agent creation uses \`managed-agents-2026-04-01\`; the separate Skills API (for managing custom skill definitions) is out of beta and needs no beta header.
 
 ### Enabling skills on a session
 

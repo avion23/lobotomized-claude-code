@@ -1,8 +1,11 @@
 <!--
-name: 'Tool Result: Edit file not valid UTF-8'
+name: 'Tool Result: Edit file unsupported encoding'
 description: >-
-  Validation error returned when an edit targets a file that is not valid UTF-8;
-  tells the model to use a shell command or ask the user before converting.
-ccVersion: 2.1.296
+  Refuses to write a file in an encoding the tools do not write and suggests an
+  encoding-preserving shell command or asking the user
+ccVersion: 2.1.299
+variables:
+  - TOOL_RESULT_EDIT_FILE_NOT_VALID_UTF8_VAR_0
+  - TOOL_RESULT_EDIT_FILE_NOT_VALID_UTF8_VAR_1
 -->
-File is not valid UTF-8. It may use a legacy encoding such as Windows-1252, Shift-JIS or GBK, or be binary. This tool saves the whole file as UTF-8, which would replace every byte it cannot decode with U+FFFD. Nothing was written. Make the change with a shell command that reads and writes the file in its own encoding, or ask the user whether to convert the file to UTF-8 first.
+File ${TOOL_RESULT_EDIT_FILE_NOT_VALID_UTF8_VAR_0[TOOL_RESULT_EDIT_FILE_NOT_VALID_UTF8_VAR_1]}. These tools write UTF-8 (or UTF-16LE behind its byte-order mark) and never convert a file's encoding on their own, so nothing was written. If the file is text, make the change with a shell command that reads and writes it in its own encoding (iconv, or PowerShell Get-Content/Set-Content -Encoding), or ask the user whether to convert it to UTF-8 first. To replace the whole file with new UTF-8 text anyway, delete it first, then Write it.

@@ -1,0 +1,14 @@
+<!--
+name: 'Tool Result: Artifact type files not read cap'
+description: >-
+  Says some type files were not read because one read shows a limited count and
+  size, and to read them in another call
+ccVersion: 2.1.299
+variables:
+  - TOOL_RESULT_ARTIFACT_READ_TYPE_FILES_NOT_READ_CAP_VAR_0
+  - TOOL_RESULT_ARTIFACT_READ_TYPE_FILES_NOT_READ_CAP_VAR_1
+  - TOOL_RESULT_ARTIFACT_READ_TYPE_FILES_NOT_READ_CAP_VAR_2
+  - TOOL_RESULT_ARTIFACT_READ_TYPE_FILES_NOT_READ_CAP_VAR_3
+  - TOOL_RESULT_ARTIFACT_READ_TYPE_FILES_NOT_READ_CAP_VAR_4
+-->
+Not read: ${TOOL_RESULT_ARTIFACT_READ_TYPE_FILES_NOT_READ_CAP_VAR_0}${TOOL_RESULT_ARTIFACT_READ_TYPE_FILES_NOT_READ_CAP_VAR_1}. One read of a type's files shows at most ${TOOL_RESULT_ARTIFACT_READ_TYPE_FILES_NOT_READ_CAP_VAR_2} files and about ${TOOL_RESULT_ARTIFACT_READ_TYPE_FILES_NOT_READ_CAP_VAR_3} characters; to read ${TOOL_RESULT_ARTIFACT_READ_TYPE_FILES_NOT_READ_CAP_VAR_4}, pass ${TOOL_RESULT_ARTIFACT_READ_TYPE_FILES_NOT_READ_CAP_VAR_4} in another call.

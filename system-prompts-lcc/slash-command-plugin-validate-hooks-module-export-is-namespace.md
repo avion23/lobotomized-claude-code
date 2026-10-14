@@ -1,0 +1,12 @@
+<!--
+name: 'Slash Command: Plugin validate hooks module export is namespace'
+description: >-
+  Refuses an export that is the namespace of another file (export * as) instead
+  of a function
+ccVersion: 2.1.299
+variables:
+  - SLASH_COMMAND_PLUGIN_VALIDATE_HOOKS_MODULE_EXPORT_IS_NAMESPACE_VAR_0
+  - SLASH_COMMAND_PLUGIN_VALIDATE_HOOKS_MODULE_EXPORT_IS_NAMESPACE_VAR_1
+  - SLASH_COMMAND_PLUGIN_VALIDATE_HOOKS_MODULE_EXPORT_IS_NAMESPACE_VAR_2
+-->
+${SLASH_COMMAND_PLUGIN_VALIDATE_HOOKS_MODULE_EXPORT_IS_NAMESPACE_VAR_0==="default"?"the default export":SLASH_COMMAND_PLUGIN_VALIDATE_HOOKS_MODULE_EXPORT_IS_NAMESPACE_VAR_0} is the namespace of "${SLASH_COMMAND_PLUGIN_VALIDATE_HOOKS_MODULE_EXPORT_IS_NAMESPACE_VAR_1(SLASH_COMMAND_PLUGIN_VALIDATE_HOOKS_MODULE_EXPORT_IS_NAMESPACE_VAR_2.source.value)}" (export * as), not a function

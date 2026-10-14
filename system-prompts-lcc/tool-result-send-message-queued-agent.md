@@ -1,8 +1,9 @@
 <!--
-name: Queued for agent
-description: SendMessage success result returned to the model.
-ccVersion: 2.1.206
+name: 'Tool Result: SendMessage queued for agent'
+description: Says the message is queued for the agent's next tool round
+ccVersion: 2.1.299
 variables:
   - TOOL_RESULT_SEND_MESSAGE_QUEUED_AGENT_VAR_0
+  - TOOL_RESULT_SEND_MESSAGE_QUEUED_AGENT_VAR_1
 -->
-Message queued for delivery to ${TOOL_RESULT_SEND_MESSAGE_QUEUED_AGENT_VAR_0.agentName} at its next tool round.
+Message queued for delivery to ${TOOL_RESULT_SEND_MESSAGE_QUEUED_AGENT_VAR_0.agentName} at its next tool round.${TOOL_RESULT_SEND_MESSAGE_QUEUED_AGENT_VAR_1()?"":" If it finishes first, it is resumed with the message and notifies again, so wait for that notification before resending."}

@@ -3,7 +3,7 @@ name: 'Data: managed-agents-overview'
 description: >-
   claude-api skill reference file (managed-agents-overview) inlined as <doc> or
   extracted for the model to Read when the skill's Reading Guide points to it.
-ccVersion: 2.1.296
+ccVersion: 2.1.300
 -->
 # Managed Agents - Overview
 
@@ -20,7 +20,7 @@ Every session references a pre-created \`/v1/agents\` object. Create the agent o
 | 1 | \`POST /v1/agents\` - \`model\`, \`system\`, \`tools\`, \`mcp_servers\`, \`skills\` live here | **Once.** Store \`agent.id\` **and** \`agent.version\`. |
 | 2 | \`POST /v1/sessions\` - \`agent: "agent_abc123"\` or \`{type: "agent", id, version}\` | **Every run.** String shorthand uses latest version. |
 
-If you're about to write \`sessions.create()\` with \`model\`, \`system\`, or \`tools\` on the session body - **stop**. Those fields live on \`agents.create()\`. The session takes a *pointer* only.
+If you're about to pass \`model\`, \`system\`, or \`tools\` to \`sessions.create()\` as top-level fields - **stop**. They are fields of \`agents.create()\`. To change them for one session, see \`shared/managed-agents-core.md\` § Override agent configuration for a session.
 
 **When generating code, separate setup from runtime.** \`agents.create()\` belongs in a setup script (or a guarded \`if agent_id is None:\` block), not at the top of the hot path. If the user's code calls \`agents.create()\` on every invocation, they're accumulating orphaned agents and paying the create latency for nothing. The correct shape is: define the agent as a version-controlled file and sync it with \`ant apply\`, which records the ID in \`claude-lock.json\` (see \`shared/anthropic-cli.md\`) - or use a guarded setup script that persists the returned ID (config file, env var, secrets manager) - and have every run load the ID and call \`sessions.create()\`.
 
@@ -81,4 +81,4 @@ Managed Agents is in beta. The SDK sets required beta headers automatically:
 - **Don't trust HTTP-library timeouts as wall-clock caps** - \`requests\` \`timeout=(c, r)\` and \`httpx.Timeout(n)\` are *per-chunk* read timeouts; they reset every byte, so a trickling connection can block indefinitely. For a hard deadline on raw-HTTP polling, track \`time.monotonic()\` at the loop level and bail explicitly. Prefer the SDK's \`sessions.events.stream()\` / \`sessions.events.list()\` over hand-rolled HTTP. See \`shared/managed-agents-events.md\` -> Receiving Events.
 - **Messages queue** - you can send events while the session is \`running\` or \`idle\`; they're processed in order. No need to wait for a response before sending the next message. Two exceptions accept only settle events: a session waiting on you (\`stop_reason: requires_action\`), where a \`user.message\` is a 400, and one paused at its budget (\`budget_reached\`) - change or remove the budget to resume (\`shared/managed-agents-core.md\` § Session budgets).
 - **Environment \`config.type\` is \`"cloud"\` or \`"self_hosted"\`** - \`cloud\` runs the container on Anthropic's infrastructure; \`self_hosted\` moves tool execution to your own (see \`shared/managed-agents-self-hosted-sandboxes.md\`).
-- **Archive is permanent on every resource** - archiving an agent, environment, session, vault, credential, or memory store makes it read-only with no unarchive. For agents, environments, and memory stores specifically, archived resources cannot be referenced by new sessions (existing sessions continue). Do not call \`.archive()\` on a production agent, environment, or memory store as cleanup - **always confirm with the user before archiving**.
+- **Archive is permanent on every resource** - archiving an agent, environment, session, vault, credential, or memory store makes it read-only with no unarchive. For agents, environments, and memory stores specifically, archived resources cannot be referenced by new sessions (existing sessions continue). Do not call \`.archive()\` on a session or on a production agent, environment, vault, or memory store as cleanup - **archive or delete only when the user explicitly asks**.

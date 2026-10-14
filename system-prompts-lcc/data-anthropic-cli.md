@@ -3,11 +3,11 @@ name: 'Data: Anthropic CLI'
 description: >-
   claude-api skill reference file (Anthropic CLI) inlined as <doc> or extracted
   for the model to Read when the skill's Reading Guide points to it.
-ccVersion: 2.1.296
+ccVersion: 2.1.299
 -->
 # Anthropic CLI (\`ant\`)
 
-The \`ant\` CLI exposes every Claude API resource as a shell subcommand. Compared to \`curl\`: request bodies are built from typed flags or piped YAML instead of hand-written JSON, \`@path\` inlines file contents into any string field, \`--transform\` extracts fields with a GJSON path (no \`jq\`), list endpoints auto-paginate (cap total results with \`--max-items N\`; \`--limit\` only sets the server page size), and the \`beta:\` prefix auto-sets the right \`anthropic-beta\` header.
+The \`ant\` CLI exposes every Claude API resource as a shell subcommand. Compared to \`curl\`: request bodies are built from typed flags or piped YAML instead of hand-written JSON, \`@path\` inlines file contents into piped bodies and structured flag values, \`--transform\` extracts fields with a GJSON path (no \`jq\`), list endpoints auto-paginate (cap total results with \`--max-items N\`; \`--limit\` only sets the server page size), and the \`beta:\` prefix auto-sets the right \`anthropic-beta\` header.
 
 ## When to use the CLI vs the SDK
 
@@ -153,10 +153,12 @@ tools:
 YAML
 \`\`\`
 
-**\`@file\` references** - inline a file's contents into any string-valued field. Inside structured flag values, quote the path. Binary files are auto-base64'd; force with \`@file://\` (text) or \`@data://\` (base64). Escape a literal leading \`@\` as \`\\@\`.
+**\`@file\` references** - in a piped body or a structured flag value, a string that starts with \`@\` is replaced by the contents of the file it names (quote it: \`system: "@./prompt.txt"\`). Binary files are auto-base64'd; force with \`@file://\` (text) or \`@data://\` (base64). In those two places, write a literal leading \`@\` as \`\\@\`, unquoted or in single quotes. On plain scalar flags \`@path\` is not reliable: some, such as \`--system\` on \`beta:agents\` and \`--content\` on \`beta:memory-stores:memories\`, send it as written. To load a file into one of those fields, set the field in a piped body instead:
 
 \`\`\`sh
-ant beta:agents create --name "Researcher" --model '{id: {{SONNET_ID}}}' --system @./prompts/researcher.txt
+ant beta:agents create --name "Researcher" --model '{id: {{SONNET_ID}}}' <<'YAML'
+system: "@./prompts/researcher.txt"
+YAML
 
 ant messages create --model {{OPUS_ID}} --max-tokens 1024 \\
   --message '{role: user, content: [

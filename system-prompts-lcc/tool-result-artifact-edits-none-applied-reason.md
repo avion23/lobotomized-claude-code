@@ -1,0 +1,13 @@
+<!--
+name: 'Tool Result: Artifact edits none applied'
+description: >-
+  Lead sentence saying no edits were applied and nothing was published, followed
+  by the edit failure reason
+ccVersion: 2.1.299
+variables:
+  - TOOL_RESULT_ARTIFACT_EDITS_NONE_APPLIED_REASON_VAR_0
+  - TOOL_RESULT_ARTIFACT_EDITS_NONE_APPLIED_REASON_VAR_1
+  - TOOL_RESULT_ARTIFACT_EDITS_NONE_APPLIED_REASON_VAR_2
+  - TOOL_RESULT_ARTIFACT_EDITS_NONE_APPLIED_REASON_VAR_3
+-->
+No edits were applied and nothing was published: ${TOOL_RESULT_ARTIFACT_EDITS_NONE_APPLIED_REASON_VAR_0(TOOL_RESULT_ARTIFACT_EDITS_NONE_APPLIED_REASON_VAR_1,TOOL_RESULT_ARTIFACT_EDITS_NONE_APPLIED_REASON_VAR_2.length,TOOL_RESULT_ARTIFACT_EDITS_NONE_APPLIED_REASON_VAR_3.length)}.

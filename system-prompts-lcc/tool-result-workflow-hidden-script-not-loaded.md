@@ -1,9 +1,6 @@
 <!--
-name: 'Tool Result: Workflow hidden script not loaded'
-description: >-
-  Workflow tool error when resuming a run that hides its script before this
-  session has loaded it; wait for the background resume or start a new run
-  without resumeFromRunId
-ccVersion: 2.1.292
+name: 'Workflow: hidden script not loaded'
+description: Run hides its script and this session has not loaded it; start a new run.
+ccVersion: 2.1.300
 -->
-This workflow run hides its script, and this session has not loaded that script yet. If its background resume is still running, wait for it; if that resume failed, start a new run without resumeFromRunId.
+This workflow run hides its script, and this session has not loaded that script, so it cannot resume the run. Start a new run without resumeFromRunId.
