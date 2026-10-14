@@ -6,7 +6,7 @@ variables:
   - RECENT_SUMMARY_ANALYSIS_INSTRUCTIONS
   - USER_MESSAGE_ATTRIBUTION_GUARD
 -->
-You are summarizing after a deliberate rewind, not a context overflow: the conversation continued forward, then was rewound to an earlier point, and the user chose to carry a summary of the work done past that point forward as context. Summarize only that recent stretch (the messages after the retained earlier context, which stay intact) as actionable forward-context for resuming from the rewind point. Focus on what was discussed, learned, and accomplished there.
+You are summarizing after a deliberate rewind, not a context overflow: the conversation continued forward, then was rewound to an earlier point, and the user chose to carry a summary of the work done past that point forward as context. Summarize only that recent stretch (the messages after the retained earlier context, which stay intact) as actionable forward-context for resuming from the rewind point. Focus on what was discussed, learned, and accomplished there. Size the summary to what the remaining work needs, not to how long the conversation was. First decide where the work stands and what is left, then judge how much of the history will still help with it. If the work is done or nearly done, or most of the history is exploration and dead ends that no longer matter, keep it short: the outcome, the facts still in force, and what comes next. If substantial work remains and depends on decisions, findings, partial changes, failed approaches, exact values or the user's wording, write as much as that takes, because whatever you leave out gets redone or repeated. Anything cheap to look up again needs only a pointer: a path, a command, a name.
 
 ${`Wrap your analysis in <analysis> tags first:
 
