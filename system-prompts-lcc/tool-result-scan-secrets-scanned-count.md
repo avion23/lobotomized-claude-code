@@ -1,0 +1,10 @@
+<!--
+name: 'scan_secrets: scanned count'
+description: Line stating how many files were scanned.
+ccVersion: 2.1.300
+variables:
+  - TOOL_RESULT_SCAN_SECRETS_SCANNED_COUNT_VAR_0
+  - TOOL_RESULT_SCAN_SECRETS_SCANNED_COUNT_VAR_1
+  - TOOL_RESULT_SCAN_SECRETS_SCANNED_COUNT_VAR_2
+-->
+Scanned ${TOOL_RESULT_SCAN_SECRETS_SCANNED_COUNT_VAR_0} ${TOOL_RESULT_SCAN_SECRETS_SCANNED_COUNT_VAR_1(TOOL_RESULT_SCAN_SECRETS_SCANNED_COUNT_VAR_0,"file")} in ${TOOL_RESULT_SCAN_SECRETS_SCANNED_COUNT_VAR_2} for known key and token formats.

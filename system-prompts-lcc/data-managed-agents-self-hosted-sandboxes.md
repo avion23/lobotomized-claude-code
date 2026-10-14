@@ -4,7 +4,7 @@ description: >-
   Managed Agents reference for self-hosted sandboxes (config.type: self_hosted)
   — running an EnvironmentWorker that keeps tool execution on infrastructure you
   control
-ccVersion: 2.1.296
+ccVersion: 2.1.300
 -->
 # Managed Agents - Self-Hosted Sandboxes
 
@@ -256,6 +256,8 @@ For example, sync every 10 s and only *log* would-be deletes: Python \`Environme
 | Session \`idle\` with \`requires_action\`, no error event, shortly after a claim | Worker failed the work item on a mount error above | Fix the host, then send \`user.interrupt\` - the work is re-queued and the next claim retries the mount |
 
 ## Monitoring & control
+
+**Tracing tool calls (OpenTelemetry, beta).** The API emits no tool spans for tools your sandbox runs; the SDK environment worker (Python, TypeScript, Go) emits them in its own process under one \`anthropic.environment.work\` span per work item, once a tracer provider is registered there and the sandbox can reach your backend. Setup and span attributes: \`shared/opentelemetry.md\` -> Tracing a Managed Agents self-hosted sandbox.
 
 These are **control-plane** calls - authenticate with \`x-api-key\` (not the environment key); \`managed-agents-2026-04-01\` beta header. **Call them from outside the worker host** - setting \`ANTHROPIC_API_KEY\` on the worker host exposes an organization-scoped credential to agent tool calls.
 

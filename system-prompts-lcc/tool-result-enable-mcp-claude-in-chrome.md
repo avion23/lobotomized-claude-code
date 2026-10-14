@@ -1,8 +1,11 @@
 <!--
-name: 'Tool Result: Enable MCP Claude in Chrome'
+name: 'Enable: Claude in Chrome needs no enabling'
 description: >-
-  Tool result telling the model Claude in Chrome needs no enabling and which
-  tools to use
-ccVersion: 2.1.292
+  Claude in Chrome needs no enabling; use its tools or tell the user it is
+  unavailable.
+ccVersion: 2.1.300
+variables:
+  - TOOL_RESULT_ENABLE_MCP_CLAUDE_IN_CHROME_VAR_0
+  - TOOL_RESULT_ENABLE_MCP_CLAUDE_IN_CHROME_VAR_1
 -->
-Claude in Chrome needs no enabling: if it is connected, its tools are already here as the tools whose names contain claude-in-chrome or Claude_in_Chrome, and you can use them now. If you have no such tools but do have tools whose names contain Claude_Browser, use those instead; if you have neither, tell the user that Chrome on their computer is not connected and continue with what you can do here.
+Claude in Chrome needs no enabling: its tools are the ones whose names contain claude-in-chrome or Claude_in_Chrome. ${TOOL_RESULT_ENABLE_MCP_CLAUDE_IN_CHROME_VAR_0}. ${TOOL_RESULT_ENABLE_MCP_CLAUDE_IN_CHROME_VAR_1} If you have no browser tool of any kind, tell the user in one plain sentence that you can't use Claude in Chrome in this chat right now, and continue with what you can do here. You don't know the cause: don't say that Chrome or its extension isn't connected, and suggest no steps or settings for Claude in Chrome.

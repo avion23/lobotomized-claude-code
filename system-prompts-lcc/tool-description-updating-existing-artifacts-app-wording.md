@@ -4,14 +4,15 @@ description: >-
   App-worded guidance for same-path redeployment and URL-based
   read-before-publish updates, followed by surface-specific Artifact location
   and republish instructions
-ccVersion: 2.1.299
+ccVersion: 2.1.300
 variables:
   - HAS_ARTIFACT_PUBLISH_EDITS
   - ARTIFACT_PUBLISH_EDITS_GUIDANCE
+  - TOOL_DESCRIPTION_UPDATING_EXISTING_ARTIFACTS_APP_WORDING_VAR_2
   - IS_CLAUDE_APP_CONTEXT
   - ARTIFACT_APP_REPUBLISH_GUIDANCE
   - ARTIFACT_TERMINAL_LOCATION_GUIDANCE
 -->
-**To update** an artifact published earlier in this conversation, Claude calls Artifact again with the same file path, which redeploys it to the same URL. A different path creates a new URL, so Claude changes the path only when it wants a separate artifact.${HAS_ARTIFACT_PUBLISH_EDITS?ARTIFACT_PUBLISH_EDITS_GUIDANCE:""}
+**To update** an artifact published earlier in this conversation, Claude calls Artifact again with the same file path, which redeploys it to the same URL. A different path creates a new URL, so Claude changes the path only when it wants a separate artifact.${HAS_ARTIFACT_PUBLISH_EDITS?ARTIFACT_PUBLISH_EDITS_GUIDANCE:""}${TOOL_DESCRIPTION_UPDATING_EXISTING_ARTIFACTS_APP_WORDING_VAR_2(HAS_ARTIFACT_PUBLISH_EDITS)}
 
 **To update an artifact from an earlier conversation**, Claude passes that artifact's URL as \`url\`. Claude does this whenever the person wants an existing artifact changed or its link kept, not only when they paste a URL, and finds the URL with \`action: "list"\` or by asking the person. Claude first reads the artifact with \`action: "read"\` and builds on the version that comes back. A publish to an artifact this conversation has not read or published is refused and hands Claude the live version to build on. Publishing without \`url\` creates a separate artifact, so Claude recovers the URL instead of announcing a new link. ${IS_CLAUDE_APP_CONTEXT?ARTIFACT_APP_REPUBLISH_GUIDANCE:ARTIFACT_TERMINAL_LOCATION_GUIDANCE}

@@ -3,7 +3,7 @@ name: 'Data: managed-agents-overview'
 description: >-
   claude-api skill reference file (managed-agents-overview) inlined as <doc> or
   extracted for the model to Read when the skill's Reading Guide points to it.
-ccVersion: 2.1.299
+ccVersion: 2.1.300
 -->
 # Managed Agents - Overview
 
@@ -81,4 +81,4 @@ Managed Agents is in beta. The SDK sets required beta headers automatically:
 - **Don't trust HTTP-library timeouts as wall-clock caps** - \`requests\` \`timeout=(c, r)\` and \`httpx.Timeout(n)\` are *per-chunk* read timeouts; they reset every byte, so a trickling connection can block indefinitely. For a hard deadline on raw-HTTP polling, track \`time.monotonic()\` at the loop level and bail explicitly. Prefer the SDK's \`sessions.events.stream()\` / \`sessions.events.list()\` over hand-rolled HTTP. See \`shared/managed-agents-events.md\` -> Receiving Events.
 - **Messages queue** - you can send events while the session is \`running\` or \`idle\`; they're processed in order. No need to wait for a response before sending the next message. Two exceptions accept only settle events: a session waiting on you (\`stop_reason: requires_action\`), where a \`user.message\` is a 400, and one paused at its budget (\`budget_reached\`) - change or remove the budget to resume (\`shared/managed-agents-core.md\` § Session budgets).
 - **Environment \`config.type\` is \`"cloud"\` or \`"self_hosted"\`** - \`cloud\` runs the container on Anthropic's infrastructure; \`self_hosted\` moves tool execution to your own (see \`shared/managed-agents-self-hosted-sandboxes.md\`).
-- **Archive is permanent on every resource** - archiving an agent, environment, session, vault, credential, or memory store makes it read-only with no unarchive. For agents, environments, and memory stores specifically, archived resources cannot be referenced by new sessions (existing sessions continue). Do not call \`.archive()\` on a production agent, environment, or memory store as cleanup - **always confirm with the user before archiving**.
+- **Archive is permanent on every resource** - archiving an agent, environment, session, vault, credential, or memory store makes it read-only with no unarchive. For agents, environments, and memory stores specifically, archived resources cannot be referenced by new sessions (existing sessions continue). Do not call \`.archive()\` on a session or on a production agent, environment, vault, or memory store as cleanup - **archive or delete only when the user explicitly asks**.

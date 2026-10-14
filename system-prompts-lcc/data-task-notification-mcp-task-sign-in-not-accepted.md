@@ -1,0 +1,10 @@
+<!--
+name: 'MCP task: sign-in not accepted'
+description: Server asked for sign-in and none was accepted in time.
+ccVersion: 2.1.300
+variables:
+  - DATA_TASK_NOTIFICATION_MCP_TASK_SIGN_IN_NOT_ACCEPTED_VAR_0
+  - DATA_TASK_NOTIFICATION_MCP_TASK_SIGN_IN_NOT_ACCEPTED_VAR_1
+  - DATA_TASK_NOTIFICATION_MCP_TASK_SIGN_IN_NOT_ACCEPTED_VAR_2
+-->
+server '${DATA_TASK_NOTIFICATION_MCP_TASK_SIGN_IN_NOT_ACCEPTED_VAR_0}' asked for a sign-in, and none was accepted within ${DATA_TASK_NOTIFICATION_MCP_TASK_SIGN_IN_NOT_ACCEPTED_VAR_1.round(DATA_TASK_NOTIFICATION_MCP_TASK_SIGN_IN_NOT_ACCEPTED_VAR_2/1000)}s

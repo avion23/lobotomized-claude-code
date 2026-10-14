@@ -1,9 +1,8 @@
 <!--
-name: 'Tool Result: Permission request unanswered deadline'
+name: Permission request unanswered
 description: >-
-  Permission denial message injected when nobody answers a permission request
-  before its deadline; tells the model not to retry, say what approval was
-  needed, and continue without it
-ccVersion: 2.1.292
+  Nobody answered the permission request; do not retry, finish what needs no
+  approval.
+ccVersion: 2.1.300
 -->
-Nobody answered this permission request; the person may be away. Do not retry the call. Say what you needed approval for, and go on without it.
+Nobody answered this permission request; the person may be away, so other requests for approval are likely to go unanswered too. Until the person writes again, do not retry the call and do not make other calls that may need approval. Finish what needs no approval, then say what you needed approval for.

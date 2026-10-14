@@ -4,15 +4,13 @@ description: >-
   claude-api skill reference file (Managed Agents environments and resources)
   inlined as <doc> or extracted for the model to Read when the skill's Reading
   Guide points to it.
-ccVersion: 2.1.299
+ccVersion: 2.1.300
 -->
 # Managed Agents - Environments & Resources
 
 ## Environments
 
 Creating a session requires an \`environment_id\`. Environments are **reusable configuration templates** for spinning up containers in Anthropic's infrastructure.
-
-**Environment names must be unique.** Creating an environment with an existing name returns 409.
 
 ### Networking
 

@@ -1,8 +1,9 @@
 <!--
-name: 'Tool Result: Claude browser enable already connected'
-description: >-
-  Tool result telling the model the desktop app browser needs no enabling and
-  which tools to use
-ccVersion: 2.1.292
+name: 'Enable: desktop browser needs no enabling'
+description: Desktop app browser needs no enabling; use its tools or say it is unavailable.
+ccVersion: 2.1.300
+variables:
+  - TOOL_RESULT_CLAUDE_BROWSER_ENABLE_ALREADY_CONNECTED_VAR_0
+  - TOOL_RESULT_CLAUDE_BROWSER_ENABLE_ALREADY_CONNECTED_VAR_1
 -->
-The Claude desktop app's built-in browser needs no enabling: if it is connected, its tools are already here as the tools whose names contain Claude_Browser, and you can use them now. If you have no such tools but do have tools whose names contain claude-in-chrome or Claude_in_Chrome, use those instead; if you have neither, tell the user that the browser in their Claude desktop app is not connected and continue with what you can do here.
+The Claude desktop app's built-in browser needs no enabling: its tools are the ones whose names contain Claude_Browser. ${TOOL_RESULT_CLAUDE_BROWSER_ENABLE_ALREADY_CONNECTED_VAR_0}. ${TOOL_RESULT_CLAUDE_BROWSER_ENABLE_ALREADY_CONNECTED_VAR_1} If you have no browser tool of any kind, tell the user that the browser in their Claude desktop app is not available in this chat right now and continue with what you can do here.

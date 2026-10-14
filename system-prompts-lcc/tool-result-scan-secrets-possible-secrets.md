@@ -1,0 +1,10 @@
+<!--
+name: 'scan_secrets: possible secrets'
+description: Result line with count of files holding possible secrets.
+ccVersion: 2.1.300
+variables:
+  - TOOL_RESULT_SCAN_SECRETS_POSSIBLE_SECRETS_VAR_0
+  - TOOL_RESULT_SCAN_SECRETS_POSSIBLE_SECRETS_VAR_1
+  - TOOL_RESULT_SCAN_SECRETS_POSSIBLE_SECRETS_VAR_2
+-->
+Result: possible secrets in ${TOOL_RESULT_SCAN_SECRETS_POSSIBLE_SECRETS_VAR_0.length} ${TOOL_RESULT_SCAN_SECRETS_POSSIBLE_SECRETS_VAR_1(TOOL_RESULT_SCAN_SECRETS_POSSIBLE_SECRETS_VAR_0.length,"file")}${TOOL_RESULT_SCAN_SECRETS_POSSIBLE_SECRETS_VAR_2===""?"":`; ${TOOL_RESULT_SCAN_SECRETS_POSSIBLE_SECRETS_VAR_2}`}. Values are not shown.

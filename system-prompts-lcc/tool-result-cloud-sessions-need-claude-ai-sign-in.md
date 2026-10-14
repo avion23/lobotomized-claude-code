@@ -1,8 +1,10 @@
 <!--
-name: 'Tool Result: cloud sessions need claude.ai sign-in'
+name: 'Tool result: cloud sessions need claude.ai sign-in'
 description: >-
-  Error thrown when an operation needing cloud-session auth finds no claude.ai
-  OAuth token; tells the user to run claude auth login or /login and retry.
-ccVersion: 2.1.291
+  Error returned when a cloud session cannot start because the user is not
+  signed in with claude.ai; appends the sign-in instruction.
+ccVersion: 2.1.300
+variables:
+  - TOOL_RESULT_CLOUD_SESSIONS_NEED_CLAUDE_AI_SIGN_IN_VAR_0
 -->
-Cloud sessions need a claude.ai sign-in. Run `claude auth login` (or /login in a local session), then try again.
+Cloud sessions need a claude.ai sign-in. ${TOOL_RESULT_CLOUD_SESSIONS_NEED_CLAUDE_AI_SIGN_IN_VAR_0}

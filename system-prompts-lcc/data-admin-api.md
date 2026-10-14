@@ -3,7 +3,7 @@ name: 'Data: admin-api'
 description: >-
   claude-api skill reference file (admin-api) inlined as <doc> or extracted for
   the model to Read when the skill's Reading Guide points to it.
-ccVersion: 2.1.296
+ccVersion: 2.1.300
 -->
 # Admin API (Organization Management)
 
@@ -171,7 +171,7 @@ Owners and primary owners have all admin permissions and can also manage admins.
 
 ## Platform Restrictions
 
-- **Claude Platform on AWS:** only the workspace endpoints work. Members, workspace members, invites, API keys, and usage/cost/rate-limit reports are unavailable. CMEK external-key endpoints are not yet available there - register and attach keys in the Claude Console.
+- **Claude Platform on AWS:** only the workspace and telemetry destination endpoints work, through Amazon's gateway (for destinations, see \`shared/opentelemetry.md\`). Members, workspace members, invites, API keys, and usage/cost/rate-limit reports are unavailable. CMEK external-key endpoints are not yet available there - register and attach keys in the Claude Console.
 - **Claude Enterprise (claude.ai orgs):** only members and invites from this surface, plus Enterprise-only endpoints (group and custom-role reads, spend limits) that are not in the SDKs.
 
 ## Live Docs
