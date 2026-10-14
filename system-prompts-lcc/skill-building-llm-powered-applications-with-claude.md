@@ -3,7 +3,7 @@ name: 'Skill: Building LLM-powered applications with Claude'
 description: >-
   Main prompt body of the claude-api skill (building LLM-powered applications
   with Claude), injected at skill invocation.
-ccVersion: 2.1.296
+ccVersion: 2.1.299
 -->
 # Building LLM-Powered Applications with Claude
 
@@ -416,7 +416,7 @@ Strategy types: \`clear_tool_uses_20250919\` (clears old tool results; optional 
 
 Availability: \`shared/platform-availability.md\`. For agents on Bedrock / Vertex / Foundry (where Managed Agents is unsupported), use Claude API + tool use.
 
-**Mandatory flow:** Agent (once) -> Session (every run). \`model\`/\`system\`/\`tools\` live on the agent, never the session. See \`shared/managed-agents-overview.md\` for the full reading guide, beta headers, and pitfalls.
+**Mandatory flow:** Agent (once) -> Session (every run). \`model\`/\`system\`/\`tools\` live on the agent. See \`shared/managed-agents-overview.md\` for the full reading guide, beta headers, and pitfalls.
 
 **Beta headers:** \`managed-agents-2026-04-01\` - the SDK sets this automatically for all \`client.beta.{agents,environments,sessions,vaults,deployments,deployment_runs}.*\` calls. Memory stores use \`agent-memory-2026-07-22\` instead, which the SDK sets on \`client.beta.memory_stores.*\` calls; sending both headers on a memory store request returns a 400. Files API and Skills API are out of beta - no beta header needed (see the API Drift table above for the migration guides).
 

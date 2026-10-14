@@ -4,7 +4,7 @@ description: >-
   claude-api skill reference file (Managed Agents endpoint reference) inlined as
   <doc> or extracted for the model to Read when the skill's Reading Guide points
   to it.
-ccVersion: 2.1.296
+ccVersion: 2.1.299
 -->
 # Managed Agents - Endpoint Reference
 
@@ -58,7 +58,7 @@ All resources are under the \`beta\` namespace. Python and TypeScript share iden
 
 ## Agents
 
-Sessions require a pre-created agent - there is no inline agent config under \`managed-agents-2026-04-01\`.
+Sessions require a pre-created agent.
 
 | Method   | Path                                             | Operation        | Description                              |
 | -------- | ------------------------------------------------ | ---------------- | ---------------------------------------- |
@@ -238,7 +238,7 @@ Immutable per-mutation snapshots (\`memver_...\`) - the audit and rollback surfa
 
 ### CreateAgent Request Body
 
-\`model\`, \`system\`, \`tools\`, \`mcp_servers\`, \`skills\` are top-level fields on this object - they do not go on the session.
+\`model\`, \`system\`, \`tools\`, \`mcp_servers\`, \`skills\` are top-level fields on this object.
 
 \`\`\`json
 {

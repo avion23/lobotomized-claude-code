@@ -1,8 +1,8 @@
 <!--
-name: SendMessage cloud cannot reach elevated session
+name: 'Tool Result: Send message cloud cannot reach elevated session'
 description: >-
-  Explains that a Remote Control session requiring a trusted device is
-  unreachable from a cloud session, so nothing was sent.
-ccVersion: 2.1.232
+  Reason phrase saying a trusted-device session is not reachable from a cloud
+  session
+ccVersion: 2.1.299
 -->
-not reachable from a cloud session — that session requires a trusted device, which a cloud session never has; message it from one of your own machines instead
+not reachable with this tool from a cloud session: that session requires a trusted device, and this cloud session has none to show

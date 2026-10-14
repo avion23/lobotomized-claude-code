@@ -5,7 +5,7 @@ description: >-
   interface or behaviour, such as a live pane or panel, a band above the prompt,
   a status line, a toast, a slash command, or a hook on tool calls or prompts.
   Use to make, change or debug a mod or its hooks module.
-ccVersion: 2.1.296
+ccVersion: 2.1.299
 -->
 ---
 name: plugin-authoring
@@ -56,4 +56,4 @@ Each example, in \`\${CLAUDE_SKILL_DIR}/examples/\`, is one complete hooks modul
 
 While the session hot-reloads a plugin folder the transcript carries one dim line naming the plugin, the event and the reason when a hook fails or a module does not load, and says when a hook's tree did not validate and the engine drew its own instead: \`<plugin>: ui.render (<Component>) refused: <reason>; the engine drew its own\`, \`<plugin>\` being the one plugin whose hook could have drawn the tree, \`hooks\` otherwise. In any other session those lines go to the debug log alone, as \`<plugin>: <line>\`. The debug log (\`claude --debug\`) carries a line for every occurrence and every result the engine refused; in every session such a tree has a line there beginning \`ui.render (<Component>): a hook returned a tree that does not validate\`, followed by the reason.
 
-\`\${CLAUDE_SKILL_DIR}/reference.md\` is the long form: the full event list and streaming events, \`ui.render\` in depth, \`$.state\` contracts, \`--plugin-dir\` and \`CLAUDE_CODE_PLUGIN_DIRS\` for a mod under development, \`userConfig\` options, what a test holds, and Sharing a mod, done when the person asks: \`.claude-plugin/marketplace.json\` in its repository and, in the README, \`/plugin install <mod> --marketplace <owner>/<repo>\`.
+\`\${CLAUDE_SKILL_DIR}/reference.md\` is the long form: the full event list, streaming events, \`ui.render\` in depth, \`$.state\` contracts, \`--plugin-dir\` and \`CLAUDE_CODE_PLUGIN_DIRS\` while developing, \`userConfig\` options, what a test holds, and Sharing a mod, the GitHub road, done when the person asks, or says yes where this skill offers it: \`.claude-plugin/marketplace.json\` in its repository and, in the README, \`/plugin install <mod> --marketplace <owner>/<repo>\`.

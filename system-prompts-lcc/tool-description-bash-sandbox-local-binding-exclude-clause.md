@@ -1,9 +1,9 @@
 <!--
-name: 'Tool Description: Bash sandbox — local binding, exclude clause'
+name: 'Tool Description: Bash sandbox — local binding, exclude option'
 description: >-
-  Clause added to the Bash sandbox guidance on local port binding (variant used
-  when CLAUDE_CODE_SESSION_KIND is set). It offers only `/sandbox exclude
-  <pattern>` as the alternative.
-ccVersion: 2.1.281
+  Option offered in the Bash sandbox guidance on local port binding and Windows
+  localhost: exclude the command with `/sandbox exclude <pattern>`. The
+  surrounding ', or ' joiner is now code-built.
+ccVersion: 2.1.299
 -->
-, or exclude the command with `/sandbox exclude <pattern>`
+exclude the command with `/sandbox exclude <pattern>`

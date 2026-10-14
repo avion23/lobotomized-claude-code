@@ -4,7 +4,7 @@ description: >-
   claude-api skill reference file (Managed Agents client patterns) inlined as
   <doc> or extracted for the model to Read when the skill's Reading Guide points
   to it.
-ccVersion: 2.1.296
+ccVersion: 2.1.299
 -->
 # Managed Agents - Common Client Patterns
 
@@ -155,6 +155,8 @@ if (s?.status !== 'running') {
   await client.beta.sessions.archive(session.id)
 } // else: still running after 2s - don't archive, let it settle or escalate
 \`\`\`
+
+While a workflow run is open, the status is not enough: an archive or a delete might return a 400 even when the session is \`idle\`, and an archive that succeeds ends the run. Before either, ask the agent to stop its runs, or wait until each run has ended (\`shared/managed-agents-multiagent.md\` § While a run is open).
 
 ---
 

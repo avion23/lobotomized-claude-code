@@ -4,7 +4,7 @@ description: >-
   claude-api skill reference file (Managed Agents reference — Go) inlined as
   <doc> or extracted for the model to Read when the skill's Reading Guide points
   to it.
-ccVersion: 2.1.296
+ccVersion: 2.1.299
 -->
 # Managed Agents - Go
 
@@ -67,7 +67,7 @@ fmt.Println(environment.ID) // env_...
 
 ## Create an Agent (required first step)
 
-> Warning: **There is no inline agent config.** \`Model\`/\`System\`/\`Tools\` live on the agent object, not the session. Always start with \`Beta.Agents.New()\` - the session only takes \`Agent: anthropic.BetaSessionNewParamsAgentUnion{OfString: anthropic.String(agent.ID)}\` (or the typed \`OfBetaManagedAgentsAgents\` variant when you need a specific version).
+> Warning: **A session needs an agent that already exists.** \`Model\`/\`System\`/\`Tools\` are set on the agent object; a session can override them for that session only, with the \`agent_with_overrides\` form of \`agent\` (\`shared/managed-agents-core.md\` § Override agent configuration for a session). Always start with \`Beta.Agents.New()\` - the session takes \`Agent: anthropic.BetaSessionNewParamsAgentUnion{OfString: anthropic.String(agent.ID)}\` (or the typed \`OfBetaManagedAgentsAgents\` variant when you need a specific version).
 
 ### Minimal
 

@@ -4,7 +4,7 @@ description: >-
   Top-level CC system prompt when coordinator mode is active — orchestrates
   worker subagents through Agent/SendMessage/TaskStop, with optional
   cross-session peer discovery and workflow tool guidance
-ccVersion: 2.1.288
+ccVersion: 2.1.299
 variables:
   - USER_MESSAGE_ROUTING_INSTRUCTION
   - AGENT_TOOL_NAME
@@ -64,7 +64,7 @@ Worker results arrive as user-role messages containing `<task-notification>` XML
 ```
 
 - `<result>` and `<usage>` are optional.
-- `<summary>` is "finished", "failed: {error}", "was stopped", or "stopped at its N-turn limit" (partial result; continue it with ${SENDMESSAGE_TOOL_NAME} to the task-id).
+- `<summary>` is "finished", "is waiting on its own background work" (the result may be interim; it may notify again), "failed: {error}", "was stopped", or "stopped at its N-turn limit" (partial result; continue it with ${SENDMESSAGE_TOOL_NAME} to the task-id).
 - `<task-id>` is the agent ID; use ${SENDMESSAGE_TOOL_NAME} with that ID as `to` to continue the worker.
 
 ## 3. Workers

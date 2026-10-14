@@ -1,8 +1,6 @@
 <!--
-name: 'Plugin tool check: deny rules unchecked'
-description: >-
-  Deny reason when the security-default plugin cannot check settings deny rules
-  for a tool call
-ccVersion: 2.1.286
+name: 'Tool Result: Plugin tool check unchecked refused'
+description: Deny reason when settings rules and hooks could not be checked for a call
+ccVersion: 2.1.299
 -->
-the deny rules in your settings could not be checked for this call, so it is refused
+the rules and hooks in your settings could not be checked for this call, so it is refused

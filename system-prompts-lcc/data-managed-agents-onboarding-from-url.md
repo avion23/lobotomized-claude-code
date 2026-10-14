@@ -4,7 +4,7 @@ description: >-
   claude-api skill reference file (managed-agents-onboarding-from-url) inlined
   as <doc> or extracted for the model to Read when the skill's Reading Guide
   points to it.
-ccVersion: 2.1.296
+ccVersion: 2.1.299
 -->
 # Managed Agents - Onboarding From a URL
 
@@ -273,7 +273,9 @@ A deployment is live from the moment it is created, so run apply and pause as on
 
 \`\`\`sh
 STORE_ID=$(jq -r '.resources["./agents/daily-brief/memory_store-notes.yaml"].id' claude-lock.json)
-ant beta:memory-stores:memories create --memory-store-id "$STORE_ID" --path /preferences.md --content "@./agents/daily-brief/data/preferences.md"
+ant beta:memory-stores:memories create --memory-store-id "$STORE_ID" --path /preferences.md <<'YAML'
+content: "@./agents/daily-brief/data/preferences.md"
+YAML
 ant beta:memory-stores:memories list --memory-store-id "$STORE_ID" --view full    # read it back: the file's text, not its path
 FILE_ID=$(ant beta:files upload --file "agents/daily-brief/data/style-guide.md" --transform id -r)   # then list it under the deployment's resources, or pass --resource to sessions create
 \`\`\`
@@ -303,7 +305,7 @@ SID=$(ant beta:sessions create --agent "$AGENT_ID" --environment-id "$ENV_ID" --
 ant beta:sessions:events send --session-id "$SID" < agents/daily-brief/kickoff.yaml    # events: [...], same shape as initial_events
 \`\`\`
 
-In a flag value or a body piped to \`ant\`, a string that starts with \`@\` is replaced by that local file's contents, resolved from the directory you run the command in; write a literal leading \`@\` as \`\\@\`. (\`ant apply\` does not do this to the files it reads.) Never assume the replacement happened - read the result back, as above. A wrong credential or a blocked host that the checks didn't cover shows up on first use, not at create time.
+In a body piped to \`ant\` or a structured flag value, a string that starts with \`@\` is replaced by that local file's contents, resolved from the directory you run the command in; write a literal leading \`@\` as \`\\@\`, unquoted or in single quotes. (\`ant apply\` does not do this to the files it reads.) Never assume the replacement happened - read the result back, as above. A wrong credential or a blocked host that the checks didn't cover shows up on first use, not at create time.
 
 ## 6. Hand off
 

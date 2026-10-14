@@ -3,7 +3,7 @@ name: 'Data: managed-agents-overview'
 description: >-
   claude-api skill reference file (managed-agents-overview) inlined as <doc> or
   extracted for the model to Read when the skill's Reading Guide points to it.
-ccVersion: 2.1.296
+ccVersion: 2.1.299
 -->
 # Managed Agents - Overview
 
@@ -20,7 +20,7 @@ Every session references a pre-created \`/v1/agents\` object. Create the agent o
 | 1 | \`POST /v1/agents\` - \`model\`, \`system\`, \`tools\`, \`mcp_servers\`, \`skills\` live here | **Once.** Store \`agent.id\` **and** \`agent.version\`. |
 | 2 | \`POST /v1/sessions\` - \`agent: "agent_abc123"\` or \`{type: "agent", id, version}\` | **Every run.** String shorthand uses latest version. |
 
-If you're about to write \`sessions.create()\` with \`model\`, \`system\`, or \`tools\` on the session body - **stop**. Those fields live on \`agents.create()\`. The session takes a *pointer* only.
+If you're about to pass \`model\`, \`system\`, or \`tools\` to \`sessions.create()\` as top-level fields - **stop**. They are fields of \`agents.create()\`. To change them for one session, see \`shared/managed-agents-core.md\` § Override agent configuration for a session.
 
 **When generating code, separate setup from runtime.** \`agents.create()\` belongs in a setup script (or a guarded \`if agent_id is None:\` block), not at the top of the hot path. If the user's code calls \`agents.create()\` on every invocation, they're accumulating orphaned agents and paying the create latency for nothing. The correct shape is: define the agent as a version-controlled file and sync it with \`ant apply\`, which records the ID in \`claude-lock.json\` (see \`shared/anthropic-cli.md\`) - or use a guarded setup script that persists the returned ID (config file, env var, secrets manager) - and have every run load the ID and call \`sessions.create()\`.
 

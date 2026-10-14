@@ -4,7 +4,7 @@ description: >-
   claude-api skill reference file (Managed Agents core concepts) inlined as
   <doc> or extracted for the model to Read when the skill's Reading Guide points
   to it.
-ccVersion: 2.1.296
+ccVersion: 2.1.299
 -->
 # Managed Agents - Core Concepts
 
@@ -34,7 +34,7 @@ Environment (template) --> Container (tool execution workspace)
                                  +-- Conversation (event stream in/out)
 \`\`\`
 
-> **Agent creation is a prerequisite.** Sessions reference a pre-created agent by ID - \`model\`/\`system\`/\`tools\` live on the agent object, never on the session. Every flow starts with \`POST /v1/agents\`.
+> **Agent creation is a prerequisite.** Sessions reference a pre-created agent by ID - \`model\`/\`system\`/\`tools\` are set on the agent object; a session can override them for that session only (§ Override agent configuration for a session). Every flow starts with \`POST /v1/agents\`.
 
 ---
 
@@ -180,7 +180,7 @@ session = client.beta.sessions.create(
 
 An outcome-driven session is therefore a single call - pass one \`user.define_outcome\` in \`initial_events\` instead of creating the session and then sending the event (see \`shared/managed-agents-outcomes.md\`).
 
-**Agent configuration fields** (passed to \`agents.create()\`, not \`sessions.create()\`):
+**Agent configuration fields** (passed to \`agents.create()\`):
 
 | Field         | Type     | Required | Description                                    |
 | ------------- | -------- | -------- | ---------------------------------------------- |

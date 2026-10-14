@@ -8,7 +8,7 @@ description: >-
   a PR as an artifact, publish a PR review page, or share a review briefing. NOT
   a narrative walkthrough. Only for CREATING a new artifact; edits to an
   existing artifact modify its HTML directly.
-ccVersion: 2.1.296
+ccVersion: 2.1.299
 -->
 ---
 name: artifact-pr-review
@@ -246,7 +246,10 @@ review - "Acting on decisions" validates clicked tokens against it.
 ## Step 3 - Fill the template
 
 1. Read \`template.html\` from this skill's base directory (listed above) and
-   copy it as your starting point.
+   copy it as your starting point. Its design is fixed: publish refuses any
+   \`<meta>\` and any style that is not the template's own, so leave out the
+   \`claude:viewport-fit-sides\` tag and the side paddings that the
+   \`artifact-design\` skill asks for.
 2. Replace each \`<!-- SLOT: ... -->\` marker with content from the JSON - the
    comment inside each slot says which field it renders and which markup
    pattern to use. Escape per the untrusted-input rules. Delete optional
