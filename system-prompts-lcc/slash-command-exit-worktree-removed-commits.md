@@ -1,0 +1,13 @@
+<!--
+name: 'Slash command: exit worktree removed with commits'
+description: >-
+  Exit-worktree result reporting the worktree was removed along with a count of
+  commits on its branch that were discarded.
+ccVersion: 2.1.301
+variables:
+  - SLASH_COMMAND_EXIT_WORKTREE_REMOVED_COMMITS_VAR_0
+  - SLASH_COMMAND_EXIT_WORKTREE_REMOVED_COMMITS_VAR_1
+  - SLASH_COMMAND_EXIT_WORKTREE_REMOVED_COMMITS_VAR_2
+  - SLASH_COMMAND_EXIT_WORKTREE_REMOVED_COMMITS_VAR_3
+-->
+Worktree removed. ${SLASH_COMMAND_EXIT_WORKTREE_REMOVED_COMMITS_VAR_0} ${SLASH_COMMAND_EXIT_WORKTREE_REMOVED_COMMITS_VAR_0===1?"commit":"commits"} on ${SLASH_COMMAND_EXIT_WORKTREE_REMOVED_COMMITS_VAR_1.worktreeBranch} ${SLASH_COMMAND_EXIT_WORKTREE_REMOVED_COMMITS_VAR_0===1?"was":"were"} ${SLASH_COMMAND_EXIT_WORKTREE_REMOVED_COMMITS_VAR_2}${SLASH_COMMAND_EXIT_WORKTREE_REMOVED_COMMITS_VAR_3}

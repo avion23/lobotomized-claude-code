@@ -1,6 +1,6 @@
 <!--
-name: 'Plugin publish: upload not current'
-description: Upload saved but not the plugin's current version; nothing submitted.
-ccVersion: 2.1.300
+name: 'Tool Result: plugin publish upload not current'
+description: 'Publish refused: the new version is uploaded but not current on claude.ai'
+ccVersion: 2.1.301
 -->
-The upload is saved to your uploads on claude.ai but is not the plugin's current version, so nothing was submitted. Open the plugin on claude.ai and make the new version current before publishing again.
+The new version is saved to your uploads on claude.ai, but it isn't the plugin's current version there, so nothing was sent to your organization. Open the plugin on claude.ai, make the new version current, and publish it from there.

@@ -4,7 +4,7 @@ description: >-
   Shared OpenTelemetry guide for the Claude API: SDK vs API tracing, content
   modes, SDK setup, API destinations, reading traces, token counting and span
   reference.
-ccVersion: 2.1.300
+ccVersion: 2.1.301
 -->
 # OpenTelemetry Tracing for the Claude API
 
@@ -76,7 +76,7 @@ Things to tell the user before they turn Full content on:
 ### 0. Check what the application already has
 
 - An OpenTelemetry setup that already registers a tracer provider (\`TracerProvider\`, \`NodeTracerProvider\` or \`@opentelemetry/sdk-node\`, \`SdkTracerProvider\`, \`sdktrace.NewTracerProvider\` or \`otel.SetTracerProvider\`, \`OpenTelemetry::SDK.configure\`, \`Sdk.CreateTracerProviderBuilder\`, \`Sdk::builder\`, an auto-instrumentation launcher, or a vendor agent). If there is one, reuse it: skip installing the OpenTelemetry SDK and console exporter, don't register a second provider, and in C# add \`com.anthropic.sdk.csharp\` to its sources. The Claude SDK uses the registered provider, so the SDK calls stay the same.
-- An instrumentation package that patches the Claude SDK to trace its calls (an OpenTelemetry or vendor instrumentation for Anthropic). With one installed, each request would appear twice, so turn the SDK's own tracing off (its OpenTelemetry option, such as \`open_telemetry=False\` in Python, or \`ANTHROPIC_OPEN_TELEMETRY=false\`). Spans the application opens itself around Claude calls are not this case: leave SDK tracing on, and its spans nest under them as children and carry the trace context to the API.
+- An instrumentation package that patches the Claude SDK to trace its calls (an OpenTelemetry or vendor instrumentation for Anthropic). With one installed, each request would appear twice, so turn the SDK's own tracing off (its OpenTelemetry option, such as \`open_telemetry=False\` in Python, or \`ANTHROPIC_OPEN_TELEMETRY=false\` for the clients that read it; see "4. Configure the SDK"). Spans the application opens itself around Claude calls are not this case: leave SDK tracing on, and its spans nest under them as children and carry the trace context to the API.
 - \`OTEL_*\` and \`ANTHROPIC_OPEN_TELEMETRY*\` variables in \`.env\` files, deployment manifests and Dockerfiles (such as \`OTEL_EXPORTER_OTLP_ENDPOINT\`, \`OTEL_SERVICE_NAME\`, \`OTEL_PROPAGATORS\`). They show where spans already go and whether W3C trace context is propagated (API spans need it to join the trace).
 - The installed Claude SDK version. Upgrade it to the latest release.
 
@@ -118,7 +118,11 @@ Replace the console exporter with an OTLP exporter pointed at the backend, follo
 
 ### 4. Configure the SDK
 
-An option set in code overrides its environment variable.
+Each top-level option that code sets on a client replaces the environment variables for everything it holds. Anything that option leaves out takes its default, not an environment variable's value. Which option that is depends on the language:
+
+- Python, TypeScript, Ruby, PHP and C#: the whole OpenTelemetry option. Any value for it, even \`false\` or one that sets no fields, stops the client reading these variables.
+- Go: each option function, such as \`option.WithOpenTelemetryTracesContentMode()\`.
+- Java: the client reads the variables only when built with \`fromEnv()\`. \`java/claude-api/opentelemetry.md\` says how an option set in code combines with them.
 
 | Option (Python / Ruby spelling) | Other languages | Environment variable | Default | Use it to |
 |---|---|---|---|---|
@@ -126,7 +130,7 @@ An option set in code overrides its environment variable.
 | \`traces.max_content_bytes\` | TS, Java, PHP: \`traces.maxContentBytes\`; C#: \`Traces.MaxContentBytes\`; Go: \`option.WithOpenTelemetryTracesMaxContentBytes()\` | \`ANTHROPIC_OPEN_TELEMETRY_TRACES_MAX_CONTENT_BYTES\` | 0.75 MB | Change the per-span content limit |
 | \`conversation_id\` | TS, Java, PHP: \`conversationId\`; C#: \`ConversationId\`; Go: \`option.WithOpenTelemetryConversationID()\` | - | none | Link several calls into one conversation; written to \`gen_ai.conversation.id\` in both content modes |
 | \`tracer_provider\` | TS, Java, PHP: \`tracerProvider\`; C#: \`AddSource("com.anthropic.sdk.csharp")\`; Go: \`option.WithTracerProvider()\` | - | the globally registered provider | Send the SDK's spans to a specific tracer provider |
-| \`open_telemetry\` (set to false) | TS, Java, PHP: \`openTelemetry\`; C#: \`OpenTelemetry\`; Go: \`option.WithoutOpenTelemetry()\` | \`ANTHROPIC_OPEN_TELEMETRY=false\` (all clients) | on | Turn spans off for one client, for example when another library already traces the SDK |
+| \`open_telemetry\` (set to false) | TS, Java, PHP: \`openTelemetry\`; C#: \`OpenTelemetry\`; Go: \`option.WithoutOpenTelemetry()\` | \`ANTHROPIC_OPEN_TELEMETRY=false\` | on | Turn spans off for one client, for example when another library already traces the SDK |
 
 Code for each language: \`{lang}/claude-api/opentelemetry.md\` -> Configure the SDK.
 
@@ -206,7 +210,7 @@ The API sends the spans of a Messages API request or a Managed Agents session to
 | Arize Phoenix | the Phoenix URL, such as \`https://app.phoenix.arize.com/s/<space>\` | \`authorization: Bearer <api key>\`; optional \`x-project-name\` | leave out |
 | Braintrust | \`https://api.braintrust.dev/otel\`; EU \`https://api-eu.braintrust.dev/otel\` | \`authorization: Bearer <api key>\`, \`x-bt-parent: project_id:<project id>\` | leave out |
 | Databricks | \`https://<workspace host>/ai-gateway/otel\` | \`authorization: Bearer <personal access token>\` | leave out |
-| Datadog | \`https://otlp.datadoghq.com\` (US1); other sites \`https://otlp.<us3, us5, ap1, ap2 or uk1>.datadoghq.com\`, EU1 \`https://otlp.datadoghq.eu\` | \`dd-api-key: <api key>\` (not an application key) | leave out |
+| Datadog | \`https://otlp.datadoghq.com\` (US1); other sites \`https://otlp.<us3, us5, ap1, ap2 or uk1>.datadoghq.com\`, EU1 \`https://otlp.datadoghq.eu\` | \`dd-api-key: <api key>\` (not an application key), \`dd-otlp-source: llmobs\` | leave out |
 | Grafana Cloud | the stack's OTLP endpoint, such as \`https://otlp-gateway-prod-us-east-0.grafana.net/otlp\` | \`authorization: Basic <base64 of instance id:access policy token>\` (token with \`traces:write\`), \`X-Grafana-Agento11y-Record: true\` | \`750000\` |
 | Honeycomb | \`https://api.honeycomb.io\`; EU \`https://api.eu1.honeycomb.io\` | \`x-honeycomb-team: <ingest api key>\`; \`x-honeycomb-dataset\` only for Honeycomb Classic | \`50000\` |
 | Langfuse | \`https://us.cloud.langfuse.com/api/public/otel\`; EU \`https://cloud.langfuse.com/api/public/otel\`; JP \`https://jp.cloud.langfuse.com/api/public/otel\`; HIPAA \`https://hipaa.cloud.langfuse.com/api/public/otel\` | \`authorization: Basic <base64 of public key:secret key>\`, \`x-langfuse-ingestion-version: 4\` | \`4000000\` |

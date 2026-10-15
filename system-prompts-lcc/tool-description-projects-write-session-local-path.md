@@ -1,8 +1,8 @@
 <!--
-name: Projects session local path parameter
+name: 'Tool Parameter: project_write local_path (session)'
 description: >-
-  Describes project_write local_path uploads from a file fully read or written
-  in the session.
-ccVersion: 2.1.294
+  local_path describe: absolute path of a file read or written in full in this
+  session
+ccVersion: 2.1.301
 -->
-project_write: the absolute path of a file that you have read or written in full in this session, to upload as it is. Mutually exclusive with content.
+project_write: the absolute path of a file that you have read or written in full in this session. Mutually exclusive with content.

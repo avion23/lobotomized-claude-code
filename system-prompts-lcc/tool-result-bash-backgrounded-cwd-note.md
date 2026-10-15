@@ -1,10 +1,8 @@
 <!--
-name: Bash backgrounded-command cwd note
+name: 'Tool Result: Bash backgrounded cwd note'
 description: >-
-  Note appended to the Bash tool result telling the model that a backgrounded
-  command's directory changes do not apply to subsequent commands.
-ccVersion: 2.1.210
-variables:
-  - TOOL_RESULT_BASH_BACKGROUNDED_CWD_NOTE_VAR_0
+  Note that directory changes by a backgrounded command do not apply to later
+  commands
+ccVersion: 2.1.301
 -->
-Session cwd remains ${TOOL_RESULT_BASH_BACKGROUNDED_CWD_NOTE_VAR_0()}; directory changes made by the backgrounded command do not apply to subsequent commands.
+directory changes made by the backgrounded command do not apply to subsequent commands.

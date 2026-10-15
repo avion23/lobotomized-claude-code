@@ -1,8 +1,8 @@
 <!--
 name: 'Tool Result: Git not run, cancelled before start'
 description: >-
-  Git result stderr saying git was not run because the operation was cancelled
+  Reason clause of the git "was not run" stderr when the operation was cancelled
   before it started
-ccVersion: 2.1.299
+ccVersion: 2.1.301
 -->
-git was not run: the operation was cancelled before it started.
+the operation was cancelled before it started
