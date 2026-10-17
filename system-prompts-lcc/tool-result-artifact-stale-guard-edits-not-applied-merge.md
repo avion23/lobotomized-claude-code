@@ -1,8 +1,8 @@
 <!--
-name: 'Tool Result: Artifact stale guard edits not applied'
+name: Artifact Stale Guard Edits Not Applied
 description: >-
-  Clause saying no edits were applied and asking to merge into the file then
-  resend the edits
-ccVersion: 2.1.299
+  File-mode Artifact stale-guard note that no edits were applied and the file at
+  file_path is unchanged.
+ccVersion: 2.1.302
 -->
- No edits were applied and your file at file_path is unchanged: merge what follows into that file, then send the publish with its edits again, each old_str copied from the merged file.
+ No edits were applied and your file at file_path is unchanged.

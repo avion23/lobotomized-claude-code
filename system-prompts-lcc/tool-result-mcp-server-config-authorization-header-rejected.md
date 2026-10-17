@@ -1,10 +1,10 @@
 <!--
-name: 'Tool Result: MCP Server Config Authorization Header Rejected'
+name: MCP Config Authorization Header Rejected
 description: >-
-  McpAuthError message surfaced as the MCP tool call's error result when the
-  server rejects the Authorization header stored in its config.
-ccVersion: 2.1.273
+  MCP tool error when the configured Authorization header is rejected; update it
+  and run /mcp.
+ccVersion: 2.1.302
 variables:
   - TOOL_RESULT_MCP_SERVER_CONFIG_AUTHORIZATION_HEADER_REJECTED_VAR_0
 -->
-MCP server "${TOOL_RESULT_MCP_SERVER_CONFIG_AUTHORIZATION_HEADER_REJECTED_VAR_0}" rejected the Authorization header in its config (update it, then run /mcp to reconnect)
+${TOOL_RESULT_MCP_SERVER_CONFIG_AUTHORIZATION_HEADER_REJECTED_VAR_0} (update it, then run /mcp to reconnect)

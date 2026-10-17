@@ -1,9 +1,8 @@
 <!--
-name: 'System Reminder: MCP Servers Need Auth — Authorize via /mcp'
+name: 'System reminder: MCP servers need auth, authorize via'
 description: >-
-  Where-to-authorize clause (${Nt}) in the MCP needs-auth reminder when iy() is
-  true: claude.ai connectors via their connector settings, other servers via
-  /mcp.
-ccVersion: 2.1.282
+  Fragment naming how to authorize claude.ai connectors versus other servers in
+  the needs-auth reminder.
+ccVersion: 2.1.302
 -->
-for claude.ai connectors, via their claude.ai connector settings; for other servers, via /mcp
+for claude.ai connectors, via their claude.ai connector settings; for other servers, 

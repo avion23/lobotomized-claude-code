@@ -4,7 +4,7 @@ description: >-
   claude-test helper script (skills/run/scripts/ct.mjs) that the run skill has
   the model execute; its JSON output (status notes, needsInput questions,
   forClaude remedies, errors) is written for the model to read.
-ccVersion: 2.1.301
+ccVersion: 2.1.302
 -->
 #!/usr/bin/env node
 
@@ -34,9 +34,9 @@ import http from 'node:http';
 import https from 'node:https';
 import net from 'node:net';
 import { fileURLToPath } from 'node:url';
-import { loadConfig, commandLineClean, consentKey, readConsent, writeConsent, isLocalHost, reallyInsideDir, fromComment, listSpecs, ensureRunsDir, assertRunsDirInsideProject, parseSpec, mintSpecId, withSpecId, shown, shownDeep, shownText, parseDotenv, resolveProjectDir, projectDirReason, projectsBelow, sessionRoot, specsDirProblem, appPointerInfo, rootConfiguresItself, sanitizeBrowserEnv, trackedClaudeTestSymlinks, RC_FILE, safeGit, joinWrappedCriteria, stemOk, privateDir } from './lib/config.mjs';
+import { loadConfig, commandLineClean, consentKey, readConsent, writeConsent, isLocalHost, reallyInsideDir, fromComment, listSpecs, ensureRunsDir, assertRunsDirInsideProject, parseSpec, mintSpecId, withSpecId, shown, shownDeep, shownText, parseDotenv, resolveProjectDir, projectDirReason, projectsBelow, sessionRoot, specsDirProblem, appPointerInfo, rootConfiguresItself, sanitizeBrowserEnv, trackedClaudeTestSymlinks, RC_FILE, safeGit, gitOff, RUN_ID, joinWrappedCriteria, stemOk, withoutPrivateFolders } from './lib/config.mjs';
 import { ALLOW_TOOL, UP_TOOL, SHOW_TOOL } from './lib/allow-tool.mjs';
-import { runFolders, runStart, writeInRunFolder } from './lib/runs.mjs';
+import { runFolders, runStart, writeInRunFolder, withinProject, writingIn as writingInFolder, keepsCreationTime, insideSomeCheckout, RUNNER_WORDS, LOG_MD_BYTES } from './lib/runs.mjs';
 import { livePageFile, livePagePlan, prefsPath, readPrefs, writePrefs, openByHand } from './lib/open-page.mjs';
 import { pathToFileURL } from 'node:url';
 import { groupRefusedHosts, plainHostName, isBrowserServiceHost } from './lib/hosts.mjs';
@@ -47,6 +47,20 @@ import { environmentReport } from './lib/envreport.mjs';
 
 const args = process.argv.slice(2);
 const projectDir = resolveProjectDir();
+
+
+const STARTED_WITHIN = process.platform === 'win32' ? null : (() => { try { return withinProject(projectDir, 'Start the run again.', process.env.CLAUDE_TEST_PROJECT_ANCHOR || null); } catch (e) { return { refuse: e && e.code === 'CLAUDE_TEST_FOLDER_MOVED' ? shown(String(e.message), 200) + ', so nothing is written' : 'the project folder could not be read when this command started (' + shown(String((e && e.message) || e), 200) + '). Start the run again.' }; } })();
+const withinOf = (cfg) => (cfg && path.resolve(cfg.projectDir) === path.resolve(projectDir) ? STARTED_WITHIN : { refuse: 'this command was started for another project folder' });
+
+const writingIn = (cfg, dir, write) => writingInFolder(withinOf(cfg), cfg.projectDir, dir, write);
+
+const makeFolderIn = (cfg, parent, name) => writingIn(cfg, parent, (at) => { try { fs.mkdirSync(at(name)); } catch (e) { if (!e || e.code !== 'EEXIST') throw e; } });
+
+const readPlainFile = (file, most) => {
+  let fd; try { fd = fs.openSync(file, fs.constants.O_RDONLY | (process.platform === 'win32' ? 0 : fs.constants.O_NOFOLLOW | fs.constants.O_NONBLOCK)); } catch (e) { if (e && (e.code === 'ELOOP' || e.code === 'EMLINK')) throw new Error('a link is at that name'); throw e; }
+  try { const s = fs.fstatSync(fd); if (!s.isFile() || s.nlink > 1) throw new Error('not a plain file (a link, a pipe, a folder, or a second name of another file)'); if (s.size > most) throw new Error('larger than ' + Math.round(most / 1024) + ' KB'); const bytes = Buffer.alloc(s.size); let got = 0; while (got < s.size) { const n = fs.readSync(fd, bytes, got, s.size - got, got); if (!n) break; got += n; } return bytes.subarray(0, got); }
+  finally { fs.closeSync(fd); }
+};
 const PLAYWRIGHT_DOWNLOAD_HOST_SEEN = !!process.env.PLAYWRIGHT_DOWNLOAD_HOST;
 sanitizeBrowserEnv();
 const cmd = args[0] || 'status';
@@ -170,7 +184,7 @@ function folderVerdict(cfg) {
     if (blocked && below.length && (selfIsApp || looksLikeProject)) below = suiteTracked ? ['.', ...below] : [...below, '.'];
   }
   const unprintableNote = unprintable ? ' (' + unprintable + ' app folder' + (unprintable > 1 ? 's' : '') + ' with ' + (unprintable > 1 ? 'names' : 'a name') + ' I cannot print safely ' + (unprintable > 1 ? 'are' : 'is') + ' not listed — if ' + (unprintable > 1 ? 'one of them' : 'it') + ' is the app, add "app: <folder>" to ' + path.join(sessionRoot(), RC_FILE) + ' yourself)' : '';
-  const line = blocked ? 'BLOCKED — ' + (ptr && ptr.problem ? ptr.problem + '; ' : '') + (path.relative(sessionRoot(), cfg.projectDir) || 'the session root (' + cfg.projectDir + ')') + (below.length ? (markedByClaudeTestDir(cfg.projectDir) ? ' has a Claude Test suite AND ' : ' has ') + belowKind + ': ' + below.filter((b) => b !== '.').join(', ') + ' — which app?' + (markedByClaudeTestDir(cfg.projectDir) && !suiteTrackedForLine ? ' (the untracked suite here is usually a leftover of a run started in the wrong place; never add to it unanswered)' : below.includes('.') ? ' (this folder itself is one of the choices)' : ' (never write a suite here)') + '. status.needsInput carries the question — end the run with it (SKILL.md §6, NEEDS INPUT); only when the user\\'s request itself named the app folder run the helper from there ("cd <dir> && node …/ct.mjs status")' : unprintable && looksLikeProject ? ' has app folders below it — which app? status.needsInput carries the question — end the run with it (SKILL.md §6, NEEDS INPUT)' : ' does not look like an app folder (no app manifest such as package.json, no .claude-testrc, no Claude Test specs); run the helper from the app folder you mean ("cd <dir> && node …/ct.mjs status"), or ask the user which folder. If this folder IS the app, a .claude-testrc here (baseUrl: http://localhost:<port>) settles it') + unprintableNote : null;
+  const line = blocked ? 'BLOCKED — ' + (ptr && ptr.problem ? ptr.problem + '; ' : '') + (path.relative(sessionRoot(), cfg.projectDir) || 'the session root (' + cfg.projectDir + ')') + (below.length ? (markedByClaudeTestDir(cfg.projectDir) ? ' has a Claude Test suite AND ' : ' has ') + belowKind + ': ' + below.filter((b) => b !== '.').join(', ') + ' — which app?' + (markedByClaudeTestDir(cfg.projectDir) && !suiteTrackedForLine ? ' (the untracked suite here is usually a leftover of a run started in the wrong place; never add to it unanswered)' : below.includes('.') ? ' (this folder itself is one of the choices)' : ' (never write a suite here)') + '. status.needsInput carries the question — end the run with it (SKILL.md §6, NEEDS INPUT); only when the user\\'s request itself named the app folder is the helper started from there (from a shell: cd <dir> && node …/ct.mjs status)' : unprintable && looksLikeProject ? ' has app folders below it — which app? status.needsInput carries the question — end the run with it (SKILL.md §6, NEEDS INPUT)' : ' does not look like an app folder (no app manifest such as package.json, no .claude-testrc, no Claude Test specs); the helper must be started from the app folder you mean (from a shell: cd <dir> && node …/ct.mjs status), or ask the user which folder. If this folder IS the app, a .claude-testrc here (baseUrl: http://localhost:<port>) settles it') + unprintableNote : null;
 
   let elsewhere = [];
   const rootPtr = appPointerInfo(sessionRoot());
@@ -201,7 +215,10 @@ async function status() {
   } else if (baseUrl && cfg.baseOrigin && !cfg.allowedOrigins.includes(cfg.baseOrigin) && !isLocalHost(new URL(baseUrl).hostname)) {
     probe = { up: null, error: 'not checked: ' + cfg.baseOrigin + ' is not a localhost address and waits for the person\\'s yes (needsConsent)' };
   } else if (baseUrl) {
-    probe = await get(baseUrl);
+
+
+    const asked = args.includes('--runner') ? new URL(baseUrl).origin + '/' : baseUrl;
+    probe = await get(asked); if (asked !== baseUrl) probe = { ...probe, asked };
     if (!probe.up && !probe.blocked) {
       const want = Number(new URL(baseUrl).port) || (baseUrl.startsWith('https:') ? 443 : 80);
       const others = [...new Set([...dev.portHints, ...COMMON_PORTS, 8787])].filter((p) => p !== want);
@@ -228,7 +245,8 @@ async function status() {
     }
   }
   let gitDirty = null;
-  try { gitDirty = safeGit(cfg.projectDir, ['status', '--porcelain', '--untracked-files=no'], { timeout: 60000 }).toString().trim() !== ''; } catch {                      }
+  try { gitDirty = safeGit(cfg.projectDir, ['status', '--porcelain', '--untracked-files=no'], { timeout: 60000 }).toString().trim() !== ''; } catch {                                                                    }
+  if (gitOff()) { const at = args.indexOf('--run'); const id = at < 0 ? null : String(args[at + 1] ?? ''); const recorded = id && RUN_ID.test(id) ? recordedGit(cfg, id) : null; if (recorded) gitDirty = recorded.dirty; }
   const specsProblem = specsDirProblem(cfg);
   if (specsProblem) cfg.warnings.unshift('BLOCKED — ' + specsProblem + '. Do not write or run specs until this is fixed; report it and stop.');
   const specs = listSpecs(cfg);
@@ -245,11 +263,11 @@ async function status() {
 
 
   const toolsPresent = !!mcpCliPath({ report: true }); const toolsWhy = toolsPresent ? toolsProblem() : null; const browserWhy = browserProblem(cfg);
-  let sandboxWhy = null; try { sandboxWhy = toolsWhy || (!toolsPresent && toolsProblem()) ? null : chromeSandboxProblem(cfg, null, { trial: process.env.SANDBOX_RUNTIME !== '1' }); } catch {                                  }
+  let sandboxWhy = null; try { sandboxWhy = toolsWhy || (!toolsPresent && toolsProblem()) ? null : chromeSandboxProblem(cfg, null, { trial: process.env.SANDBOX_RUNTIME !== '1' && process.env.CLAUDE_TEST_NO_TRIAL !== '1' }); } catch {                                  }
   let environment = null;
   if (!verdict.blocked) { try { environment = environmentReport(cfg, { tools: { installed: toolsPresent && !toolsWhy, problem: toolsWhy ? 'the tools folder is not private: ' + toolsWhy : null, remedy: 'run "node ' + fileURLToPath(import.meta.url) + ' install" in a terminal, or approve the claude_test_install tool of the claude-test browser server; the running server loads the tooling by itself afterwards (no reconnect)' } }); } catch (e) { environment = { summary: 'environment report failed: ' + (e.code || e.message), problems: [], notes: [] }; } }
   if (verdict.line) cfg.warnings.unshift(verdict.line);
-  else if (verdict.elsewhere.length) cfg.warnings.unshift('NOTE — this folder has no Claude Test specs or .claude-testrc; under the session root they exist in: ' + verdict.elsewhere.join(', ') + ' — if one of those is the app you mean, run the helper from there ("cd <dir> && node …/ct.mjs status")');
+  else if (verdict.elsewhere.length) cfg.warnings.unshift('NOTE — this folder has no Claude Test specs or .claude-testrc; under the session root they exist in: ' + verdict.elsewhere.join(', ') + ' — if one of those is the app you mean, the helper must be started from there (from a shell: cd <dir> && node …/ct.mjs status)');
 
 
   let runsDirWhy = null; try { assertRunsDirInsideProject(cfg); } catch (e) { runsDirWhy = e.message; }
@@ -276,7 +294,7 @@ async function status() {
     projectDir: cfg.projectDir,
     projectDirReason: projectDirReason(cfg.projectDir), sessionRoot: sessionRoot(), ...(below.length ? { projectsBelow: below } : {}), ...(needsInput ? { needsInput } : {}), ...(needsConsent ? { needsConsent } : {}),
     config: { file: RC_FILE, found: cfg.rcFound, warnings: cfg.warnings },
-    devServer: { baseUrl, source: baseUrlSource, up: probe ? probe.up : null, check: { name: UP_TOOL, arguments: { project: cfg.projectDir } }, verdictBy: 'the browser helper\\'s own check (devServer.check; SKILL.md §3 step 2), then the runner\\'s first page load: this shell view is advisory and never a reason to report the app down', ...(IN_SANDBOX || (probe && probe.blocked) || sandboxDenied ? { sandboxed: true, note: 'the shell could not check localhost reliably (' + (SANDBOX_WHY || ('connect gave ' + ((probe && probe.code) || sandboxDenied) + ', not a plain refusal')) + ' — a sandbox (typically Claude Code\\'s) or a local proxy setup), so "up" is unknown — NOT "down". Ask the browser helper, which can check localhost (devServer.check), before any run is started' + (cfg.baseUrl ? '.' : ': the address is ' + (baseUrl ? 'only a GUESS (' + baseUrlSource + ')' : 'unknown') + ' and ports cannot be scanned from here, so the preflight tries candidateUrls in order; if none serves this project, tell the user "if your server is running, tell me where — baseUrl: http://localhost:PORT in ' + RC_FILE + '; otherwise start it" rather than claiming it is down.') + ' A dev server started from inside the sandbox could not be reached by the test browser: SKILL.md §3 step 2 says how it is started outside.' } : {}), ...(candidateUrls ? { candidateUrls: candidates.filter((c) => !candAllowed.length || candAllowed.includes(candKey(c))).map((x) => x.url) } : {}), candidates, probe, startCommand: dev.startCommand, startCommandSource: dev.startCommandSource, ...(startLine ? { startLine } : {}), ...(cdPrefix ? { cdPrefix } : {}), ...(startCommandQuestion ? { startCommandQuestion } : {}), ...(dev.startCommandCwd ? { startCommandCwd: dev.startCommandCwd } : {}), ...(dev.launchIgnored ? { launchJsonIgnored: dev.launchIgnored } : {}), ...(dev.unreadable ? { unreadable: dev.unreadable } : {}), ...(dev.startCommandNote ? { startCommandNote: dev.startCommandNote, startCommandCandidates: dev.startCommandCandidates.map((k) => { const line = cdAndStart(cfg.projectDir, k.cwd, k.command); return line ? { ...k, line } : k; }) } : {}), recipes: dev.recipes },
+    devServer: { baseUrl, source: baseUrlSource, up: probe ? probe.up : null, check: { name: UP_TOOL, arguments: { project: cfg.projectDir } }, verdictBy: 'the browser helper\\'s own check (devServer.check; SKILL.md §3 step 2), then the runner\\'s first page load: this view is advisory and never a reason to report the app down', ...(IN_SANDBOX || (probe && probe.blocked) || sandboxDenied ? { sandboxed: true, note: 'the shell could not check localhost reliably (' + (SANDBOX_WHY || ('connect gave ' + ((probe && probe.code) || sandboxDenied) + ', not a plain refusal')) + ' — a sandbox (typically Claude Code\\'s) or a local proxy setup), so "up" is unknown — NOT "down". Ask the browser helper, which can check localhost (devServer.check), before any run is started' + (cfg.baseUrl ? '.' : ': the address is ' + (baseUrl ? 'only a GUESS (' + baseUrlSource + ')' : 'unknown') + ' and ports cannot be scanned from here, so the preflight tries candidateUrls in order; if none serves this project, tell the user "if your server is running, tell me where — baseUrl: http://localhost:PORT in ' + RC_FILE + '; otherwise start it" rather than claiming it is down.') + ' A dev server started from inside the sandbox could not be reached by the test browser: SKILL.md §3 step 2 says how it is started outside.' } : {}), ...(candidateUrls ? { candidateUrls: candidates.filter((c) => !candAllowed.length || candAllowed.includes(candKey(c))).map((x) => x.url) } : {}), candidates, probe, startCommand: dev.startCommand, startCommandSource: dev.startCommandSource, ...(startLine ? { startLine } : {}), ...(cdPrefix ? { cdPrefix } : {}), ...(startCommandQuestion ? { startCommandQuestion } : {}), ...(dev.startCommandCwd ? { startCommandCwd: dev.startCommandCwd } : {}), ...(dev.launchIgnored ? { launchJsonIgnored: dev.launchIgnored } : {}), ...(dev.unreadable ? { unreadable: dev.unreadable } : {}), ...(dev.startCommandNote ? { startCommandNote: dev.startCommandNote, startCommandCandidates: dev.startCommandCandidates.map((k) => { const line = cdAndStart(cfg.projectDir, k.cwd, k.command); return line ? { ...k, line } : k; }) } : {}), recipes: dev.recipes },
     setupCommand: cfg.setupCommand ? { command: cfg.setupCommand, source: RC_FILE, ...(setupLine ? { line: setupLine } : {}), note: 'The person is asked before it runs, each time (SKILL.md §3 step 3). It runs after the server answers and before the first spec, and again in later runs, so it must be safe to run twice. With no line, the person runs it.' } : null,
     browser: { allowedOrigins: cfg.allowedOrigins, reachableHosts: cfg.reachableHosts || [], pendingOrigins: cfg.pendingOrigins, pendingHosts: cfg.pendingHosts, note: (cfg.baseUrl ? 'the bundled browser only loads these origins' : 'no baseUrl yet: the bundled browser can load ONLY the candidate addresses under devServer.candidates (and their 127.0.0.1 / [::1] twins) — a baseUrl line in ' + RC_FILE + ' pins it to your app') + '; every address, a candidate found on this machine included, is opened only after the person allows it (needsConsent), once per project on this machine' },
     tools: { installed: !!mcpCliPath({ report: true }) && !toolsProblem(), dir: toolsDir(), ...(toolsInstallInfo() ? { pinned: !!toolsInstallInfo().pinned, install: toolsInstallInfo().mode } : mcpCliPath({ report: true }) ? { pinned: 'unknown', install: 'installed without a checksum record — run install once to pin it' } : {}), ...(mcpCliPath({ report: true }) && toolsProblem() ? { problem: 'the tools folder is not private: ' + toolsProblem() + ' — the browser server refuses to run from it until fixed' } : {}), note: mcpCliPath({ report: true }) ? (toolsProblem() ? 'browser tooling present but NOT usable (see problem)' : 'browser tooling present') : 'browser tooling NOT installed here: the bundled browser server offers only browser_setup_needed / claude_test_install until the user runs "node ' + fileURLToPath(import.meta.url) + ' install" (or approves claude_test_install); the running server then loads the tooling by itself and the next run has the browser tools — /mcp → Reconnect only if it does not' },
@@ -297,9 +315,7 @@ async function status() {
 
 
 
-  const privateFolder = privateDir(cfg.projectDir); const itsParent = path.dirname(privateFolder);
-  const endsHere = '(?![A-Za-z0-9_-]|\\\\.[A-Za-z0-9])'; const literal = (text) => text.replace(/[.*+?^\${}()|[\\]\\\\]/g, '\\\\$&');
-  const withoutFolders = (text) => text.replace(new RegExp(literal(privateFolder) + endsHere, 'g'), '<private folder>').replace(new RegExp(literal(itsParent) + endsHere, 'g'), "<the private folder's parent>");
+  const withoutFolders = withoutPrivateFolders(cfg.projectDir);
   const everyString = (value) => typeof value === 'string' ? withoutFolders(value) : Array.isArray(value) ? value.map(everyString) : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).map(([key, inner]) => [key, everyString(inner)])) : value;
   out(everyString(answer));
 }
@@ -332,7 +348,10 @@ function newRun() {
   let folders = []; try { folders = runFolders(cfg); } catch {                                      } endOldPages(cfg, folders.filter((d) => d !== path.basename(runDir)));
   try { for (const old of folders.slice(0, -8)) { const fdir = path.join(cfg.runsDir, old, 'frames'); try { if (fs.lstatSync(fdir).isDirectory()) fs.rmSync(fdir, { recursive: true, force: true }); } catch {            } } } catch {                             }
   let saveKey = null; try { saveKey = randomBytes(16).toString('hex'); fs.writeFileSync(path.join(runDir, 'save-key.sha256'), createHash('sha256').update(saveKey).digest('hex') + '\\n', { flag: 'wx', mode: 0o600 }); } catch (e) { out({ error: 'could not write this run\\'s key into ' + path.relative(cfg.projectDir, runDir) + ' (' + shown(String(e && e.message || e), 160) + '): without it the run\\'s save step refuses, so no run folder was handed out' }); try { fs.rmSync(runDir, { recursive: true, force: true }); } catch {                } process.exit(1); }
-  out({ runId: path.basename(runDir), runDir: path.relative(cfg.projectDir, runDir), absolute: runDir, ...(saveKey ? { saveKey } : {}), ...(() => { const page = livePageFile(cfg, path.basename(runDir)); return { livePage: pathToFileURL(page).href, ...(openByHand(page) ? { livePageByHand: openByHand(page) } : {}), ...(() => { const plan = livePagePlan(cfg); return plan.opens ? { livePageShow: { name: SHOW_TOOL, arguments: { project: cfg.projectDir, run: path.basename(runDir) } } } : { livePageLinkOnly: plan.why }; })() }; })(), gitignore: path.join(path.dirname(cfg.runsDir), '.gitignore') });
+  let markNote = null; try { fs.writeFileSync(path.join(runDir, 'made-here'), 'Claude Test made this run folder on this machine.\\n', { flag: 'wx' }); fs.linkSync(path.join(runDir, 'made-here'), path.join(runDir, 'made-here.again')); } catch { try { if (insideSomeCheckout(cfg.projectDir) && !keepsCreationTime(fs.lstatSync(runDir))) markNote = 'this disk keeps neither hard links nor creation times, so the background test agent\\'s tools will not serve this run folder: run the specs from a folder on another disk'; } catch {                                                       } }
+
+  try { const at = gitState(cfg.projectDir); if (at) fs.writeFileSync(path.join(runDir, 'git.json'), JSON.stringify(at) + '\\n', { flag: 'wx' }); } catch {                                                                            }
+  out({ runId: path.basename(runDir), runDir: path.relative(cfg.projectDir, runDir), absolute: runDir, ...(saveKey ? { saveKey } : {}), ...(markNote ? { note: markNote } : {}), ...(() => { const page = livePageFile(cfg, path.basename(runDir)); return { livePage: pathToFileURL(page).href, ...(openByHand(page) ? { livePageByHand: openByHand(page) } : {}), ...(() => { const plan = livePagePlan(cfg); return plan.opens ? { livePageShow: { name: SHOW_TOOL, arguments: { project: cfg.projectDir, run: path.basename(runDir) } } } : { livePageLinkOnly: plan.why }; })() }; })(), gitignore: path.join(path.dirname(cfg.runsDir), '.gitignore') });
 }
 
 
@@ -509,17 +528,17 @@ function canonicalSpec(parsed, facts) {
 
 
 
-function neverCommitted(cfg, rel) { const says = (args) => { try { safeGit(cfg.projectDir, args, { stdio: 'ignore' }); return true; } catch { return false; } }; if (!says(['rev-parse', '--is-inside-work-tree'])) return false; if (says(['ls-files', '--error-unmatch', '--', rel])) return false; if (says(['cat-file', '-e', 'HEAD:./' + rel.split(path.sep).join('/')])) return false; return true; }
+function neverCommitted(cfg, rel) { const says = (args) => { try { safeGit(cfg.projectDir, args, { stdio: 'ignore' }); return true; } catch (e) { if (e && typeof e.status === 'number' && !e.signal && e.code !== 'ETIMEDOUT') return false; throw e;                                                                                } }; try { if (!says(['rev-parse', '--is-inside-work-tree'])) return false; if (says(['ls-files', '--error-unmatch', '--', rel])) return false; if (says(['cat-file', '-e', 'HEAD:./' + rel.split(path.sep).join('/')])) return false; return true; } catch { return false; } }
 function writeOneSpec(cfg, runId, name, asIs = false, replace = false) {
   const dest = path.join(cfg.specsDir, name + '.md');
   const rel = path.relative(cfg.projectDir, dest);
   const exists = { ok: false, error: 'exists', file: rel, note: 'a spec with this name already exists, and a run never replaces or edits an existing spec — pick another name if this is a NEW spec; if the existing one should change, that is for the user to decide' };
   let replacing = false;
-  try { const dst = fs.lstatSync(dest); if (!replace) return exists; if (!dst.isFile() || (replace !== 'any' && !neverCommitted(cfg, rel))) return { ...exists, note: 'this spec is committed (or this is not a git repository), and a run never edits a committed spec — give the corrected spec a NEW name and tell the person which file it supersedes' }; replacing = true; } catch (e) { if (e.code !== 'ENOENT') return { ok: false, error: rel + ': ' + e.message }; }
+  try { const dst = fs.lstatSync(dest); if (!replace) return exists; if (!dst.isFile() || (replace !== 'any' && !neverCommitted(cfg, rel))) return { ...exists, note: 'git did not confirm that this spec was never committed (it is committed, this is not a git repository, or git gave no answer), and a run never edits a committed spec — give the corrected spec a NEW name and tell the person which file it supersedes' }; replacing = true; } catch (e) { if (e.code !== 'ENOENT') return { ok: false, error: rel + ': ' + e.message }; }
   const draft = path.join(cfg.runsDir, runId, 'proposed', name + '.md');
   let st; try { st = fs.lstatSync(draft); } catch { return { ok: false, error: 'no draft at ' + path.relative(cfg.projectDir, draft) + ' — write the spec text there first (the newest run folder), then call write-spec again', name }; }
   if (!st.isFile() || st.size > 64 * 1024) return { ok: false, error: path.relative(cfg.projectDir, draft) + ' must be a regular file of at most 64 KB', name };
-  const text = fs.readFileSync(draft, 'utf8').replace(/^\\uFEFF/, '').replace(/\\r\\n/g, '\\n');
+  let text; try { text = writingIn(cfg, path.dirname(draft), (at) => readPlainFile(at(path.basename(draft)), 64 * 1024)).toString('utf8').replace(/^\\uFEFF/, '').replace(/\\r\\n/g, '\\n'); } catch (e) { return { ok: false, error: 'the draft at ' + path.relative(cfg.projectDir, draft) + ' could not be read: ' + shown(String((e && e.message) || e), 300), name }; }
   if (shownText(text) !== text || LONE_CR.test(text) || SPLIT_WORD.test(text)) return { ok: false, error: 'the draft ' + path.relative(cfg.projectDir, draft) + ' contains invisible or control characters (bidi marks, zero-width, tag characters, a lone carriage return, escapes) — rewrite it as plain text and call write-spec again', name };
   const parsed = parseSpec(text, name + '.md');
   if (!/^# +\\S/m.test(text.replace(/^---\\n[\\s\\S]*?\\n---\\n/, ''))) return { ok: false, error: 'the draft is not a runnable spec: it needs a "# Title" heading line (a name: key in the front matter does not count)', draft: path.relative(cfg.projectDir, draft), name };
@@ -532,9 +551,9 @@ function writeOneSpec(cfg, runId, name, asIs = false, replace = false) {
   const isFlagged = Object.keys(flagged).length > 0;
   if (isFlagged && !asIs) return { ok: false, error: 'flagged', name, draft: path.relative(cfg.projectDir, draft), flagged, ...(facts.leftOut.length ? { leftOut: facts.leftOut } : {}), note: 'Not filed. "flagged" lists, whole, what the SPEC ITSELF would carry (in its title, steps or Must lines) that steers a run or hides from a reader: an address on a host the fence does not allow, a $VARIABLE or credential-looking name (a product code such as SKU_1042 lands here too — say which it is), a <secret> reference, a line with link syntax or raw HTML, an oversize part. Usually the answer is to write the draft again without it. To file it regardless, on the person\\'s explicit word about exactly these entries: write-spec --as-is ' + name + ' (one name per call; the file is still the rebuild).' };
   const toFile = canonicalSpec(parsed, facts);
-  let keptId = null; if (replacing) { try { const m = fs.readFileSync(dest, 'utf8').slice(0, 400).match(/^---\\n(?:[^\\n]*\\n)*?id: (ct_[a-z2-7]{8})\\n/); if (m) keptId = m[1]; } catch {                     } }
+  let keptId = null; if (replacing) { try { const m = writingIn(cfg, path.dirname(dest), (at) => readPlainFile(at(path.basename(dest)), 256 * 1024)).toString('utf8').slice(0, 400).match(/^---\\n(?:[^\\n]*\\n)*?id: (ct_[a-z2-7]{8})\\n/); if (m) keptId = m[1]; } catch {                     } }
   const id = keptId || mintSpecId(); const filed = withSpecId(toFile, id);
-  try { fs.mkdirSync(cfg.specsDir, { recursive: true }); const sp2 = specsDirProblem(cfg); if (sp2) return { ok: false, error: sp2 }; if (replacing) { const tmp = dest + '.' + process.pid + '.tmp'; fs.writeFileSync(tmp, filed, { flag: 'wx' }); fs.renameSync(tmp, dest); } else fs.writeFileSync(dest, filed, { flag: 'wx' }); }
+  try { makeFolderIn(cfg, cfg.projectDir, path.basename(path.dirname(cfg.specsDir))); makeFolderIn(cfg, path.dirname(cfg.specsDir), path.basename(cfg.specsDir)); const sp2 = specsDirProblem(cfg); if (sp2) return { ok: false, error: sp2 }; writingIn(cfg, path.dirname(dest), (at) => { const file = at(path.basename(dest)); if (replacing) { const tmp = file + '.' + process.pid + '.tmp'; fs.writeFileSync(tmp, filed, { flag: 'wx' }); fs.renameSync(tmp, file); } else fs.writeFileSync(file, filed, { flag: 'wx' }); }); }
   catch (e) { if (e.code === 'EEXIST') return exists; return { ok: false, error: 'could not write ' + rel + ': ' + e.message, name }; }
   const adopted = recordFiled(cfg, rel, filed);
   return { ok: true, file: rel, id, name: parsed.name, ...(replacing ? { replaced: true } : {}), ...(isFlagged ? { asIs: true, flagged } : {}), ...(facts.leftOut.length ? { leftOut: facts.leftOut } : {}), ...(adopted && adopted.length ? { startedFiledRecord: { adopted, note: 'started .claude-test/filed with ' + adopted.length + ' existing spec' + (adopted.length === 1 ? '' : 's') + ' taken as-is — show the person this list once' } } : {}), from: path.relative(cfg.projectDir, draft), bytes: Buffer.byteLength(filed), sha256: createHash('sha256').update(filed).digest('hex'), draftSha256: createHash('sha256').update(text).digest('hex'), ...(isFlagged ? { asIs: true } : {}), text: filed, ...(parsed.warnings.length ? { warnings: parsed.warnings } : {}) };
@@ -551,6 +570,7 @@ function writeOneSpec(cfg, runId, name, asIs = false, replace = false) {
 
 function fileCmd() {
   const cfg = loadConfig(projectDir);
+  { const held = withinOf(cfg); if (held && held.refuse) { out({ error: 'could not claim the save for this run (' + shown(held.refuse, 300) + '): nothing was saved' }); process.exit(1); } }
   const v = folderVerdict(cfg); if (v.blocked || (v.needsInput && v.needsInput.key === 'app')) { out({ error: v.line || v.needsInput.question }); process.exit(2); }
   const sp = specsDirProblem(cfg); if (sp) { out({ error: sp }); process.exit(1); }
   try { assertRunsDirInsideProject(cfg); } catch (e) { out({ error: e.message }); process.exit(1); }
@@ -560,7 +580,6 @@ function fileCmd() {
   if (only && repl) { const both = [...only].filter((n) => repl.has(n)); if (both.length) { out({ error: 'a name is either a new spec (--only) or a correction (--replace), not both: ' + both.join(', ') }); process.exit(2); } }
   const runId = targetRunId(cfg);
   if (!runId) { out({ error: 'no run folder yet ("ct.mjs new-run" first)' }); process.exit(1); }
-  if (runId !== latestRunId(cfg)) { out({ error: 'drafts are saved only from the newest run folder (' + latestRunId(cfg) + '), and only before that run has started', run: runId }); process.exit(1); }
   const runDir = path.join(cfg.runsDir, runId);
   const seal = path.join(runDir, 'saved.json');
 
@@ -571,19 +590,22 @@ function fileCmd() {
 
 
 
-  let wantKey = null; try { const kf = path.join(runDir, 'save-key.sha256'); const ks = fs.lstatSync(kf); const t = ks.isFile() && ks.size < 200 ? fs.readFileSync(kf, 'utf8').trim() : ''; wantKey = /^[0-9a-f]{64}$/.test(t) ? t : 'unreadable'; } catch { wantKey = null; }
+  let wantKey = null; try { const kf = path.join(runDir, 'save-key.sha256'); const ks = fs.lstatSync(kf); const t = ks.isFile() && ks.size < 200 ? writingIn(cfg, runDir, (at) => readPlainFile(at('save-key.sha256'), 200)).toString('utf8').trim() : ''; wantKey = /^[0-9a-f]{64}$/.test(t) ? t : 'unreadable'; } catch { wantKey = null; }
   if (wantKey === null) { out({ error: 'this run folder has no key (it was not made by "ct.mjs new-run" of this version): nothing is saved from it — start again with a new run folder', run: runId }); process.exit(1); }
   if ((key === null || !/^[0-9a-f]{32}$/.test(key) || createHash('sha256').update(key).digest('hex') !== wantKey)) { out({ error: key === null ? 'the save needs this run\\'s key: add --key <the key from your arguments, copied exactly> (mode "look" is given none, and saves nothing)' : 'that is not this run\\'s key: copy the --key value from your arguments exactly', run: runId }); process.exit(1); }
-  const begun = fs.readdirSync(runDir).filter((e) => !['proposed', 'replaced', 'decisions.json', 'live.html', 'live-data.js', 'live.html.tmp', 'live-data.js.tmp', 'refused-hosts.json', 'save-key.sha256', 'used-folder'].includes(e) && !/^look-\\d{1,2}\\.(png|jpe?g)$/.test(e));
-  if (begun.length) { writeInRunFolder(runDir, 'used-folder', 'Claude Test did not save drafts here: a run had already started in this folder.\\n');                                    out({ error: 'this run has already started (its folder holds ' + shown(begun.slice(0, 3).join(', '), 120) + '): drafts are saved only before the first page is loaded', run: runId }); process.exit(1); }
+
+  if (runId !== latestRunId(cfg)) { writeInRunFolder(runDir, 'used-folder', 'Claude Test did not save drafts here: a newer run folder had been made.\\n', 0o644, withinOf(cfg)); out({ error: 'drafts are saved only from the newest run folder (' + latestRunId(cfg) + '), and only before that run has started', run: runId }); process.exit(1); }
+  const begun = fs.readdirSync(runDir).filter((e) => !['proposed', 'replaced', 'decisions.json', 'live.html', 'live-data.js', 'live.html.tmp', 'live-data.js.tmp', 'refused-hosts.json', 'save-key.sha256', 'git.json', 'made-here', 'made-here.again', 'used-folder'].includes(e) && !/^look-\\d{1,2}\\.(png|jpe?g)$/.test(e));
+  if (begun.length) { writeInRunFolder(runDir, 'used-folder', 'Claude Test did not save drafts here: a run had already started in this folder.\\n', 0o644, withinOf(cfg));                                    out({ error: 'this run has already started (its folder holds ' + shown(begun.slice(0, 3).join(', '), 120) + '): drafts are saved only before the first page is loaded', run: runId }); process.exit(1); }
   const dir = path.join(runDir, 'proposed');
 
 
   const sealedAt = new Date().toISOString();
   let firstTime = false; try { firstTime = listSpecs(cfg).filter((s) => !s.skipped).length === 0; } catch {                                   }
-  try { const fd = fs.openSync(seal, 'wx', 0o644); try { fs.writeSync(fd, JSON.stringify({ at: sealedAt, state: 'saving' }) + '\\n'); } finally { fs.closeSync(fd); } }
-  catch (e) { out({ error: e && e.code === 'EEXIST' ? 'this run\\'s drafts were already saved (saved.json exists): the save happens once, before any page is loaded' : 'could not claim the save for this run (' + shown(String(e && e.message || e), 160) + '): nothing was saved', run: runId }); process.exit(1); }
-  const sealWith = (o) => { try { fs.writeFileSync(seal, JSON.stringify({ at: sealedAt, firstTime, ...o }, null, 1) + '\\n'); } catch {                                                    } };
+  const claimAt = (name) => { const fd = fs.openSync(name, 'wx', 0o644); try { fs.writeSync(fd, JSON.stringify({ at: sealedAt, state: 'saving' }) + '\\n'); } finally { fs.closeSync(fd); } };
+  try { writingIn(cfg, runDir, (at) => claimAt(at('saved.json'))); }
+  catch (e) { out({ error: e && e.code === 'EEXIST' ? 'this run\\'s drafts were already saved (saved.json exists): the save happens once, before any page is loaded' : 'could not claim the save for this run (' + shown(String(e && e.message || e), 300) + '): nothing was saved', run: runId }); process.exit(1); }
+  const sealWith = (o) => { writeInRunFolder(runDir, 'saved.json', JSON.stringify({ at: sealedAt, firstTime, ...o }, null, 1) + '\\n', 0o644, withinOf(cfg));                                                                              };
   let real; try { if (!fs.lstatSync(dir).isDirectory()) throw new Error('not a folder'); real = fs.realpathSync(dir); } catch { sealWith({ proposed: 0, filed: [], replaced: [], held: [], note: 'no drafts' }); out({ ok: true, run: runId, filed: [], held: [], note: 'no drafts in this run folder: nothing to save' }); return; }
   if (real !== path.join(fs.realpathSync(cfg.runsDir), runId, 'proposed')) { out({ error: path.relative(cfg.projectDir, dir) + ' is not a plain folder inside its run folder (a link points elsewhere)' }); process.exit(1); }
   const present = fs.readdirSync(dir).sort().map((f) => (f.match(/^([a-z0-9][a-z0-9-]{0,79})\\.md$/) || [])[1]).filter((n) => n && n !== 'readme');
@@ -608,13 +630,14 @@ function fileCmd() {
     if (!exists.isFile() || exists.size > 256 * 1024 || !(dr.mtimeMs > exists.mtimeMs)) { left.push({ name, why: 'the spec is newer than the draft (or is not a plain file)' }); continue; }
     let kept = null; const keepDir = path.join(runDir, 'replaced'); const keepFile = path.join(keepDir, name + '.md');
     try {
-      try { fs.mkdirSync(keepDir); } catch (e) { if (!e || e.code !== 'EEXIST') throw e; }
+      makeFolderIn(cfg, runDir, 'replaced');
       if (!fs.lstatSync(keepDir).isDirectory() || fs.realpathSync(keepDir) !== path.join(fs.realpathSync(cfg.runsDir), runId, 'replaced')) throw new Error(path.relative(cfg.projectDir, keepDir) + ' is not a plain folder inside its run folder');
-      fs.writeFileSync(keepFile, fs.readFileSync(dest), { flag: 'wx' }); kept = path.relative(cfg.projectDir, keepFile);
+      const present = writingIn(cfg, path.dirname(dest), (at) => readPlainFile(at(path.basename(dest)), 256 * 1024));
+      writingIn(cfg, keepDir, (at) => fs.writeFileSync(at(name + '.md'), present, { flag: 'wx' })); kept = path.relative(cfg.projectDir, keepFile);
     } catch (e) { held.push({ name, problem: 'could not keep a copy of the present spec first (' + shown(String(e.message || e), 160) + '): nothing was written' }); continue; }
     const r = writeOneSpec(cfg, runId, name, false, 'any');
-    if (r.ok && r.replaced) replaced.push({ file: r.file, tracked: !neverCommitted(cfg, rel), previous: kept });
-    else { try { fs.unlinkSync(keepFile); } catch {                       } if (r.ok) filed.push(r.file); else if (r.error === 'flagged') held.push({ name, flagged: cap(r.flagged) }); else held.push({ name, problem: cap(String(r.error)) }); }
+    if (r.ok && r.replaced) replaced.push({ file: r.file, tracked: gitOff() ? null : !neverCommitted(cfg, rel), previous: kept });
+    else { try { writingIn(cfg, keepDir, (at) => fs.unlinkSync(at(name + '.md'))); } catch {                       } if (r.ok) filed.push(r.file); else if (r.error === 'flagged') held.push({ name, flagged: cap(r.flagged) }); else held.push({ name, problem: cap(String(r.error)) }); }
   }
   const named = new Set(all.map(([n]) => n)); const notSaved = present.filter((n) => !named.has(n));
   sealWith({ proposed: present.length, filed, replaced, held: held.map((h) => h.name), notSaved });
@@ -684,17 +707,18 @@ function parseReport(text) {
 function filedPath(cfg) { return path.join(path.dirname(cfg.specsDir), 'filed'); }
 function readFiled(cfg) {
   const p = filedPath(cfg); const rec = new Map();
-  try { const st = fs.lstatSync(p); if (!st.isFile() || st.size > 512 * 1024) return rec; for (const line of fs.readFileSync(p, 'utf8').split(/\\r?\\n/)) { const m = line.match(/^(.{1,300}) ([0-9a-f]{64})$/); if (m) rec.set(m[1], m[2]);                                                                                             } } catch {                                                           }
+  let st; try { st = fs.lstatSync(p); } catch { return rec;              }
+  try { if (!st.isFile() || st.size > 512 * 1024) { rec.refused = true; return rec; } for (const line of writingIn(cfg, path.dirname(p), (at) => readPlainFile(at(path.basename(p)), 512 * 1024)).toString('utf8').split(/\\r?\\n/)) { const m = line.match(/^(.{1,300}) ([0-9a-f]{64})$/); if (m) rec.set(m[1], m[2]);                                                                                             } } catch { rec.refused = true;                                                    }
   return rec;
 }
 function recordFiled(cfg, rel, content) {
   const p = filedPath(cfg); let adopted = null; try { if (!fs.lstatSync(p).isFile()) return null; } catch { adopted = [];                                                             }
-  const rec = readFiled(cfg);
+  const rec = readFiled(cfg); if (rec.refused) return null;
   if (adopted) for (const s of listSpecs(cfg)) { if (s.skipped) continue; const key = s.file.split(path.sep).join('/'); if (key === rel.split(path.sep).join('/')) continue; try { rec.set(key, createHash('sha256').update(fs.readFileSync(path.join(cfg.projectDir, s.file), 'utf8').replace(/\\r\\n/g, '\\n')).digest('hex')); adopted.push(key); } catch {                                                } }
   rec.set(rel.split(path.sep).join('/'), createHash('sha256').update(String(content).replace(/\\r\\n/g, '\\n')).digest('hex'));
-  try { for (const e of fs.readdirSync(path.dirname(p))) if (/^filed\\.\\d+\\.tmp$/.test(e) && Date.now() - fs.lstatSync(path.join(path.dirname(p), e)).mtimeMs > 60000) fs.unlinkSync(path.join(path.dirname(p), e)); } catch {                                                    }
+  try { writingIn(cfg, path.dirname(p), (at) => { for (const e of fs.readdirSync(at('.'))) if (/^filed\\.\\d+\\.tmp$/.test(e) && Date.now() - fs.lstatSync(at(e)).mtimeMs > 60000) fs.unlinkSync(at(e)); }); } catch {                                                    }
   const tmp = p + '.' + process.pid + '.tmp';
-  try { fs.writeFileSync(tmp, [...rec.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([k, v]) => k + ' ' + v).join('\\n') + '\\n', { flag: 'wx' }); fs.renameSync(tmp, p); } catch { try { fs.unlinkSync(tmp); } catch {       } return null;                                                         }
+  try { writingIn(cfg, path.dirname(p), (at) => { fs.writeFileSync(at(path.basename(tmp)), [...rec.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([k, v]) => k + ' ' + v).join('\\n') + '\\n', { flag: 'wx' }); fs.renameSync(at(path.basename(tmp)), at(path.basename(p))); }); } catch { try { writingIn(cfg, path.dirname(p), (at) => fs.unlinkSync(at(path.basename(tmp)))); } catch {       } return null;                                                         }
   return adopted;
 }
 
@@ -708,22 +732,20 @@ function pluginVersion() { for (const rel of ['../../../.claude-plugin/plugin.js
 
 
 function writeResults(cfg, runDir, results) {
-  const dest = path.join(runDir, 'results.json');
-  try { const d = fs.lstatSync(dest); if (!d.isFile()) { out({ error: path.relative(cfg.projectDir, dest) + ' exists and is not a regular file — not writing through it' }); process.exit(1); } } catch {                      }
-  fs.writeFileSync(dest, JSON.stringify(results, null, 2) + '\\n');
+  let reason = ''; if (writeInRunFolder(runDir, 'results.json', JSON.stringify(results, null, 2) + '\\n', 0o644, withinOf(cfg), (words) => { reason = words; })) return;
+  out({ error: path.relative(cfg.projectDir, path.join(runDir, 'results.json')) + ' could not be written: ' + shown(reason || 'the run folder cannot be written', 300) + (/other than a plain file/.test(reason) ? ' — not writing through it' : '') }); process.exit(1);
 }
 
 
-function runnerStart(cfg, id) { let started = runStart(id); try { const pf = path.join(cfg.runsDir, id, 'progress.ndjson'); const ps = fs.lstatSync(pf); if (ps.isFile() && ps.size < 4 * 1024 * 1024) { const j = JSON.parse(fs.readFileSync(pf, 'utf8').split('\\n')[0]); if (j.event === 'start' && Number.isFinite(Date.parse(j.at))) started = new Date(j.at); } } catch {                        } return started; }
+function runnerStart(cfg, id) { let started = runStart(id); try { const pf = path.join(cfg.runsDir, id, 'progress.ndjson'); const ps = fs.lstatSync(pf); if (ps.isFile() && ps.size < 4 * 1024 * 1024) { const j = JSON.parse(writingIn(cfg, path.dirname(pf), (at) => readPlainFile(at('progress.ndjson'), 4 * 1024 * 1024)).toString('utf8').split('\\n')[0]); if (j.event === 'start' && Number.isFinite(Date.parse(j.at))) started = new Date(j.at); } } catch {                        } return started; }
 
 
 
-function refusedTally(runDir) {
+function refusedTally(cfg, runDir) {
   let refusedHosts = null; let pageLeftAppFor = null; let hostsRefused = 0;
-  try { const tf = path.join(runDir, 'refused-hosts.json'); const st2 = fs.lstatSync(tf); if (st2.isFile() && st2.size < 256 * 1024) { const tj = JSON.parse(fs.readFileSync(tf, 'utf8')); if (tj && tj.refused && typeof tj.refused === 'object') { const groups = groupRefusedHosts(tj.refused); if (groups.length) refusedHosts = { inUse: Array.isArray(tj.reachableHosts) ? tj.reachableHosts.filter((x) => typeof x === 'string').slice(0, 64) : [], groups }; hostsRefused = Math.min(10000, new Set(Object.keys(tj.refused).map((k) => k.replace(/:\\d+$/, '').toLowerCase()).filter((h) => plainHostName(h) && !isBrowserServiceHost(h))).size); } if (tj && tj.pageLeftAppFor && typeof tj.pageLeftAppFor === 'object') { const left = Object.entries(tj.pageLeftAppFor).filter(([h, n]) => /^[a-z0-9.:[\\]-]{1,260}$/i.test(h) && Number.isFinite(n)).slice(0, 20).map(([host, times]) => ({ host, times })); if (left.length) pageLeftAppFor = left; }                                                                                                                           } } catch {                                                                   }
+  try { const tf = path.join(runDir, 'refused-hosts.json'); const st2 = fs.lstatSync(tf); if (st2.isFile() && st2.size < 256 * 1024) { const tj = JSON.parse(writingIn(cfg, runDir, (at) => readPlainFile(at('refused-hosts.json'), 256 * 1024)).toString('utf8')); if (tj && tj.refused && typeof tj.refused === 'object') { const groups = groupRefusedHosts(tj.refused); if (groups.length) refusedHosts = { inUse: Array.isArray(tj.reachableHosts) ? tj.reachableHosts.filter((x) => typeof x === 'string').slice(0, 64) : [], groups }; hostsRefused = Math.min(10000, new Set(Object.keys(tj.refused).map((k) => k.replace(/:\\d+$/, '').toLowerCase()).filter((h) => plainHostName(h) && !isBrowserServiceHost(h))).size); } if (tj && tj.pageLeftAppFor && typeof tj.pageLeftAppFor === 'object') { const left = Object.entries(tj.pageLeftAppFor).filter(([h, n]) => /^[a-z0-9.:[\\]-]{1,260}$/i.test(h) && Number.isFinite(n)).slice(0, 20).map(([host, times]) => ({ host, times })); if (left.length) pageLeftAppFor = left; }                                                                                                                           } } catch {                                                                   }
   return { refusedHosts, pageLeftAppFor, hostsRefused };
 }
-const RUNNER_WORDS = ['server_unreachable', 'restart_needed', 'signin_needed', 'upload_unsupported', 'blank_page', 'assets_blocked'];
 
 
 function blockedWord(cfg, runDir, outcome, counts, whyGiven) {
@@ -746,20 +768,22 @@ function finishCmd() {
   const whyAt = args.indexOf('--why'); const whyGiven = whyAt < 0 ? null : String(args[whyAt + 1] ?? '');
   const runDir = path.join(cfg.runsDir, runId);
   const logPath = path.join(runDir, 'log.md');
-  let st; try { st = fs.lstatSync(logPath); } catch { out({ error: 'write ' + path.relative(cfg.projectDir, logPath) + ' first (the report: header line, verdict table, per-spec log), then run finish' }); process.exit(1); }
-  if (!st.isFile() || st.size > 4 * 1024 * 1024) { out({ error: path.relative(cfg.projectDir, logPath) + ' must be a regular file (≤ 4 MB)' }); process.exit(1); }
-  const rep = parseReport(fs.readFileSync(logPath, 'utf8'));
+  let st; try { st = fs.lstatSync(logPath); } catch { out({ error: 'write ' + path.relative(cfg.projectDir, logPath) + ' first (the report: header line, verdict table, per-spec log), then finish' }); process.exit(1); }
+  if (!st.isFile() || st.size > LOG_MD_BYTES) { out({ error: path.relative(cfg.projectDir, logPath) + ' must be a regular file of at most 4 MiB (' + LOG_MD_BYTES + ' bytes)' + (st.isFile() ? ': it is ' + st.size + ' bytes; shorten the log of each spec, write the whole log.md again, then finish again' : '') }); process.exit(1); }
+
+  let logText; try { logText = writingIn(cfg, runDir, (at) => readPlainFile(at('log.md'), LOG_MD_BYTES)).toString('utf8'); } catch (e) { out({ error: path.relative(cfg.projectDir, logPath) + ' could not be read: ' + shown(String((e && e.message) || e), 300) + '. Write the whole log.md again, then finish again' }); process.exit(1); }
+  const rep = parseReport(logText);
   const finishedAt = new Date(); const runnerSeconds = Math.min(86400, Math.max(0, Math.round((finishedAt.getTime() - runnerStart(cfg, runId).getTime()) / 1000)));
-  const { refusedHosts, pageLeftAppFor, hostsRefused } = refusedTally(runDir);
+  const { refusedHosts, pageLeftAppFor, hostsRefused } = refusedTally(cfg, runDir);
   if (!rep.rows.length && !rep.blockedReason && rep.needsInput) {
-    const missing = (fs.readFileSync(logPath, 'utf8').match(/^missing: (\\S+) in (.+)$/m) || []).slice(1, 3);
-    const results = { schema: 'claude-test-results/1', tool: 'claude-test', toolVersion: pluginVersion(), runId, startedAt: runStart(runId).toISOString(), finishedAt: finishedAt.toISOString(), runnerSeconds, hostsRefused, blockedWord: blockedWord(cfg, runDir, 'needs-input', null, whyGiven), git: gitState(cfg.projectDir), baseUrl: null, outcome: 'needs-input', ...(missing.length ? { missing: { key: shown(missing[0], 60), file: shown(missing[1], 200) } } : {}), counts: { specs: 0, passed: 0, failed: 0, blocked: 0 }, specs: [] };
+    const missing = (logText.match(/^missing: (\\S+) in (.+)$/m) || []).slice(1, 3);
+    const results = { schema: 'claude-test-results/1', tool: 'claude-test', toolVersion: pluginVersion(), runId, startedAt: runStart(runId).toISOString(), finishedAt: finishedAt.toISOString(), runnerSeconds, hostsRefused, blockedWord: blockedWord(cfg, runDir, 'needs-input', null, whyGiven), git: gitFor(cfg, runId), baseUrl: null, outcome: 'needs-input', ...(missing.length ? { missing: { key: shown(missing[0], 60), file: shown(missing[1], 200) } } : {}), counts: { specs: 0, passed: 0, failed: 0, blocked: 0 }, specs: [] };
     writeResults(cfg, runDir, results);
     out({ results: path.relative(cfg.projectDir, path.join(runDir, 'results.json')), outcome: 'needs-input', counts: results.counts }); return;
   }
-  if (!rep.rows.length && !rep.blockedReason) { out({ error: 'log.md has no verdict table (| Spec | Verdict | Why | Screenshot | with one row per spec, each verdict cell holding PASS, FAIL or BLOCKED) and no "## Claude Test · BLOCKED · …" line — fix log.md, then run finish again' }); process.exit(1); }
+  if (!rep.rows.length && !rep.blockedReason) { out({ error: 'log.md has no verdict table (| Spec | Verdict | Why | Screenshot | with one row per spec, each verdict cell holding PASS, FAIL or BLOCKED) and no "## Claude Test · BLOCKED · …" line — write the whole corrected log.md again, then finish again' }); process.exit(1); }
   const bad = rep.rows.filter((r) => !r.verdict);
-  if (bad.length) { out({ error: 'verdict cell without the literal word PASS, FAIL or BLOCKED for: ' + bad.map((r) => r.name).join('; ') + ' — fix those rows in log.md, then run finish again' }); process.exit(1); }
+  if (bad.length) { out({ error: 'verdict cell without the literal word PASS, FAIL or BLOCKED for: ' + bad.map((r) => r.name).join('; ') + ' — correct those rows, write the whole log.md again, then finish again' }); process.exit(1); }
   const specs = listSpecs(cfg);
   const byName = new Map(specs.filter((s) => s.name).map((s) => [s.name.trim().toLowerCase(), s]));
   const byStem = new Map(specs.map((s) => [path.basename(s.file, '.md'), s]));
@@ -769,9 +793,9 @@ function finishCmd() {
   const m = runId.match(/^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2})-(\\d{2})-(\\d{2})/);
   const startedAt = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])).toISOString();
 
-  let secondsPerSpec = null; try { const pf = path.join(runDir, 'progress.ndjson'); const ps = fs.lstatSync(pf); if (!ps.isFile() || ps.size >= 4 * 1024 * 1024) throw new Error('not a progress file'); const ls = fs.readFileSync(pf, 'utf8').split('\\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return {}; } }); const start = ls.find((l) => l.event === 'start'); const specsAt = ls.filter((l) => typeof l.spec === 'string').map((l) => Date.parse(l.at)).filter(Number.isFinite).sort((a, b) => a - b); if (start && specsAt.length) secondsPerSpec = Math.round((specsAt[specsAt.length - 1] - Date.parse(start.at)) / specsAt.length / 1000); else if (specsAt.length >= 2) secondsPerSpec = Math.round((specsAt[specsAt.length - 1] - specsAt[0]) / (specsAt.length - 1) / 1000); } catch {                        }
+  let secondsPerSpec = null; try { const pf = path.join(runDir, 'progress.ndjson'); const ps = fs.lstatSync(pf); if (!ps.isFile() || ps.size >= 4 * 1024 * 1024) throw new Error('not a progress file'); const ls = writingIn(cfg, runDir, (at) => readPlainFile(at('progress.ndjson'), 4 * 1024 * 1024)).toString('utf8').split('\\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return {}; } }); const start = ls.find((l) => l.event === 'start'); const specsAt = ls.filter((l) => typeof l.spec === 'string').map((l) => Date.parse(l.at)).filter(Number.isFinite).sort((a, b) => a - b); if (start && specsAt.length) secondsPerSpec = Math.round((specsAt[specsAt.length - 1] - Date.parse(start.at)) / specsAt.length / 1000); else if (specsAt.length >= 2) secondsPerSpec = Math.round((specsAt[specsAt.length - 1] - specsAt[0]) / (specsAt.length - 1) / 1000); } catch {                        }
   const word = blockedWord(cfg, runDir, outcome, counts, whyGiven);
-  const results = { schema: 'claude-test-results/1', tool: 'claude-test', toolVersion: pluginVersion(), runId, startedAt, finishedAt: finishedAt.toISOString(), runnerSeconds, hostsRefused, ...(word ? { blockedWord: word } : {}), ...(secondsPerSpec ? { secondsPerSpec } : {}), ...(refusedHosts ? { refusedHosts } : {}), ...(pageLeftAppFor ? { pageLeftAppFor } : {}), git: gitState(cfg.projectDir), baseUrl: cfg.baseUrl || (rep.head && /^https?:\\/\\//.test(rep.head.baseUrl) ? rep.head.baseUrl : null), outcome, counts, ...(rep.blockedReason ? { blockedReason: rep.blockedReason } : {}), specs: rows };
+  const results = { schema: 'claude-test-results/1', tool: 'claude-test', toolVersion: pluginVersion(), runId, startedAt, finishedAt: finishedAt.toISOString(), runnerSeconds, hostsRefused, ...(word ? { blockedWord: word } : {}), ...(secondsPerSpec ? { secondsPerSpec } : {}), ...(refusedHosts ? { refusedHosts } : {}), ...(pageLeftAppFor ? { pageLeftAppFor } : {}), git: gitFor(cfg, runId), baseUrl: cfg.baseUrl || (rep.head && /^https?:\\/\\//.test(rep.head.baseUrl) ? rep.head.baseUrl : null), outcome, counts, ...(rep.blockedReason ? { blockedReason: rep.blockedReason } : {}), specs: rows };
   writeResults(cfg, runDir, results);
   const notes = [];
   const unmatched = rows.filter((r) => !r.file).map((r) => r.name); if (unmatched.length) notes.push('rows whose Spec cell matches no spec file\\'s "# name" (file and id are null for them): ' + unmatched.join('; '));
@@ -795,7 +819,14 @@ function pastRuns(cfg) {
 }
 
 
+function recordedGit(cfg, runId) {
+  try { const at = JSON.parse(writingIn(cfg, path.join(cfg.runsDir, runId), (name) => readPlainFile(name('git.json'), 400)).toString('utf8')); return at && typeof at === 'object' && typeof at.head === 'string' && /^[0-9a-f]{40}$/.test(at.head) && (typeof at.dirty === 'boolean' || at.dirty === null) ? { head: at.head, dirty: at.dirty } : null; } catch { return null; }
+}
+
+function gitFor(cfg, runId) { return gitOff() ? recordedGit(cfg, runId) : gitState(cfg.projectDir); }
+
 function gitState(dir) {
+
   try { const head = safeGit(dir, ['rev-parse', 'HEAD']).toString().trim(); let dirty = null; try { dirty = safeGit(dir, ['status', '--porcelain', '--untracked-files=no'], { timeout: 60000 }).toString().trim() !== ''; } catch {                                                                      } return /^[0-9a-f]{40}$/.test(head) ? { head, dirty } : null; } catch { return null; }
 }
 
@@ -844,6 +875,16 @@ async function progressCmd() {
   const file = path.join(cfg.runsDir, runId, 'progress.ndjson');
   try { const st = fs.lstatSync(file); if (!st.isFile()) { out({ error: path.relative(cfg.projectDir, file) + ' exists and is not a regular file — not writing through it' }); process.exit(1); } } catch {                                            }
   const read = () => { try { return fs.readFileSync(file, 'utf8').split('\\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean); } catch { return []; } };
+
+  const addLine = (line) => {
+
+    try { writingIn(cfg, path.dirname(file), (at) => addLineAt(at(path.basename(file)), line)); }
+    catch (e) { out({ error: shown(String((e && e.message) || e), 300) + ' — nothing was recorded. Go on, and say so under Notes' }); process.exit(1); }
+  };
+  const addLineAt = (file, line) => {
+    let fd; try { fd = fs.openSync(file, fs.constants.O_WRONLY | fs.constants.O_APPEND | fs.constants.O_CREAT | (process.platform === 'win32' ? 0 : fs.constants.O_NOFOLLOW | fs.constants.O_NONBLOCK), 0o644); } catch (e) { out({ error: path.relative(cfg.projectDir, file) + ' could not be opened (' + (e && (e.code === 'ELOOP' || e.code === 'EMLINK') ? 'a link is at that name — not writing through it' : 'the disk or the folder refused it: ' + shown(String(e && e.code || e), 40)) + ')' }); process.exit(1); }
+    try { const st = fs.fstatSync(fd); if (!st.isFile() || st.nlink > 1) { out({ error: path.relative(cfg.projectDir, file) + ' is not a regular file of its own (a second name of another file) — not writing through it' }); process.exit(1); } fs.writeSync(fd, JSON.stringify(line) + '\\n'); } finally { fs.closeSync(fd); }
+  };
   const specLines = () => read().filter((l) => l && typeof l.spec === 'string');
 
 
@@ -878,8 +919,8 @@ async function progressCmd() {
         const ordered = [...chosen.filter((x) => !x.last), ...chosen.filter((x) => x.last)].slice(0, 500);
         specs = ordered.map((x) => x.stem); names = Object.fromEntries(ordered.filter((x) => x.name).map((x) => [x.stem, x.name]));
       } catch {                                                                       }
-      writeInRunFolder(path.join(cfg.runsDir, runId), 'names.json', JSON.stringify({ names }) + '\\n');
-      fs.appendFileSync(file, JSON.stringify({ event: 'start', at: new Date().toISOString(), ...(specs.length ? { specs } : {}) }) + '\\n');
+      writeInRunFolder(path.join(cfg.runsDir, runId), 'names.json', JSON.stringify({ names }) + '\\n', 0o644, withinOf(cfg));
+      addLine({ event: 'start', at: new Date().toISOString(), ...(specs.length ? { specs } : {}) });
     }
     const sl = startLine(); out({ runId, file: path.relative(cfg.projectDir, file), absolute: file, ...(args[1] === 'start' && sl && Array.isArray(sl.specs) ? { order: sl.specs } : {}), ...summary(), ...(drop.length ? { drop } : {}) }); return;
   }
@@ -890,7 +931,7 @@ async function progressCmd() {
 
   let frames = []; try { const taken = new Set(read().flatMap((l) => Array.isArray(l.frames) ? l.frames : [])); const all = fs.readdirSync(path.join(cfg.runsDir, runId, 'frames')).filter((f) => /^f-\\d{4}\\.jpeg$/.test(f) && !taken.has(f)).sort(); frames = all.length <= 40 ? all : [...new Set(Array.from({ length: 40 }, (_, k) => all[Math.round(k * (all.length - 1) / 39)]))]; } catch {                                                                                }
   const line = { spec: stem, verdict, at: now.toISOString(), ...(Number.isFinite(t0) ? { s: Math.max(0, Math.round((now.getTime() - t0) / 1000)) } : {}), ...(frames.length ? { frames } : {}) };
-  fs.appendFileSync(file, JSON.stringify(line) + '\\n');
+  addLine(line);
   out({ ok: true, file: path.relative(cfg.projectDir, file), done: specLines().length, ...(drop.length ? { drop } : {}) });
 }
 

@@ -1,0 +1,14 @@
+<!--
+name: 'System prompt: agent summary previous label'
+description: >-
+  Line quoting the previous summary and asking for something new or to keep it
+  if still accurate.
+ccVersion: 2.1.302
+variables:
+  - SYSTEM_PROMPT_AGENT_SUMMARY_PREVIOUS_LABEL_VAR_0
+  - SYSTEM_PROMPT_AGENT_SUMMARY_PREVIOUS_LABEL_VAR_1
+  - SYSTEM_PROMPT_AGENT_SUMMARY_PREVIOUS_LABEL_VAR_2
+  - SYSTEM_PROMPT_AGENT_SUMMARY_PREVIOUS_LABEL_VAR_3
+-->
+
+Previous: ${SYSTEM_PROMPT_AGENT_SUMMARY_PREVIOUS_LABEL_VAR_0(SYSTEM_PROMPT_AGENT_SUMMARY_PREVIOUS_LABEL_VAR_1?SYSTEM_PROMPT_AGENT_SUMMARY_PREVIOUS_LABEL_VAR_2(SYSTEM_PROMPT_AGENT_SUMMARY_PREVIOUS_LABEL_VAR_3):SYSTEM_PROMPT_AGENT_SUMMARY_PREVIOUS_LABEL_VAR_3)} — ${SYSTEM_PROMPT_AGENT_SUMMARY_PREVIOUS_LABEL_VAR_1?"keep it if the agent is still doing that; otherwise say what is new":"say something NEW"}.

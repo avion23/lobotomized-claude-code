@@ -3,7 +3,7 @@ name: 'Data: SKILL (Claude Test — the spec author (background; nobody is watch
 description: >-
   Prompt body of the claude-test "draft" skill (spec-author background), loaded
   as skill text by we().
-ccVersion: 2.1.296
+ccVersion: 2.1.302
 -->
 ---
 description: Internal to Claude Test — drafts spec files in the background for a first run. Started only by the claude-test run skill.
@@ -25,6 +25,14 @@ disallowed-tools:
   - mcp__plugin_claude-test_browser__claude_test_allow
   - mcp__plugin_claude-test_browser__claude_test_app_up
   - mcp__plugin_claude-test_browser__claude_test_show_run
+  - mcp__plugin_claude-test_browser__claude_test_install
+  - mcp__plugin_claude-test_browser__claude_test_save
+  - mcp__plugin_claude-test_browser__claude_test_status
+  - mcp__plugin_claude-test_browser__claude_test_elapsed
+  - mcp__plugin_claude-test_browser__claude_test_progress
+  - mcp__plugin_claude-test_browser__claude_test_write_log
+  - mcp__plugin_claude-test_browser__claude_test_finish
+  - mcp__plugin_claude-test_browser__claude_test_read
   - Edit(.claude-test/runs/*/*.*)
   - Edit(**/.claude-test/runs/*/*.*)
   - Edit(//**/.claude-test/specs/**)
@@ -32,6 +40,30 @@ disallowed-tools:
   - Edit(//**/.claude-test/skills/**)
   - Edit(//**/.claude-testrc)
   - Edit(//**/.claude-test/runs/*/*.*)
+  - Edit(.claude-test/runs/*/used-folder)
+  - Edit(**/.claude-test/runs/*/used-folder)
+  - Edit(//**/.claude-test/runs/*/used-folder)
+  - Edit(.claude-test/runs/*/used-folder/**)
+  - Edit(**/.claude-test/runs/*/used-folder/**)
+  - Edit(//**/.claude-test/runs/*/used-folder/**)
+  - Edit(.claude-test/runs/*/saved.json/**)
+  - Edit(**/.claude-test/runs/*/saved.json/**)
+  - Edit(//**/.claude-test/runs/*/saved.json/**)
+  - Edit(.claude-test/runs/*/results.json/**)
+  - Edit(**/.claude-test/runs/*/results.json/**)
+  - Edit(//**/.claude-test/runs/*/results.json/**)
+  - Edit(.claude-test/runs/*/log.md/**)
+  - Edit(**/.claude-test/runs/*/log.md/**)
+  - Edit(//**/.claude-test/runs/*/log.md/**)
+  - Edit(.claude-test/runs/*/progress.ndjson/**)
+  - Edit(**/.claude-test/runs/*/progress.ndjson/**)
+  - Edit(//**/.claude-test/runs/*/progress.ndjson/**)
+  - Edit(.claude-test/runs/*/names.json/**)
+  - Edit(**/.claude-test/runs/*/names.json/**)
+  - Edit(//**/.claude-test/runs/*/names.json/**)
+  - Edit(.claude-test/runs/*/decisions.json/**)
+  - Edit(**/.claude-test/runs/*/decisions.json/**)
+  - Edit(//**/.claude-test/runs/*/decisions.json/**)
   - Edit(//**/CLAUDE.md)
   - Edit(//**/CLAUDE.local.md)
   - Edit(//**/AGENTS.md)

@@ -1,11 +1,12 @@
 <!--
-name: ExitWorktree unmerged-commit warning
+name: 'Tool result: ExitWorktree unmerged commit count'
 description: >-
-  Commit-count and branch detail included in the refusal to remove a worktree
-  without discard confirmation.
-ccVersion: 2.1.296
+  Fragment counting commits on the worktree branch inside the uncommitted-work
+  refusal.
+ccVersion: 2.1.302
 variables:
   - TOOL_RESULT_EXITWORKTREE_UNMERGED_COMMIT_COUNT_VAR_0
   - TOOL_RESULT_EXITWORKTREE_UNMERGED_COMMIT_COUNT_VAR_1
+  - TOOL_RESULT_EXITWORKTREE_UNMERGED_COMMIT_COUNT_VAR_2
 -->
-${TOOL_RESULT_EXITWORKTREE_UNMERGED_COMMIT_COUNT_VAR_0} ${TOOL_RESULT_EXITWORKTREE_UNMERGED_COMMIT_COUNT_VAR_0===1?"commit":"commits"} on ${TOOL_RESULT_EXITWORKTREE_UNMERGED_COMMIT_COUNT_VAR_1.worktreeBranch??"the worktree branch"}
+${TOOL_RESULT_EXITWORKTREE_UNMERGED_COMMIT_COUNT_VAR_0} ${TOOL_RESULT_EXITWORKTREE_UNMERGED_COMMIT_COUNT_VAR_0===1?"commit":"commits"} on ${TOOL_RESULT_EXITWORKTREE_UNMERGED_COMMIT_COUNT_VAR_1.worktreeBranch?TOOL_RESULT_EXITWORKTREE_UNMERGED_COMMIT_COUNT_VAR_2(TOOL_RESULT_EXITWORKTREE_UNMERGED_COMMIT_COUNT_VAR_1.worktreeBranch):"the worktree branch"}

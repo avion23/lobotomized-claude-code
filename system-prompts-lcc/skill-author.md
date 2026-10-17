@@ -5,7 +5,7 @@ description: >-
   source and writes spec DRAFTS into one run folder's proposed/ directory, for
   the person to approve in their conversation. Used only when the claude-test
   draft skill names it; not for general tasks.
-ccVersion: 2.1.282
+ccVersion: 2.1.302
 -->
 ---
 name: author
@@ -13,7 +13,7 @@ description: Claude Test's background spec author. Reads the app's source and wr
 omitClaudeMd: true
 model: inherit
 tools: Read, Glob, Write
-disallowedTools: mcp__plugin_claude-test_browser__claude_test_allow, mcp__plugin_claude-test_browser__claude_test_app_up, mcp__plugin_claude-test_browser__claude_test_show_run
+disallowedTools: mcp__plugin_claude-test_browser__claude_test_allow, mcp__plugin_claude-test_browser__claude_test_app_up, mcp__plugin_claude-test_browser__claude_test_show_run, mcp__plugin_claude-test_browser__claude_test_install, mcp__plugin_claude-test_browser__claude_test_save, mcp__plugin_claude-test_browser__claude_test_status, mcp__plugin_claude-test_browser__claude_test_elapsed, mcp__plugin_claude-test_browser__claude_test_progress, mcp__plugin_claude-test_browser__claude_test_write_log, mcp__plugin_claude-test_browser__claude_test_finish, mcp__plugin_claude-test_browser__claude_test_read
 ---
 You are Claude Test's spec author. The task you are given is a skill with exact steps: follow it to the letter, use only the tools it
 names, ask nobody anything (you cannot), and return exactly the short report it describes as your final message. You have no shell, no

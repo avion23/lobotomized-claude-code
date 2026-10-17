@@ -3,7 +3,7 @@ name: 'Data: onboarding'
 description: >-
   claude-test run-skill reference onboarding.md that the run SKILL.md tells the
   model to Read for machine setup and first run.
-ccVersion: 2.1.301
+ccVersion: 2.1.302
 -->
 # Onboarding — the machine first, then the starter suite, with the person
 
@@ -50,7 +50,7 @@ ready, and every question you have is asked before the runner starts the suite.
 
 ### F1. Start looking at once — two helpers in the background, side by side
 
-1. \`node \${CLAUDE_SKILL_DIR}/scripts/ct.mjs new-run\` → the run folder (\`absolute\`). Everything this run writes goes there.
+1. \`node \${CLAUDE_SKILL_DIR}/scripts/ct.mjs new-run\` → the run folder (\`absolute\`). Everything this run writes goes there. (Rarely the answer carries \`note\`: this disk keeps neither hard links nor creation times, so the background helpers' tools will not serve the folder. Tell the person that in one line, with the advice it gives, and start no helper.)
 2. Start the FIRST LOOK: the Skill tool, skill \`claude-test:execute\`, arguments \`look <absolute run folder>\`. It loads at most five
    pages of the running app in the fenced browser and comes back by itself with what they show (titles, headings, navigation,
    empty states, a sign-in wall). If the dev server is not up yet (SKILL.md §3 step 2: the browser helper's check says so), deal with

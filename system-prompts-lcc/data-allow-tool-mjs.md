@@ -4,7 +4,7 @@ description: >-
   claude-test browser-server module (skills/run/scripts/lib/allow-tool.mjs)
   defining the claude_test_allow / claude_test_app_up / claude_test_show_run MCP
   tool descriptions, input schemas and result texts the model receives.
-ccVersion: 2.1.301
+ccVersion: 2.1.302
 -->
 
 
@@ -17,6 +17,7 @@ import { launcherConfig, readConsent, writeConsent, consentKey, isLocalHost, sho
 import { keepLivePage, plainWay, notOwnWay } from './live-page.mjs';
 import { livePageFile, openLivePage, openByHand, runOpener } from './open-page.mjs';
 import { RUN_ID } from './runs.mjs';
+import { makeRunTools } from './run-tools.mjs';
 
 export const ALLOW_TOOL = 'claude_test_allow';
 export const UP_TOOL = 'claude_test_app_up';
@@ -122,7 +123,8 @@ function ownPorts(cfg) {
 
 
 
-export function makeAllowTool({ send, settings = launcherConfig, opening = {} }) {
+export function makeAllowTool({ send, settings = launcherConfig, opening = {}, running = {} }) {
+  const runTools = makeRunTools({ send, settings, ...running });
 
 
   const idPrefix = ALLOW_TOOL + ':' + crypto.randomBytes(8).toString('hex') + ':';
@@ -266,15 +268,16 @@ export function makeAllowTool({ send, settings = launcherConfig, opening = {} })
     if (msg.method === 'tools/call' && msg.id !== undefined && msg.params && typeof msg.params === 'object' && msg.params.name === ALLOW_TOOL) { try { begin(msg); } catch (e) { answer(msg.id, 'Nothing was recorded: ' + shown(e && e.message ? e.message : e, 300), true); } return true; }
     if (msg.method === 'tools/call' && msg.id !== undefined && msg.params && typeof msg.params === 'object' && msg.params.name === UP_TOOL) { up(msg).catch((e) => answer(msg.id, 'Nothing was checked: ' + shown(e && e.message ? e.message : e, 300), true)); return true; }
     if (msg.method === 'tools/call' && msg.id !== undefined && msg.params && typeof msg.params === 'object' && msg.params.name === SHOW_TOOL) { show(msg).catch((e) => answer(msg.id, 'Nothing was opened: ' + shown(e && e.message ? e.message : e, 300), true)); return true; }
+    if (runTools.take(msg)) return true;
     if (msg.method === 'notifications/cancelled' && msg.params && showing.has(msg.params.requestId)) { cancelled.add(msg.params.requestId); return true; }
     if (msg.method === 'notifications/cancelled' && open && msg.params && msg.params.requestId === open.callId) { close('the call was cancelled', false); return true; }
     if (typeof msg.method !== 'string' && typeof msg.id === 'string' && msg.id.startsWith(idPrefix)) { if (open && msg.id === open.askId) settle(msg); return true; }
     return false;
   }
   function takeLine(line) {
-    if (!open && !showing.size && !line.includes(ALLOW_TOOL) && !line.includes(UP_TOOL) && !line.includes(SHOW_TOOL) && !line.includes('"initialize"')) return false;
+    if (!open && !showing.size && !line.includes(ALLOW_TOOL) && !line.includes(UP_TOOL) && !line.includes(SHOW_TOOL) && !runTools.names.some((name) => line.includes(name)) && !line.includes('"initialize"')) return false;
     let msg; try { msg = JSON.parse(line); } catch { return false; }
     return take(msg);
   }
-  return { tools: [TOOL, UP, SHOW], take, takeLine, fenceBuilt() { built = true; } };
+  return { tools: [TOOL, UP, SHOW, ...runTools.tools], take, takeLine, fenceBuilt() { built = true; }, scrubWith(scrub, stateOf) { runTools.scrubWith(scrub, stateOf); } };
 }

@@ -1,10 +1,11 @@
 <!--
-name: 'Tool Result: MCP skill server no longer serves it'
+name: MCP Skill No Longer Served By Server
 description: >-
-  Says the server reports it no longer serves the skill and to reconnect from
-  /mcp
-ccVersion: 2.1.299
+  Error when the MCP server reports it no longer serves the skill, plus a
+  refresh hint.
+ccVersion: 2.1.302
 variables:
   - TOOL_RESULT_MCP_SKILL_NO_LONGER_SERVED_BY_SERVER_VAR_0
+  - TOOL_RESULT_MCP_SKILL_NO_LONGER_SERVED_BY_SERVER_VAR_1
 -->
-${TOOL_RESULT_MCP_SKILL_NO_LONGER_SERVED_BY_SERVER_VAR_0}, because the server reports that it no longer serves it. Reconnect the server from /mcp to refresh its skills.
+${TOOL_RESULT_MCP_SKILL_NO_LONGER_SERVED_BY_SERVER_VAR_0}, because the server reports that it no longer serves it. ${TOOL_RESULT_MCP_SKILL_NO_LONGER_SERVED_BY_SERVER_VAR_1()}

@@ -1,0 +1,12 @@
+<!--
+name: Agent Resume Forked Skill Hidden Behind Plugin
+description: >-
+  Agent resume refusal when the forked skill is now hidden behind a plugin, with
+  the reason.
+ccVersion: 2.1.302
+variables:
+  - TOOL_RESULT_AGENT_RESUME_FORKED_SKILL_HIDDEN_BEHIND_PLUGIN_VAR_0
+  - TOOL_RESULT_AGENT_RESUME_FORKED_SKILL_HIDDEN_BEHIND_PLUGIN_VAR_1
+  - TOOL_RESULT_AGENT_RESUME_FORKED_SKILL_HIDDEN_BEHIND_PLUGIN_VAR_2
+-->
+Agent ${TOOL_RESULT_AGENT_RESUME_FORKED_SKILL_HIDDEN_BEHIND_PLUGIN_VAR_0} ran as forked skill ${TOOL_RESULT_AGENT_RESUME_FORKED_SKILL_HIDDEN_BEHIND_PLUGIN_VAR_1.skillName}; refusing to resume it: ${TOOL_RESULT_AGENT_RESUME_FORKED_SKILL_HIDDEN_BEHIND_PLUGIN_VAR_2}

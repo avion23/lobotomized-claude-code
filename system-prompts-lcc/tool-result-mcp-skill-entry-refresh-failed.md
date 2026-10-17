@@ -1,11 +1,12 @@
 <!--
-name: 'Tool Result: MCP skill entry refresh failed'
+name: MCP Skill Entry Refresh Failed
 description: >-
-  Says the skill was not loaded and asking the server for its current entry
-  failed
-ccVersion: 2.1.299
+  Error when asking the MCP server for a skill's current entry failed, plus a
+  retry hint.
+ccVersion: 2.1.302
 variables:
   - TOOL_RESULT_MCP_SKILL_ENTRY_REFRESH_FAILED_VAR_0
   - TOOL_RESULT_MCP_SKILL_ENTRY_REFRESH_FAILED_VAR_1
+  - TOOL_RESULT_MCP_SKILL_ENTRY_REFRESH_FAILED_VAR_2
 -->
-${TOOL_RESULT_MCP_SKILL_ENTRY_REFRESH_FAILED_VAR_0}, ${TOOL_RESULT_MCP_SKILL_ENTRY_REFRESH_FAILED_VAR_1}, and asking the server for its current entry failed. Try invoking it again, or reconnect the server from /mcp.
+${TOOL_RESULT_MCP_SKILL_ENTRY_REFRESH_FAILED_VAR_0}, ${TOOL_RESULT_MCP_SKILL_ENTRY_REFRESH_FAILED_VAR_1}, and asking the server for its current entry failed. ${TOOL_RESULT_MCP_SKILL_ENTRY_REFRESH_FAILED_VAR_2()}

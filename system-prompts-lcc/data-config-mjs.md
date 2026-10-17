@@ -4,7 +4,7 @@ description: >-
   claude-test shared library (skills/run/scripts/lib/config.mjs) whose config
   warnings, consent and sign-in notes surface in ct.mjs status JSON and the
   browser server's tool results that the model reads.
-ccVersion: 2.1.301
+ccVersion: 2.1.302
 -->
 
 
@@ -184,13 +184,23 @@ export function wrongProject(parsed, projectDir) {
 }
 
 
-export function privateDir(projectDir) {
+export function privateDir(projectDir, orNull = false) {
   const fallback = process.platform === 'darwin' ? path.join(os.homedir(), 'Library', 'Application Support') : path.join(os.homedir(), '.config');
   const fromEnv = [process.env.XDG_CONFIG_HOME, process.platform === 'win32' ? process.env.APPDATA : null].find((v) => v && path.isAbsolute(v));
   let base = path.resolve(fromEnv || fallback);
   if (insideDir(base, projectDir) || reallyInsideDir(base, projectDir) || insideProjectReally(base)) base = process.platform === 'darwin' ? path.join(trustedHome(), 'Library', 'Application Support') : path.join(trustedHome(), '.config');
-  if (homeTampered() && (reallyInsideDir(base, projectDir) || insideProjectReally(base))) { process.stderr.write('[claude-test] refusing to run: HOME points into the project\\n'); process.exit(2); }
+  if (homeTampered() && (reallyInsideDir(base, projectDir) || insideProjectReally(base))) { if (orNull) return null; process.stderr.write('[claude-test] refusing to run: HOME points into the project\\n'); process.exit(2); }
   return path.join(base, 'claude-test', projectSlug(projectDir));
+}
+
+
+
+export function withoutPrivateFolders(projectDir) {
+  const privateFolder = privateDir(projectDir, true); if (privateFolder === null) return (text) => String(text);
+  const itsParent = path.dirname(privateFolder);
+  const endsHere = '(?![A-Za-z0-9_-]|\\\\.[A-Za-z0-9])'; const literal = (text) => text.replace(/[.*+?^\${}()|[\\]\\\\]/g, '\\\\$&');
+  const folder = new RegExp(literal(privateFolder) + endsHere, 'g'); const parent = new RegExp(literal(itsParent) + endsHere, 'g');
+  return (text) => String(text).replace(folder, '<private folder>').replace(parent, "<the private folder's parent>");
 }
 
 
@@ -349,13 +359,17 @@ const checkoutRootMemo = new Map();
 
 
 
-function checkoutRootOf(dir) { if (checkoutRootMemo.has(dir)) return checkoutRootMemo.get(dir); const r = checkoutRootWalk(dir); checkoutRootMemo.set(dir, r); return r; }
+export function checkoutRootOf(dir) { if (checkoutRootMemo.has(dir)) return checkoutRootMemo.get(dir); const r = checkoutRootWalk(dir); checkoutRootMemo.set(dir, r); return r; }
 function checkoutRootWalk(dir) { let d; try { d = fs.realpathSync(dir); } catch { d = path.resolve(dir); } const home = path.resolve(trustedHome()); let top = null; for (;;) { if (d === home || reallyInsideDir(home, d)) break;                                     let has = false; try { fs.lstatSync(path.join(d, '.git')); has = true; } catch {                 } if (has) top = d; const up = path.dirname(d); if (up === d) break; d = up; } return top; }
 let checkoutRootsMemo = null;
 function checkoutRoots() { if (checkoutRootsMemo) return checkoutRootsMemo; const roots = new Set(); for (const d of [process.cwd(), resolveProjectDir(), sessionRoot()]) { const r = checkoutRootOf(d); if (r) roots.add(r); } checkoutRootsMemo = [...roots]; return checkoutRootsMemo; }
 
 
 export function insideProjectReally(p) { return reallyInsideDir(p, resolveProjectDir()) || reallyInsideDir(p, process.cwd()) || reallyInsideDir(p, sessionRoot()) || checkoutRoots().some((r) => reallyInsideDir(p, r)); }
+
+
+
+export function insideOpenedFolder(p) { const opened = process.env.CLAUDE_TEST_OPENED_DIR; return !!opened && path.isAbsolute(opened) && reallyInsideDir(p, opened); }
 
 
 
@@ -469,8 +483,17 @@ const GIT_SAFE_ARGS = ['core.fsmonitor=', 'core.hooksPath=/dev/null', 'hook.post
 
 
 
-const GIT_SAFE_ENV = { GIT_NO_LAZY_FETCH: '1', GIT_ALLOW_PROTOCOL: '/', GIT_NO_REPLACE_OBJECTS: '1', GIT_TERMINAL_PROMPT: '0', GIT_LFS_SKIP_SMUDGE: '1', GIT_OPTIONAL_LOCKS: '0' };
+const GIT_SAFE_ENV = { GIT_NO_LAZY_FETCH: '1', GIT_ALLOW_PROTOCOL: '/', GIT_NO_REPLACE_OBJECTS: '1', GIT_TERMINAL_PROMPT: '0', GIT_LFS_SKIP_SMUDGE: '1', GIT_OPTIONAL_LOCKS: '0', PYTHONSAFEPATH: '1' };
 const GIT_MS = 10000;
+
+
+
+
+
+let gitOffHere = false;
+export function gitOff() { return gitOffHere || process.env.CLAUDE_TEST_NO_GIT === '1'; }
+
+export function withoutGit(act) { const was = gitOffHere; gitOffHere = true; try { return act(); } finally { gitOffHere = was; } }
 
 
 
@@ -484,6 +507,7 @@ const GIT_MS = 10000;
 
 
 export function safeGit(dir, args, options = {}) {
+  if (gitOff()) throw new Error('no git is started here');
   let from; try { from = fs.realpathSync(dir); } catch { from = path.resolve(dir); }
   let at = from; let entry;
   for (;;) {
@@ -496,18 +520,30 @@ export function safeGit(dir, args, options = {}) {
     if (head) throw new Error(up + ' holds a HEAD, which git could take for a repository\\'s, and the checkout belongs to another account');
     const next = path.dirname(up); if (next === up) break; up = next;
   }
-  const home = trustedHome(); let below = from; while (path.dirname(below) !== below && !reallyInsideDir(home, path.dirname(below))) below = path.dirname(below);
-  const theirs = (file) => [from, reallyInsideDir(home, at) && reallyInsideDir(at, home) ? below : at, checkoutRootOf(from)].some((top) => top && reallyInsideDir(file, top));
-  const through = (file) => { for (let d = path.resolve(file); ; ) { if (theirs(d)) return true; const up = path.dirname(d); if (up === d) return false; d = up; } };
-  const program = (process.env.PATH || '').split(path.delimiter).filter((folder) => path.isAbsolute(folder)).map((folder) => path.join(folder, process.platform === 'win32' ? 'git.exe' : 'git'))
+  let dbHome = null; try { dbHome = os.userInfo().homedir || null; } catch {                                                                                                                   }
+  const home = dbHome || trustedHome(); let below = from; while (path.dirname(below) !== below && !reallyInsideDir(home, path.dirname(below))) below = path.dirname(below);
+  let topmost = null; if (dbHome) topmost = checkoutRootOf(from); else for (let d = from; ; ) { try { fs.lstatSync(path.join(d, '.git')); topmost = d; } catch {                 } const up = path.dirname(d); if (up === d) break; d = up; }
+  const theirs = (file) => [from, dbHome && reallyInsideDir(home, at) && reallyInsideDir(at, home) ? below : at, topmost].some((top) => top && reallyInsideDir(file, top));
+  const nothingThere = (e) => e.code === 'ENOENT' || e.code === 'ENOTDIR';
+  const kernels = (p) => { try { return fs.realpathSync.native(p); } catch (e) { return nothingThere(e) ? p : null; } };
+  const through = (file, depth = 0) => { for (let d = path.resolve(file); ; ) { const real = kernels(d); if (real === null || theirs(d) || theirs(real)) return true; let to = null; try { to = fs.readlinkSync(d); } catch (e) { if (e.code !== 'EINVAL' && !nothingThere(e)) return true;                       } if (to !== null && (depth > 8 || through(path.resolve(path.dirname(d), to), depth + 1))) return true;                                                                                                                                    const up = path.dirname(d); if (up === d) return false; d = up; } };
+  const plain = (folder) => path.isAbsolute(folder) && !folder.split(path.sep).includes('..');
+  const program = (process.env.PATH || '').split(path.delimiter).filter(plain).map((folder) => path.join(folder, process.platform === 'win32' ? 'git.exe' : 'git'))
     .find((file) => { try { fs.accessSync(file, fs.constants.X_OK); return fs.statSync(file).isFile() && !through(file) && !theirs(fs.realpathSync(file)); } catch { return false; } });
   if (!program) throw new Error('no git on PATH outside the checkout');
-  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^GIT_/i.test(k) && !['LD_PRELOAD', 'LD_AUDIT', 'DYLD_INSERT_LIBRARIES'].includes(k)));
-  for (const name of ['PATH', 'LD_LIBRARY_PATH', 'DYLD_LIBRARY_PATH', 'DYLD_FALLBACK_LIBRARY_PATH']) {
+  const searched = ['PATH', 'PYTHONPATH', 'NODE_PATH', 'RUBYLIB', 'PERL5LIB', 'PERLLIB', 'GEM_PATH', 'CLASSPATH', 'DYLD_LIBRARY_PATH', 'DYLD_FRAMEWORK_PATH', 'LD_LIBRARY_PATH', 'LIBRARY_PATH', 'CPATH', 'C_INCLUDE_PATH', 'CPLUS_INCLUDE_PATH', 'R_LIBS', 'R_LIBS_USER', 'R_LIBS_SITE', 'DYLD_FALLBACK_LIBRARY_PATH', 'DYLD_FALLBACK_FRAMEWORK_PATH'];
+  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^GIT_/i.test(k) && (searched.includes(k) || !/^(LD_|DYLD_|GCONV_PATH$|BASH_ENV$|ENV$)/.test(k))));
+  for (const name of searched) {
     if (env[name] === undefined) continue;
-    const kept = env[name].split(path.delimiter).filter((folder) => path.isAbsolute(folder) && !through(folder));
+    const kept = env[name].split(path.delimiter).filter((folder) => plain(folder) && !through(folder));
     if (kept.length) env[name] = kept.join(path.delimiter); else delete env[name];
   }
+
+
+
+  const led = (folder) => !plain(folder) || through(folder);
+  if (env.HOME !== undefined && led(env.HOME) && !(dbHome && plain(env.HOME) && reallyInsideDir(env.HOME, dbHome) && reallyInsideDir(dbHome, env.HOME))) env.HOME = dbHome && !led(dbHome) ? dbHome : os.devNull;
+  if (env.XDG_CONFIG_HOME !== undefined && led(env.XDG_CONFIG_HOME)) delete env.XDG_CONFIG_HOME;
   let sub = 0; while (args[sub] === '-c') sub += 2;
   const closed = args[sub] === 'status' || args[sub] === 'diff' ? ['--ignore-submodules=all'] : [];
   return execFileSync(program, [...GIT_SAFE_ARGS, ...told, ...args.slice(0, sub + 1), ...closed, ...args.slice(sub + 1)], { stdio: ['ignore', 'pipe', 'ignore'], timeout: GIT_MS, killSignal: 'SIGTERM', ...options, cwd: dir, env: { ...env, ...GIT_SAFE_ENV } });
@@ -624,6 +660,8 @@ export function shown(s, max = 400) {
 }
 
 export function shownText(s) { const t = String(s).slice(0, 1 << 20); return t.replace(RE_SHOWN_TEXT, ' '); }
+
+export function markedText(s) { let replaced = 0; const text = String(s).replace(RE_SHOWN_TEXT, (run) => [...run].map((ch) => { replaced++; return '[U+' + ch.codePointAt(0).toString(16).toUpperCase().padStart(4, '0') + ']'; }).join('')); return { text, replaced }; }
 
 export function hasControl(s) { return RE_HAS_CONTROL.test(String(s)); }
 
@@ -796,13 +834,14 @@ export function trackedClaudeTestSymlinks(projectDir, root) {
 function assertNoTrackedSymlinkUnderRuns(cfg) {
   let listing = '';
   let links;
-  try { listing = safeGit(cfg.projectDir, ['ls-files', '-s', '--', path.relative(cfg.projectDir, cfg.runsDir)], { maxBuffer: 64 * 1024 * 1024 }).toString(); links = listing.split('\\n').filter((l) => l.startsWith('120000 ')).map((l) => l.split('\\t')[1]); }
+  try { listing = safeGit(cfg.projectDir, ['ls-files', '-s', '--', path.relative(cfg.projectDir, cfg.runsDir)], { maxBuffer: 64 * 1024 * 1024 }).toString(); links = listing.split('\\n').filter((l) => l.startsWith('120000 ')).map((l) => String(l.split('\\t')[1]).replace(/[^\\x20-\\x7e]/g, '?')); }
   catch (e) {
     if (e && e.message === 'not in a git checkout') return;
-    links = []; let budget = 20000;
-    const walk = (d, depth) => { let ents = []; try { ents = fs.readdirSync(d, { withFileTypes: true }); } catch { return; } for (const e of ents) { if (--budget < 0) return; const p = path.join(d, e.name); if (e.isSymbolicLink()) links.push(path.relative(cfg.projectDir, p).replace(/[^\\x20-\\x7e]/g, '?')); else if (e.isDirectory() && depth < 3) walk(p, depth + 1); } };
+    links = []; let budget = 20000; let unread = null;
+    const walk = (d, depth) => { let ents = []; try { ents = fs.readdirSync(d, { withFileTypes: true }); } catch (err) { if (err.code !== 'ENOENT') unread = d; return; }                                                               for (const e of ents) { if (--budget < 0) return; const p = path.join(d, e.name); if (e.isSymbolicLink()) links.push(path.relative(cfg.projectDir, p).replace(/[^\\x20-\\x7e]/g, '?')); else if (e.isDirectory() && depth < 3) walk(p, depth + 1); } };
     walk(cfg.runsDir, 0);
     if (budget < 0) throw new Error(path.relative(cfg.projectDir, cfg.runsDir) + ' has too many entries to check for symlinks — remove old runs first');
+    if (unread) throw new Error(path.relative(cfg.projectDir, unread).replace(/[^\\x20-\\x7e]/g, '?') + ' cannot be listed, so it cannot be checked for symlinks — remove it, or make it readable, first');
     if (links.length) throw new Error(path.relative(cfg.projectDir, cfg.runsDir) + ' contains symlinks (' + links.slice(0, 3).join(', ') + (links.length > 3 ? ', …' : '') + ') — remove them first');
     return;
   }
@@ -827,9 +866,11 @@ function joinersWellPlaced(s) { const cps = [...s]; return cps.every((c, i) => (
 export function safeStem(s) { return typeof s === 'string' && STEM_SHAPE.test(s) && shownText(s) === s && !hasControl(s) && joinersWellPlaced(s); }
 
 export function stemOk(s) { if (!safeStem(s) || s.startsWith('-')) return false; try { encodeURIComponent(s); return true; } catch { return false; } }
-const ARTIFACT_NAME = /^(.+)\\.(png|snapshot\\.md)$/; const WIN_DEVICE = /^(con|prn|aux|nul|com\\d|lpt\\d)(\\.|$)/i;
+const ARTIFACT_NAME = /^(.+)\\.(png|snapshot\\.md)$/; const WIN_DEVICE = /^(con|prn|aux|nul|com[0-9\\u00b9\\u00b2\\u00b3]|lpt[0-9\\u00b9\\u00b2\\u00b3])(\\.|$)/i;
 
 export const RUN_ID = /^\\d{4}-\\d{2}-\\d{2}T\\d{2}-\\d{2}-\\d{2}(-\\d+)?$/;
+
+export function snapshotStemOk(stem) { return safeStem(stem) && !WIN_DEVICE.test(stem + '.snapshot.md'); }
 export function runsPathProblem(cfg, abs) {
   const rel = path.relative(cfg.projectDir, cfg.runsDir) + '/';
   if (!insideDir(abs, cfg.runsDir) || abs === cfg.runsDir) return 'must be a file under ' + rel;
@@ -858,10 +899,18 @@ export function ensureRunsDir(cfg) {
 
 
 
+
+
   const gi = path.join(path.dirname(cfg.runsDir), '.gitignore');
-  try { if (fs.lstatSync(gi).isSymbolicLink()) throw new Error(path.relative(cfg.projectDir, gi) + ' is a symlink — refusing to write through it'); } catch (e) { if (e.code !== 'ENOENT') throw e; }
-  if (!fs.existsSync(gi)) fs.writeFileSync(gi, '# Claude Test run artifacts (logs, screenshots, driver state) are local evidence, not source.\\nruns/\\nfiled.*.tmp\\n');
-  else { const ignored = gitIgnored(cfg.projectDir, path.join(cfg.runsDir, 'canary-' + crypto.randomBytes(6).toString('hex'), 'log.md')); if (ignored === false || (ignored === null && fs.readFileSync(gi, 'utf8').split('\\n').filter((line) => /^!?runs\\/$/.test(line)).pop() !== 'runs/')) fs.appendFileSync(gi, '\\nruns/\\n'); }
+  try { fs.writeFileSync(gi, '# Claude Test run artifacts (logs, screenshots, driver state) are local evidence, not source.\\nruns/\\nfiled.*.tmp\\n', { flag: 'wx' }); return; } catch (e) { if (e.code !== 'EEXIST') throw e; }
+  const ignored = gitIgnored(cfg.projectDir, path.join(cfg.runsDir, 'canary-' + crypto.randomBytes(6).toString('hex'), 'log.md'));
+
+
+  const hasLine = () => { let fd; try { fd = fs.openSync(gi, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW | fs.constants.O_NONBLOCK); } catch { return false; } try { const st = fs.fstatSync(fd); if (!st.isFile() || st.size > 256 * 1024) return false; const lines = fs.readFileSync(fd, 'utf8').split('\\n'); return lines.includes('runs/') && !lines.slice(lines.lastIndexOf('runs/')).some((line) => line.startsWith('!')); } finally { fs.closeSync(fd); } };
+  if (ignored === true || (ignored === null && hasLine())) return;
+  let ordinary = false; try { const st = fs.lstatSync(gi); ordinary = st.isFile() && st.nlink === 1 && st.size <= 256 * 1024; } catch {                  }
+
+  throw new Error(path.relative(cfg.projectDir, gi) + (ordinary ? ' does not list runs/, so test results could be committed to git. Add the line runs/ to that file, then run the test again.' : ' is not an ordinary file (it may be a link to another file), so Claude Test does not use it. Delete it, then run the test again: a new one is made.'));
 }
 
 
