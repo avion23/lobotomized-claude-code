@@ -6,7 +6,7 @@ description: >-
   in.
 ccVersion: 2.1.302
 variables:
-  - TOOL_DESCRIPTION_ARTIFACT_KNOWN_VERSION_RESUBMISSION_GUIDANCE_VAR_0
-  - TOOL_DESCRIPTION_ARTIFACT_KNOWN_VERSION_RESUBMISSION_GUIDANCE_VAR_1
+  - MERGE_TARGET_VERSION_PHRASE
+  - REFETCH_CONFIRMATION_CLAUSE
 -->
-. Merge your edits onto ${TOOL_DESCRIPTION_ARTIFACT_KNOWN_VERSION_RESUBMISSION_GUIDANCE_VAR_0} source (handed to you or read in the turn that refused this content; if neither, fetch the artifact's URL first) and publish the merged result. If your content genuinely already includes that version's changes, ${TOOL_DESCRIPTION_ARTIFACT_KNOWN_VERSION_RESUBMISSION_GUIDANCE_VAR_1} publish again
+. Merge your edits onto ${MERGE_TARGET_VERSION_PHRASE} source (handed to you or read in the turn that refused this content; if neither, fetch the artifact's URL first) and publish the merged result. If your content genuinely already includes that version's changes, ${REFETCH_CONFIRMATION_CLAUSE} publish again
