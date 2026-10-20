@@ -4,7 +4,7 @@ description: >-
   claude-test browser-server module (skills/run/scripts/lib/allow-tool.mjs)
   defining the claude_test_allow / claude_test_app_up / claude_test_show_run MCP
   tool descriptions, input schemas and result texts the model receives.
-ccVersion: 2.1.302
+ccVersion: 2.1.304
 -->
 
 
@@ -23,12 +23,18 @@ export const ALLOW_TOOL = 'claude_test_allow';
 export const UP_TOOL = 'claude_test_app_up';
 export const SHOW_TOOL = 'claude_test_show_run';
 
+export const PREVIEW = process.argv.includes('--preview');
+
 
 const WAIT_ARG = '--allow-wait-ms=';
 const WAIT_MS = Math.min(Math.max(Number((process.argv.find((a) => a.startsWith(WAIT_ARG)) || '').slice(WAIT_ARG.length)) || Infinity, 50), 10 * 60 * 1000);
 
 
 export const LINE_COLUMNS = 72;
+
+const QUESTION_LINES = 4;
+
+const FOLDER_GOES_ON = 'Continued: ';
 const WHO = 'Claude Test: ';
 
 const MOST_QUESTIONS = 8;
@@ -58,17 +64,32 @@ function folderShown(projectDir) {
   return shown(short, 4096) === short ? short : null;
 }
 
+
+
+
+function folderLines(folder) {
+  if (folder === null || columns('Project: ' + folder) <= LINE_COLUMNS) return folder;
+  const chars = [...folder];
+  for (let at = chars.length - 1; at > 0; at--) {
+    if (chars[at - 1] !== '/' && chars[at - 1] !== path.sep) continue;
+    const head = chars.slice(0, at).join(''); const rest = chars.slice(at).join('');
+    if (columns('Project: ' + head) > LINE_COLUMNS || /^(?:\\s|\\p{M}|[\\u2800\\u3164\\u115F\\u1160\\uFFA0])/u.test(rest)) continue;
+    return columns(FOLDER_GOES_ON + rest) <= LINE_COLUMNS ? head + '\\n' + FOLDER_GOES_ON + rest : null;
+  }
+  return null;
+}
+
 const WHERE_PAGES_GO = 'Pages it opens reach Anthropic as text and screenshots. Use test data.';
 
 
 function question(folder, address, isOrigin) {
   return [
     WHO + address,
-    isOrigin ? 'May its test browser open this address?' + (isLocalHost(hostOf(address)) ? '' : ' It is not on this machine.')
+    isOrigin ? 'Do you want to allow it to open this address?' + (isLocalHost(hostOf(address)) ? '' : ' It is not on this machine.')
       : isWildcard(address) ? 'May pages in its test browser load from and send data to these hosts?'
       : 'May pages in its test browser load from this host and send data to it?',
     'Project: ' + folder,
-    isOrigin ? WHERE_PAGES_GO : 'Tick the box and Accept to record it for this project on this machine.',
+    isOrigin ? WHERE_PAGES_GO : 'Press Space, then Accept, to allow it for this project on this machine.',
   ].join('\\n');
 }
 
@@ -76,7 +97,23 @@ const isWildcard = (address) => address.startsWith('*.');
 
 
 const covers = (address) => 'This covers every host whose name ends in ' + address.slice(1) + '.';
-const tickBox = (address, isOrigin) => ({ type: 'object', properties: { allow: { type: 'boolean', title: isOrigin ? 'Tick to allow for this project on this machine' : isWildcard(address) ? 'Allow these hosts' : 'Allow this host', description: !isOrigin && isWildcard(address) && columns(covers(address)) <= LINE_COLUMNS - 6 ? covers(address) : address } }, required: ['allow'] });
+const tickBox = (address, isOrigin) => ({ type: 'object', properties: { allow: { type: 'boolean', title: isOrigin ? 'Space to allow in this project on this machine' : isWildcard(address) ? 'Space to allow these hosts' : 'Space to allow this host', description: !isOrigin && isWildcard(address) && columns(covers(address)) <= LINE_COLUMNS - 6 ? covers(address) : address } }, required: ['allow'] });
+
+
+
+function previewQuestion(folder, address, isOrigin) {
+  if (!isOrigin) return [WHO + address, isWildcard(address) ? 'May pages in its test browser load from and send data to these hosts?' : 'May pages in its test browser load from this host and send data to it?', 'Project: ' + folder, !isWildcard(address) ? 'Choose Accept to allow it for this project on this machine.' : columns(covers(address)) <= LINE_COLUMNS ? covers(address) : 'Choose Accept to allow them for this project on this machine.'].join('\\n');
+  const asked = 'Do you want to allow Claude Test to open ' + address + '?';
+  if (columns(asked) > LINE_COLUMNS) return question(folder, address, isOrigin);
+  const lines = [asked, ...(isLocalHost(hostOf(address)) ? [] : ['It is not on this machine.']), 'Project: ' + folder, WHERE_PAGES_GO];
+  return (lines.join('\\n').split('\\n').length < 4 ? [...lines, 'Choose Accept to allow it for this project on this machine.'] : lines).join('\\n');
+}
+
+const NO_BOX = 'The dialog of the tool ' + ALLOW_TOOL + ' has no box to tick in this session: it ends in Accept and Decline, and Accept alone allows. Where the run skill\\'s words about that dialog mention a box, a tick or Space, leave that out: write "To allow one, choose Accept." in place of "To allow one, press Space to tick the box, then choose Accept.", and "To allow it, choose Accept." in place of "Press Space to tick the box, then choose Accept.". The install questions keep their box.';
+
+export const PREVIEW_INSTRUCTIONS = PREVIEW ? 'Claude Test: ' + NO_BOX : null;
+
+const PREVIEW_TOOL = { ...TOOL, description: TOOL.description.replace('goes on to the project folder and ends in a box to tick; only Accept with the box ticked records it', 'goes on to the project folder and ends in Accept and Decline, with no box to tick; only Accept records it') + ' ' + NO_BOX };
 
 const UP = {
   name: UP_TOOL,
@@ -234,17 +271,21 @@ export function makeAllowTool({ send, settings = launcherConfig, opening = {}, r
       if (rec.origins.has(k) || rec.hosts.has(h)) return answer(id, JSON.stringify({ ok: true, alreadyAllowed: [shown(args.address, 120)], file: rec.file, note: 'nothing to ask: already allowed for this project on this machine' }));
       return fail('Nothing was asked and nothing was changed: this project is not waiting for ' + shown(args.address, 120) + ' ("ct.mjs status" lists what it is waiting for, under needsConsent).');
     }
-    const address = isOrigin ? k : h; const folder = folderShown(cfg.projectDir);
+    const address = isOrigin ? k : h; const plainFolder = folderShown(cfg.projectDir); const folder = PREVIEW ? folderLines(plainFolder) : plainFolder;
 
     if (shown(address, 4096) !== address || columns(WHO + address) > LINE_COLUMNS) return fail('Nothing was asked: ' + shown(address, 120) + ' cannot be shown whole in the question (it takes more than ' + (LINE_COLUMNS - WHO.length) + ' columns), so it cannot be allowed. Tell the person.');
-    if (folder === null || columns('Project: ' + folder) > LINE_COLUMNS) return fail('Nothing was asked: the project folder\\'s path cannot be shown whole in the question (it takes more than ' + (LINE_COLUMNS - 9) + ' columns, or holds a character that cannot be shown or a run of spaces), so nothing can be allowed for it. Tell the person; the project would have to sit at a shorter or plainer path.');
+    if (!PREVIEW && (folder === null || columns('Project: ' + folder) > LINE_COLUMNS)) return fail('Nothing was asked: the project folder\\'s path cannot be shown whole in the question (it takes more than ' + (LINE_COLUMNS - 9) + ' columns, or holds a character that cannot be shown or a run of spaces), so nothing can be allowed for it. Tell the person; the project would have to sit at a shorter or plainer path.');
+    if (plainFolder === null) return fail('Nothing was asked: the project folder\\'s path cannot be shown whole in the question: it holds a character that cannot be shown, or a run of spaces. So nothing can be allowed for it. Tell the person; the project would have to sit at a plainer path.');
+    if (folder === null) return fail('Nothing was asked: the project folder\\'s path cannot be shown whole in the question, even on two lines: it is too long. So nothing can be allowed for it. Tell the person; the project would have to sit at a shorter path.');
+    const message = PREVIEW ? previewQuestion(folder, address, isOrigin) : question(folder, address, isOrigin); const lines = message.split('\\n');
+    if (PREVIEW && (lines.length > QUESTION_LINES || lines.some((line) => columns(line) > LINE_COLUMNS) || !('\\n' + message + '\\n').includes('\\n' + 'Project: ' + folder + '\\n'))) return fail('Nothing was asked: ' + address + ' and the project folder\\'s path together cannot be shown whole in the question. Claude Code shows at most ' + QUESTION_LINES + ' lines of it, and the question for this address has no spare line for a path on two lines. So ' + address + ' cannot be allowed for this project. Tell the person; the project would have to sit at a path of at most ' + (LINE_COLUMNS - 'Project: '.length) + ' characters (a letter outside plain ASCII counts as two), with ~ for the home folder, which fits on one line.');
     if (declined.has(cfg.projectDir + '\\n' + address)) return fail('Nothing was asked: the person already said no to ' + address + ' in this session, and that no stands. Do not ask again. If they change their mind, a new Claude Code session asks afresh.');
     if (withoutYes >= MOST_QUESTIONS) return fail('Nothing was asked: ' + withoutYes + ' questions in this session ended without a yes, so this helper asks no more in this session. What still waits can be asked about in a new Claude Code session.');
     if (asked >= MOST_ASKED) return fail('Nothing was asked: the person has been asked ' + asked + ' questions in this session, the most this helper asks. What still waits can be asked about in a new Claude Code session.');
     asked++;
     const askId = idPrefix + (++seq);
     const timer = setTimeout(() => { if (open && open.askId === askId) close('the person did not answer in time', true); }, WAIT_MS); timer.unref();
-    send({ jsonrpc: '2.0', id: askId, method: 'elicitation/create', params: { message: question(folder, address, isOrigin), requestedSchema: tickBox(address, isOrigin) } });
+    send({ jsonrpc: '2.0', id: askId, method: 'elicitation/create', params: PREVIEW ? { message, requestedSchema: { type: 'object', properties: {} } } : { message, requestedSchema: tickBox(address, isOrigin) } });
     open = { askId, callId: id, projectDir: cfg.projectDir, address, isOrigin, file: rec.file, timer };
   }
 
@@ -255,7 +296,8 @@ export function makeAllowTool({ send, settings = launcherConfig, opening = {}, r
     if (said === 'decline') declined.add(o.projectDir + '\\n' + o.address);
     if (said !== 'accept') { withoutYes++; return answer(o.callId, 'Nothing was recorded: ' + (said === 'decline' ? 'the person declined. That is their no' : said === 'cancel' ? 'the question was closed without an answer' : 'the question could not be put to the person') + '. Start no run, and record nothing any other way.', true); }
     const filled = msg.result.content;
-    if (!filled || typeof filled !== 'object' || Array.isArray(filled) || filled.allow !== true) { withoutYes++; return answer(o.callId, 'Nothing was recorded: the answer came back without the box ticked, and only a ticked box is a yes. Start no run, and record nothing any other way.', true); }
+    if (PREVIEW && (!filled || typeof filled !== 'object' || Array.isArray(filled))) { withoutYes++; return answer(o.callId, 'Nothing was recorded: the answer came back without the dialog\\'s form, and only Accept in Claude Code\\'s own dialog is a yes. Start no run, and record nothing any other way.', true); }
+    if (!PREVIEW && (!filled || typeof filled !== 'object' || Array.isArray(filled) || filled.allow !== true)) { withoutYes++; return answer(o.callId, 'Nothing was recorded: the answer came back without the box ticked, and only a ticked box is a yes. Start no run, and record nothing any other way.', true); }
     let why; try { why = writeConsent(o.projectDir, o.isOrigin ? { origins: [o.address] } : { hosts: [o.address] }); } catch (e) { why = String(e && e.message ? e.message : e); }
     if (why) { withoutYes++; return answer(o.callId, 'The person accepted, but the record could not be written: ' + shown(why, 600), true); }
     const when = !o.isOrigin ? 'a load-only host applies from the next run' : built ? 'this session\\'s test browser started before this yes: restart Claude Code once for it to open ' + o.address : 'the test browser starts with it at its next use in this session';
@@ -279,5 +321,5 @@ export function makeAllowTool({ send, settings = launcherConfig, opening = {}, r
     let msg; try { msg = JSON.parse(line); } catch { return false; }
     return take(msg);
   }
-  return { tools: [TOOL, UP, SHOW, ...runTools.tools], take, takeLine, fenceBuilt() { built = true; }, scrubWith(scrub, stateOf) { runTools.scrubWith(scrub, stateOf); } };
+  return { tools: [PREVIEW ? PREVIEW_TOOL : TOOL, UP, SHOW, ...runTools.tools], take, takeLine, fenceBuilt() { built = true; }, scrubWith(scrub, stateOf) { runTools.scrubWith(scrub, stateOf); } };
 }

@@ -1,8 +1,8 @@
 <!--
-name: 'Data: Auto-Mode Classifier-Only PreToolUse Hook Asked'
+name: 'Data: Auto mode classifier-only (hook asked)'
 description: >-
-  Suffix interpolated into the classifierOnly deny tool_result when a PreToolUse
-  hook asked for a prompt and none is raised.
-ccVersion: 2.1.265
+  Reason clause that a hook asked for a prompt and none is raised in
+  classifier-only mode
+ccVersion: 2.1.304
 -->
-a PreToolUse hook asked for a prompt, and none is raised
+a hook asked for a prompt, and none is raised

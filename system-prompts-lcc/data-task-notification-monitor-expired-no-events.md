@@ -1,10 +1,11 @@
 <!--
-name: 'Data: Task Notification Monitor Expired No Events'
+name: 'Data: Monitor expired with no events notification'
 description: >-
-  Housekeeping task notification telling the model a bounded monitor expired
-  with no events and to re-arm or widen the filter.
-ccVersion: 2.1.268
+  Task notification that a Monitor expired with no events delivered, with re-arm
+  advice and a hint to widen the filter
+ccVersion: 2.1.304
 variables:
   - DATA_TASK_NOTIFICATION_MONITOR_EXPIRED_NO_EVENTS_VAR_0
+  - DATA_TASK_NOTIFICATION_MONITOR_EXPIRED_NO_EVENTS_VAR_1
 -->
-[Monitor expired after ${DATA_TASK_NOTIFICATION_MONITOR_EXPIRED_NO_EVENTS_VAR_0} with no events delivered. Re-arm it if you still need the watch — and widen the filter if silence was unexpected.]
+[Monitor expired after ${DATA_TASK_NOTIFICATION_MONITOR_EXPIRED_NO_EVENTS_VAR_0} with no events delivered. ${DATA_TASK_NOTIFICATION_MONITOR_EXPIRED_NO_EVENTS_VAR_1} — and widen the filter if silence was unexpected.]

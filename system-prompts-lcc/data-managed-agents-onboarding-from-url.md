@@ -4,7 +4,7 @@ description: >-
   claude-api skill reference file (managed-agents-onboarding-from-url) inlined
   as <doc> or extracted for the model to Read when the skill's Reading Guide
   points to it.
-ccVersion: 2.1.299
+ccVersion: 2.1.304
 -->
 # Managed Agents - Onboarding From a URL
 
@@ -17,7 +17,7 @@ The job is five beats - **fetch -> extract -> propose -> write -> apply** - and 
 - **\`ant --version\` is 1.34.0 or later** - the first version where \`ant apply\` manages vaults. Missing or older: say so and give the user **one** command that installs or upgrades it (\`shared/anthropic-cli.md\` -> Install and auth); ask before running an installer. With Homebrew, missing is \`brew install anthropics/tap/ant\` and older is \`brew update && brew upgrade anthropics/tap/ant\` (without the \`brew update\`, Homebrew reports a stale latest version); follow either with that section's \`xattr\` step. If the package manager stops to ask something (trusting a tap, a password), relay the question; don't work around it. Then re-run \`ant --version\`.
 - **\`ant auth status\` shows an active credential source, in the organization and workspace the user expects.** None: stop and ask the user to run \`ant auth login\` in their own terminal (it opens a browser). An API key or workload identity federation won: ask the user to confirm it is the one they meant before going on. Don't go on to a dry run without that: \`ant apply --dry-run\` can still print a plan under an unknown organization or a credential source nobody chose (a stale \`ANTHROPIC_API_KEY\`), and that plan means nothing.
 
-On Claude Platform on AWS the CLI has no SigV4 mode: stop and use the SDK fallback in \`shared/managed-agents-onboarding.md\` §5.
+On Claude Platform on AWS both checks change. The floor is **\`ant\` 1.42.0**, the first version that signs with AWS credentials. \`ant auth login\` doesn't apply: the user sets \`AWS_REGION\` and \`ANTHROPIC_AWS_WORKSPACE_ID\` (\`shared/anthropic-cli.md\` -> Install and auth), and \`ant auth status\` must show AWS as the active credential, with the workspace they expect.
 
 ---
 
@@ -206,6 +206,8 @@ ant apply agents/daily-brief/agent.md agents/daily-brief/environment.yaml agents
 - **Without a terminal \`ant apply\` prints the plan and exits; it applies only with \`--yes\`, which is the user's approval, not yours.** Show the dry-run plan and add it once they say go ahead. Never add \`--force\` or \`--prune\` on your own.
 
 **2. Credentials - the user runs these, in a terminal of their own, not through you.** (None? Skip, and drop \`vault_ids\` and \`--vault-id\`.) Print one block per row of the confirmed table, each under a line saying where the secret goes, and tell the user to **run them one at a time**: paste one block, type the secret at the silent prompt, wait for the created credential to print, then the next. Pasted together, the first \`read -rs\` takes the next block's first line as the secret and that credential is never created.
+
+On Claude Platform on AWS, that terminal may lack the AWS settings or hold a credential that outranks them, and the secret would then go to the Claude API. So start the \`ant\` command in every block with \`env -u ANTHROPIC_API_KEY -u ANTHROPIC_AUTH_TOKEN -u ANTHROPIC_PROFILE -u ANTHROPIC_AWS_BASE_URL AWS_REGION=<region> ANTHROPIC_AWS_WORKSPACE_ID=<workspace id>\`, with both values filled in.
 
 \`\`\`sh
 VAULT_ID=$(jq -r '.resources["./agents/daily-brief/vault.yaml"].id' claude-lock.json)

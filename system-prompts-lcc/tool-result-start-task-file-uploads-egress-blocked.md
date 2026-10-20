@@ -1,11 +1,10 @@
 <!--
-name: Start task file upload egress blocked
+name: 'Tool result: start_task file uploads egress blocked'
 description: >-
-  Reports that this configuration does not permit uploading attachments to
-  Anthropic.
-ccVersion: 2.1.294
+  Error returned when uploading files to Anthropic is not available in this
+  configuration.
+ccVersion: 2.1.304
 variables:
   - TOOL_RESULT_START_TASK_FILE_UPLOADS_EGRESS_BLOCKED_VAR_0
-  - TOOL_RESULT_START_TASK_FILE_UPLOADS_EGRESS_BLOCKED_VAR_1
 -->
-Uploading files to Anthropic is not available in this configuration. ${TOOL_RESULT_START_TASK_FILE_UPLOADS_EGRESS_BLOCKED_VAR_0} ${TOOL_RESULT_START_TASK_FILE_UPLOADS_EGRESS_BLOCKED_VAR_1}
+Uploading files to Anthropic is not available in this configuration. ${TOOL_RESULT_START_TASK_FILE_UPLOADS_EGRESS_BLOCKED_VAR_0.words.nothingDone} ${TOOL_RESULT_START_TASK_FILE_UPLOADS_EGRESS_BLOCKED_VAR_0.withoutFiles}

@@ -4,7 +4,7 @@ description: >-
   Shared OpenTelemetry guide for the Claude API: SDK vs API tracing, content
   modes, SDK setup, API destinations, reading traces, token counting and span
   reference.
-ccVersion: 2.1.301
+ccVersion: 2.1.304
 -->
 # OpenTelemetry Tracing for the Claude API
 
@@ -234,32 +234,25 @@ For request and response fields, WebFetch the telemetry destinations API referen
 
 #### On Claude Platform on AWS
 
-An organization on Claude Platform on AWS manages destinations through Amazon's gateway, with the user's AWS credentials and SigV4 signing (\`shared/claude-platform-on-aws.md\`). Admin API keys and \`ant auth login\` don't work there, so skip step 1 and the admin sign-out in "Check that spans arrive". Because \`ant\` can't sign with AWS credentials, use \`curl\`: \`GET\` to list and \`POST\` to create on \`/v1/organizations/telemetry_destinations\`, \`POST\` to update and \`DELETE\` to delete on \`/v1/organizations/telemetry_destinations/{id}\`, and \`POST\` to add and \`DELETE\` to remove one workspace on \`/v1/organizations/telemetry_destinations/{id}/workspaces/{workspace_id}\`. A body holds the fields of steps 2 and 3 in snake_case (\`endpoint_url\`, \`traces\`, \`workspaces\`, \`state\`). Send the header \`anthropic-beta: telemetry-destinations-2026-08-11\`; without it the API answers \`404\`. The confirmation in step 2 stays the same. The following differ:
+An organization on Claude Platform on AWS manages destinations through Amazon's gateway, with the user's AWS credentials and SigV4 signing (\`shared/claude-platform-on-aws.md\`). Admin API keys and \`ant auth login\` don't work there, so skip step 1 and the admin sign-out in "Check that spans arrive". \`ant\` signs with AWS credentials there (\`shared/anthropic-cli.md\` -> Install and auth): run the commands of steps 2 and 3 **without \`--profile admin\`**, with \`AWS_REGION\` and \`ANTHROPIC_AWS_WORKSPACE_ID\` set. The confirmation in step 2 stays the same. The following differ:
 
-- **URL and signing.** Send each request to \`https://aws-external-anthropic.<region>.api.aws\`, with \`beta=true\` in the query string, signed for the same Region. Check the credentials with \`aws sts get-caller-identity\` (with the same \`--profile\`, if there is one). When the user confirms a change, show the AWS account it prints in place of the organization. Authenticate as in the create request below, which also keeps the credentials off the command line. Leave out the \`x-amz-security-token\` header for long-term IAM user keys. If the \`AWS_*\` variables aren't set (a profile, SSO or a role), load them in a subshell that wraps only the one request, \`( eval "$(aws configure export-credentials [--profile <profile>] --format env)" && curl ... )\`, so they end with it; never export them in the session's shell and never print them. Recommend a role or SSO session whose policy grants only the actions under **Permissions** over long-term IAM user keys.
+- **Credentials.** \`ant\` finds a profile, SSO session or role through the AWS default credential chain (\`AWS_PROFILE\` names a profile), so never export or print the \`AWS_*\` keys for it. Check the credentials with \`aws sts get-caller-identity\`, and check with \`ant auth status\` that AWS is the active credential. When the user confirms a change, show the AWS account that \`aws sts get-caller-identity\` prints in place of the organization. Start every command as the create request below does: a leftover \`ANTHROPIC_API_KEY\`, \`ANTHROPIC_AUTH_TOKEN\` or \`ANTHROPIC_PROFILE\` would win over the AWS settings, a leftover \`ANTHROPIC_AWS_API_KEY\` would replace the credentials you just checked, and a leftover \`ANTHROPIC_AWS_BASE_URL\` would send the signed requests, with the backend's key, to another host. Recommend a role or SSO session whose policy grants only the actions under **Permissions** over long-term IAM user keys.
 
   \`\`\`bash
   test -s ~/.honeycomb-key &&
-  jq -n --rawfile key ~/.honeycomb-key '{
-      display_name: "Honeycomb",
-      endpoint_url: "https://api.honeycomb.io",
-      headers: {"x-honeycomb-team": ($key | rtrimstr("\\n"))},
-      traces: {content_mode: "metadata_only", max_content_bytes: 50000},
-      workspaces: {type: "all"}
-    }' |
-  curl --fail-with-body -sS "https://aws-external-anthropic.<region>.api.aws/v1/organizations/telemetry_destinations?beta=true" \\
-    --aws-sigv4 "aws:amz:<region>:aws-external-anthropic" \\
-    -K <(printf 'user = "%s:%s"\\n' "$AWS_ACCESS_KEY_ID" "$AWS_SECRET_ACCESS_KEY") \\
-    -H @<(printf 'x-amz-security-token: %s\\n' "$AWS_SESSION_TOKEN") \\
-    -H "anthropic-version: 2023-06-01" \\
-    -H "anthropic-beta: telemetry-destinations-2026-08-11" \\
-    -H "content-type: application/json" \\
-    --data-binary @-
+  body=$(jq -n --rawfile key ~/.honeycomb-key '{headers: {"x-honeycomb-team": ($key | rtrimstr("\\n") | sub("^@"; "\\\\@"))}}') &&
+  env -u ANTHROPIC_API_KEY -u ANTHROPIC_AUTH_TOKEN -u ANTHROPIC_PROFILE -u ANTHROPIC_AWS_API_KEY -u ANTHROPIC_AWS_BASE_URL \\
+    AWS_REGION=<region> ANTHROPIC_AWS_WORKSPACE_ID=<workspace id> \\
+    ant beta:organization:telemetry-destinations create \\
+      --display-name Honeycomb \\
+      --endpoint-url https://api.honeycomb.io \\
+      --traces '{content_mode: metadata_only, max_content_bytes: 50000}' \\
+      --workspaces '{type: all}' <<<"$body"
   \`\`\`
 
 - **Permissions.** For requests through the gateway, the customer's IAM policy decides who can manage destinations, not the Console role. The actions, each with the \`aws-external-anthropic:\` prefix, are \`CreateAccountTelemetryDestination\`, \`GetAccountTelemetryDestination\`, \`ListAccountTelemetryDestinations\`, \`UpdateAccountTelemetryDestination\`, \`DeleteAccountTelemetryDestination\` and \`ListAccountTelemetryDestinationWorkspaces\` on \`"Resource": "*"\`, and \`AddTelemetryDestinationWorkspace\` and \`RemoveTelemetryDestinationWorkspace\` on a workspace's ARN (\`arn:aws:aws-external-anthropic:<region>:<account id>:workspace/<workspace id>\`). Create and update can send every workspace's spans, in every Region, to any endpoint, so tell the user to grant them only to principals trusted with all of it.
-- **Workspaces.** A request sees only the workspaces of the caller's AWS account in the Region it calls; others answer \`404\`. So name a workspace in \`workspace_ids\`, or add or remove it, through its own Region's URL. \`{"type": "all"}\` covers every workspace in every Region. An update that sets \`workspace_ids\` drops from the list the workspaces the caller can't see; on an \`exclude\` list, that starts sending their spans, so say so when the user confirms.
-- **One workspace.** To add or remove one, also send \`anthropic-workspace-id\` with the ID in the path; a different ID answers \`400\`. For a destination with \`exclude\`, add and remove answer \`403\`, so change its list with an update.
+- **Workspaces.** A request sees only the workspaces of the caller's AWS account in the Region it calls; others answer \`404\`. So name a workspace in \`workspace_ids\`, or add or remove it, with \`AWS_REGION\` set to its own Region. \`{"type": "all"}\` covers every workspace in every Region. An update that sets \`workspace_ids\` drops from the list the workspaces the caller can't see; on an \`exclude\` list, that starts sending their spans, so say so when the user confirms.
+- **One workspace.** To add or remove one, pass its ID twice, as \`--aws-workspace-id\` before the command name and as \`--workspace-id\` after it: \`ant\` sends the first as the \`anthropic-workspace-id\` header, and a header that differs from the ID in the path answers \`400\`. For a destination with \`exclude\`, add and remove answer \`403\`, so change its list with an update.
 
 ### Add a destination in the Console
 

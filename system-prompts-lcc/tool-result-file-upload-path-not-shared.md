@@ -5,8 +5,9 @@ description: >-
   outside the session's allowed read roots or fails its attachment digest check;
   returned to the model as a <tool_use_error> tool_result instructing it to ask
   the user to share the file or run /add-dir.
-ccVersion: 2.1.211
+ccVersion: 2.1.304
 variables:
   - TOOL_RESULT_FILE_UPLOAD_PATH_NOT_SHARED_VAR_0
+  - TOOL_RESULT_FILE_UPLOAD_PATH_NOT_SHARED_VAR_1
 -->
-Cannot upload "${TOOL_RESULT_FILE_UPLOAD_PATH_NOT_SHARED_VAR_0}": this session isn't allowed to read it. Ask the user to share the file, or to add its folder with /add-dir.
+Cannot upload "${TOOL_RESULT_FILE_UPLOAD_PATH_NOT_SHARED_VAR_0(TOOL_RESULT_FILE_UPLOAD_PATH_NOT_SHARED_VAR_1)}": this session isn't allowed to read it. Ask the user to share the file, or to add its folder with /add-dir.

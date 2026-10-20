@@ -3,7 +3,7 @@ name: 'Data: SKILL (Claude Test — the spec author (background; nobody is watch
 description: >-
   Prompt body of the claude-test "draft" skill (spec-author background), loaded
   as skill text by we().
-ccVersion: 2.1.302
+ccVersion: 2.1.304
 -->
 ---
 description: Internal to Claude Test — drafts spec files in the background for a first run. Started only by the claude-test run skill.
@@ -259,7 +259,7 @@ for the name in one of the browser's own dialogs is fine — the run answers tho
 the list of records and END there: "Passes when" names the entry in the list (that proves it was
 saved), not only the heading of the screen you were on.
 Only if no rename action or name field exists anywhere do you leave the create out, and then say
-under "Left out" which files you searched for one. Tag them \`tags: [creates-data]\` in the front matter; give
+under "Not covered" which files you searched for one. Tag them \`tags: [creates-data]\` in the front matter; give
 every record they make the fixed prefix "Claude Test demo" so later runs find and reuse it; make
 the first step conditional ("If no recipe named 'Claude Test demo recipe' exists, add one from …;
 otherwise open it"); prefer the creation path an ordinary user has; edit, rename or move only
@@ -274,9 +274,9 @@ Format example: [spec-format.md](spec-format.md), "Specs that need data".
 spec), so no spec may depend on another spec's leftovers; a spec that changes state the app keeps for the visitor (a
 cart, a sort order in sessionStorage, a dismissed banner) either asserts from a clean start or ends by undoing what
 it changed. If the app ships deliberately broken modes or accounts (a "problem user", a chaos flag, a demo of known
-bugs), do not silently skip them: pin each documented defect that is observable within two steps as its own spec
-(up to three, counted in the 5–8), asserting the broken behaviour exactly as documented; defects that need more than
-two steps go under Next as numbered questions — "N. pin <defect>? (default: yes)".
+bugs), do not silently skip them: pin at most one documented defect that is observable within two steps as its own spec
+(counted in the specs the outline lists), asserting the broken behaviour exactly as documented; every other documented defect is an
+item under "Not covered:", "<defect>: a bug the app documents.", adding "It takes too many steps to check." when it needs more than two steps, with no question.
 
 Drop or rework a draft that fails one of these:
 

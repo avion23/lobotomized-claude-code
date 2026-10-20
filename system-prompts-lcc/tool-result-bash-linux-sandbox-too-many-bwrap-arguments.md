@@ -1,12 +1,13 @@
 <!--
-name: 'Tool Result: Linux Sandbox Too Many Bwrap Arguments'
+name: 'Tool Result: Bash Linux sandbox too many bwrap arguments'
 description: >-
-  Error surfaced when the Bash tool's Linux sandbox profile expands to more
-  bwrap arguments than bwrap accepts, explaining the mount/env-var budget so the
-  command can be narrowed.
-ccVersion: 2.1.284
+  Error when the Linux sandbox profile has more bwrap arguments than bwrap
+  accepts, with an approximate mount count and a breakdown of what the arguments
+  come from
+ccVersion: 2.1.304
 variables:
   - TOOL_RESULT_BASH_LINUX_SANDBOX_TOO_MANY_BWRAP_ARGUMENTS_VAR_0
   - TOOL_RESULT_BASH_LINUX_SANDBOX_TOO_MANY_BWRAP_ARGUMENTS_VAR_1
+  - TOOL_RESULT_BASH_LINUX_SANDBOX_TOO_MANY_BWRAP_ARGUMENTS_VAR_2
 -->
-Sandbox profile has ${TOOL_RESULT_BASH_LINUX_SANDBOX_TOO_MANY_BWRAP_ARGUMENTS_VAR_0.length} bwrap arguments and bwrap accepts at most ${TOOL_RESULT_BASH_LINUX_SANDBOX_TOO_MANY_BWRAP_ARGUMENTS_VAR_1} (about ${TOOL_RESULT_BASH_LINUX_SANDBOX_TOO_MANY_BWRAP_ARGUMENTS_VAR_1/3} mounts); reduce what the configuration expands to: each path takes about three arguments, each environment variable two
+Sandbox profile has ${TOOL_RESULT_BASH_LINUX_SANDBOX_TOO_MANY_BWRAP_ARGUMENTS_VAR_0.length} bwrap arguments and bwrap accepts at most ${TOOL_RESULT_BASH_LINUX_SANDBOX_TOO_MANY_BWRAP_ARGUMENTS_VAR_1} (about ${TOOL_RESULT_BASH_LINUX_SANDBOX_TOO_MANY_BWRAP_ARGUMENTS_VAR_1/3} mounts). ${TOOL_RESULT_BASH_LINUX_SANDBOX_TOO_MANY_BWRAP_ARGUMENTS_VAR_2()}

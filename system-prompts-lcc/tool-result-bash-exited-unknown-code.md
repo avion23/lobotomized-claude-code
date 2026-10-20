@@ -1,10 +1,11 @@
 <!--
-name: Bash Exited Unknown Code
+name: 'Tool Result: Bash exited with unknown code'
 description: >-
-  Bash task snapshot/tool result when a command completed without a known exit
-  code, including the full output path.
-ccVersion: 2.1.251
+  Status that a command exited and its exit code is not known, with the full
+  output
+ccVersion: 2.1.304
 variables:
   - TOOL_RESULT_BASH_EXITED_UNKNOWN_CODE_VAR_0
+  - TOOL_RESULT_BASH_EXITED_UNKNOWN_CODE_VAR_1
 -->
-Exited; the exit code is not known. Full output: ${TOOL_RESULT_BASH_EXITED_UNKNOWN_CODE_VAR_0}
+Exited; the exit code is not known.${TOOL_RESULT_BASH_EXITED_UNKNOWN_CODE_VAR_0("Full output",TOOL_RESULT_BASH_EXITED_UNKNOWN_CODE_VAR_1)}

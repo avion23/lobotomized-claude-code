@@ -6,7 +6,7 @@ description: >-
   (browser_setup_needed, claude_test_install and its
   noLock/allowFallback/downloadHost schema), tools/call result texts and
   launcher refusal/warning notes are delivered to the model.
-ccVersion: 2.1.302
+ccVersion: 2.1.304
 -->
 #!/usr/bin/env node
 
@@ -32,7 +32,7 @@ import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
 import dns from 'node:dns';
 import { fileURLToPath } from 'node:url';
-import { makeAllowTool, ALLOW_TOOL, UP_TOOL, SHOW_TOOL, LINE_COLUMNS, columns } from './lib/allow-tool.mjs';
+import { makeAllowTool, ALLOW_TOOL, UP_TOOL, SHOW_TOOL, LINE_COLUMNS, columns, PREVIEW_INSTRUCTIONS } from './lib/allow-tool.mjs';
 import { loadConfig, PLAYWRIGHT_PIN, shown, browserServerEnv, parseDotenv, isLocalHost, ensureRunsDir, assertRunsDirInsideProject, resolveProjectDir, sessionRoot, reallyInsideDir, runsPathProblem, envPathOutsideProject, originAllowed, projectsBelow, isMarked, rootConfiguresItself, sanitizeBrowserEnv, launcherConfig } from './lib/config.mjs';
 import { makeVet } from './lib/vet.mjs';
 import { runFolders, placeStagedFile } from './lib/runs.mjs';
@@ -84,7 +84,7 @@ function lazyServer() {
       buf = buf.slice(nl + 1);
       if (!msg || msg.id === undefined || typeof msg.method !== 'string') continue;
       const reply = (result) => send({ jsonrpc: '2.0', id: msg.id, result });
-      if (msg.method === 'initialize') { initializeParams = msg.params && typeof msg.params === 'object' ? msg.params : null; reply({ protocolVersion: (msg.params && msg.params.protocolVersion) || '2025-06-18', capabilities: { tools: { listChanged: true } }, serverInfo: { name: 'claude-test-browser', version: 'lazy' } }); }
+      if (msg.method === 'initialize') { initializeParams = msg.params && typeof msg.params === 'object' ? msg.params : null; reply({ protocolVersion: (msg.params && msg.params.protocolVersion) || '2025-06-18', capabilities: { tools: { listChanged: true } }, serverInfo: { name: 'claude-test-browser', version: 'lazy' }, ...(PREVIEW_INSTRUCTIONS ? { instructions: PREVIEW_INSTRUCTIONS } : {}) }); }
       else if (msg.method === 'tools/list') reply({ tools: [...snapshotTools(), ...setupTools, ...allowTool.tools] });
       else reply({});
     }
@@ -139,8 +139,13 @@ if (!cfg.allowedOrigins || !cfg.allowedOrigins.length) { log('refusing to start:
 
 
 const serverArgs = ['--isolated', '--block-service-workers', '--output-dir', outputDir, '--snapshot-mode', 'none', '--viewport-size', '1280x800'];
-if (process.env.CLAUDE_TEST_HEADED !== '1') serverArgs.push('--headless');
 
+
+
+
+const headed = process.env.CLAUDE_TEST_HEADED === '1' && (process.platform !== 'linux' || !!process.env.DISPLAY);
+if (!headed) serverArgs.push('--headless');
+if (process.env.CLAUDE_TEST_HEADED === '1') log(headed ? 'CLAUDE_TEST_HEADED=1: the test browser will open in a window' : 'CLAUDE_TEST_HEADED=1 is ignored: DISPLAY is not set, so the test browser runs without a window; to watch it, start Claude Code from a desktop session where DISPLAY is set');
 
 
 
@@ -169,11 +174,12 @@ let notePageLeftApp = () => {};
 
   const proxySetting = upstreamProxySetting(process.env); const upstream = proxySetting.proxy;
   const lookup2s = (host) => Promise.race([dns.promises.lookup(host, { all: true, verbatim: true }), new Promise((_, rej) => setTimeout(() => rej(new Error('slow')), 2000).unref())]);
-  const bypass = ['<-loopback>']; const viaProxy = []; const appHostPorts = new Set(); const pins = [];
+  const bypass = ['<-loopback>']; const ownEntries = []; const ownHostPorts = new Set(); const viaProxy = []; const appHostPorts = new Set(); const pins = [];
   for (const o of cfg.allowedOrigins) {
     let host; try { host = new URL(/^https?:\\/\\//.test(o) ? o : 'http://' + o).hostname.toLowerCase().replace(/^\\[|\\]$/g, ''); } catch { continue; }
-    const pairs = bypassOf(o);
-    for (const hp of pairs) appHostPorts.add(host + ':' + hp.slice(hp.lastIndexOf(':') + 1));
+    const rules = bypassOf(o);
+    if (!rules.length) { log('NOTE ' + shown(o, 120) + ' is allowed but cannot be reached: the test browser takes no address with port 0. In .claude-testrc, replace port 0 with the port that the app listens on'); continue; }
+    const hostPorts = rules.map((rule) => host + ':' + rule.slice(rule.lastIndexOf(':') + 1)); for (const hostPort of hostPorts) appHostPorts.add(hostPort);
     const literal = isLocalHost(host) || net.isIP(host) !== 0;
     const localName = !literal && (!host.includes('.') || /\\.(localhost|local|internal|test|lan|home|corp|private|intranet|localdomain|home\\.arpa)$/.test(host));
     let own = literal || localName;
@@ -192,7 +198,7 @@ let notePageLeftApp = () => {};
         }
       }
     }
-    (own ? bypass : viaProxy).push(...pairs);
+    (own ? ownEntries : viaProxy).push(o); if (own) { bypass.push(...rules); for (const hostPort of hostPorts) ownHostPorts.add(hostPort); }
   }
   let reach = { runId: undefined, entries: cfg.reachableHosts || [], match: makeReachableMatcher(cfg.reachableHosts || []) };
   let tally = new Map(); let leftFor = new Map(); let tallyDirty = false; let lastLook = 0; let ranId = null;
@@ -231,8 +237,13 @@ let notePageLeftApp = () => {};
     let entries = reach.entries; try { entries = loadConfig(cfg.projectDir).reachableHosts || []; } catch {                                              }
     if (JSON.stringify(entries) !== JSON.stringify(reach.entries)) { reach = { runId: reach.runId, entries, match: makeReachableMatcher(entries) }; log('reachableHosts now: ' + (entries.length ? entries.join(' ') : '(none)') + (running ? ' (run ' + id + ' begins with these)' : '')); }
   };
-  const allow = (host, port) => { lookForNewRun(); return appHostPorts.has(host + ':' + port) || reach.match(host, port); };
-  const onRefused = (host, port) => { if (!/^[a-z0-9.-]{1,253}$/.test(host) || appHostPorts.has(host + ':' + port)) return; const k = host + ':' + port; if (tally.size >= 400 && !tally.has(k)) return; tally.set(k, (tally.get(k) || 0) + 1); tallyDirty = true; };
+  const allow = (host, port) => { lookForNewRun(); const k = host + ':' + port; return !ownHostPorts.has(host.replace(/\\.$/, '') + ':' + port) && (appHostPorts.has(k) || reach.match(host, port)); };
+  const otherScheme = new Set();
+  const onRefused = (host, port) => {
+    const k = host + ':' + port; const own = host.replace(/\\.$/, '') + ':' + port;
+    if (ownHostPorts.has(k) && !otherScheme.has(k)) { otherScheme.add(k); log('NOTE a request to ' + shown((host.includes(':') ? '[' + host + ']' : host) + ':' + port, 130) + ' was refused: that address is allowed, but only with the scheme of its entry (an http:// entry covers http and ws, an https:// entry https and wss). If the app needs the other scheme on that port, add the address with that scheme to allowedOrigins in .claude-testrc'); }
+    if (!/^[a-z0-9.-]{1,253}$/.test(host) || appHostPorts.has(k) || ownHostPorts.has(own)) return; if (tally.size >= 400 && !tally.has(k)) return; tally.set(k, (tally.get(k) || 0) + 1); tallyDirty = true;
+  };
   notePageLeftApp = (host) => { lookForNewRun(); if (!reach.runId || !/^[a-z0-9.:[\\]-]{1,260}$/i.test(host)) return; if (leftFor.size >= 50 && !leftFor.has(host)) return; leftFor.set(host, (leftFor.get(host) || 0) + 1); tallyDirty = true; };
   if (proxySetting.problem) log('NOTE ' + proxySetting.problem + '; the test browser\\'s fence connects to allowed hosts directly instead, and only to their public addresses. To tunnel through your proxy, set HTTPS_PROXY to an http:// proxy address');
   const unreachable = new Set();
@@ -242,9 +253,9 @@ let notePageLeftApp = () => {};
   serverArgs.push('--proxy-server', 'http://127.0.0.1:' + proxy.port, '--proxy-bypass', bypass.join(','));
   udpArgs = UDP_FENCE_ARGS;
   const pinRule = resolverPins(pins); if (pinRule) { pinArgs = ['--host-resolver-rules=' + pinRule]; pinnedNames = pins.map((p) => p.name); log('fence: held to the address they have now, for this session — ' + pins.map((p) => shown(p.name, 80) + ' → ' + p.address).join(', ')); }
-  log('fence: reached directly, as the app\\'s own — ' + (bypass.length > 1 ? bypass.slice(1).join(' ') : '(nothing)') + (viaProxy.length ? '; through the proxy as trusted origins — ' + viaProxy.join(' ') : '') + '; through the proxy for loading only — ' + (reach.entries.length ? reach.entries.join(' ') : '(nothing yet: reachableHosts is empty)') + '; everything else is refused and counted' + (upstream ? '; tunnels go via this machine\\'s proxy ' + upstream.host + ':' + upstream.port : ''));
+  log('fence: reached directly, as the app\\'s own — ' + (ownEntries.length ? ownEntries.join(' ') : '(nothing)') + (viaProxy.length ? '; through the proxy as trusted origins — ' + viaProxy.join(' ') : '') + '; through the proxy for loading only — ' + (reach.entries.length ? reach.entries.join(' ') : '(nothing yet: reachableHosts is empty)') + '; everything else is refused' + (upstream ? '; tunnels go via this machine\\'s proxy ' + upstream.host + ':' + upstream.port : ''));
   guardSockets = false;
-  networkFence = 'navigation only to ' + cfg.allowedOrigins.join(' ') + '; pages may also load from ' + (reach.entries.length ? reach.entries.join(' ') : 'no other host') + ' (reachableHosts, read again at each new run); a filtering proxy refuses and counts everything else, WebSockets included' + (upstream ? ', tunnelling through this machine\\'s proxy ' + upstream.host + ':' + upstream.port : '') + '; WebRTC off in pages';
+  networkFence = 'navigation only to ' + cfg.allowedOrigins.join(' ') + '; pages may also load from ' + (reach.entries.length ? reach.entries.join(' ') : 'no other host') + ' (reachableHosts, read again at each new run); a filtering proxy refuses everything else, WebSockets included' + (upstream ? ', tunnelling through this machine\\'s proxy ' + upstream.host + ':' + upstream.port : '') + '; WebRTC off in pages';
 }
 
 
@@ -698,7 +709,7 @@ function maybeFrame(toolName) {
 
 
 
-const { vet: vetFileArgs, isSecretField, namesSecret, elementTargets, REFUSED_TOOLS } = makeVet({ cfg, sessionRoot: SESSION_ROOT, stagingDir: outputDir, state: { get secretKeySet() { return secretKeySet; }, get secretsUnreadable() { return secretsUnreadable; }, get scripted() { return scripted; }, get secretTyped() { return secretTyped; }, get secretEver() { return secretEver; } } });
+const { vet: vetFileArgs, isSecretField, namesSecret, elementTargets, REFUSED_TOOLS } = makeVet({ cfg, sessionRoot: SESSION_ROOT, stagingDir: outputDir, state: { get secretKeySet() { return secretKeySet; }, get secretsUnreadable() { return secretsUnreadable; }, get scripted() { return scripted; }, get secretTyped() { return secretTyped; }, get secretEver() { return secretEver; }, headed } });
 function pump(from, to, rewrite, seed = '') {
   let parts = [];
   from.setEncoding('utf8');
@@ -835,9 +846,9 @@ function setupNeededServer(why, lazy = null) {
   }, additionalProperties: false } };
 
   const stayLine = 'They run under your user account until a normal install replaces them.';
-  const noLockQuestion = (registry) => ({ description: 'Registry: ' + registry, lines: ['Claude Test: install its browser tools without the plugin\\'s checksums?', 'Your npm registry would decide which files are installed.', stayLine, 'To say yes, tick the box and choose Accept. To say no, choose Decline.'], title: 'Install without checksums' });
-  const fallbackQuestion = (newest, registry) => ({ description: 'Registry: ' + registry, lines: ['Claude Test: install Playwright ' + newest + ' in place of ' + PLAYWRIGHT_PIN + '?', 'The packages are not checked against the plugin\\'s checksums.', stayLine, 'To say yes, tick the box and choose Accept. To say no, choose Decline.'], title: 'Install Playwright ' + newest + ' without checksums' });
-  const mirrorQuestion = (address) => ({ lines: ['Claude Test: ' + address, 'May Claude Test download its test browser from this host?', 'The browser would run under your user account.', 'To say yes, tick the box and choose Accept. To say no, choose Decline.'], title: 'Download from this host', description: address });
+  const noLockQuestion = (registry) => ({ description: 'Registry: ' + registry, lines: ['Claude Test: install its browser tools without the plugin\\'s checksums?', 'Your npm registry would decide which files are installed.', stayLine, 'To say yes, press Space, then choose Accept. To say no, choose Decline.'], title: 'Install without checksums' });
+  const fallbackQuestion = (newest, registry) => ({ description: 'Registry: ' + registry, lines: ['Claude Test: install Playwright ' + newest + ' in place of ' + PLAYWRIGHT_PIN + '?', 'The packages are not checked against the plugin\\'s checksums.', stayLine, 'To say yes, press Space, then choose Accept. To say no, choose Decline.'], title: 'Install Playwright ' + newest + ' without checksums' });
+  const mirrorQuestion = (address) => ({ lines: ['Claude Test: ' + address, 'May Claude Test download its test browser from this host?', 'The browser would run under your user account.', 'To say yes, press Space, then choose Accept. To say no, choose Decline.'], title: 'Download from this host', description: address });
 
   const mirrorAddress = (v) => { if (typeof v === 'string' && /[?#]/.test(v)) return null; let u = null; try { u = typeof v === 'string' ? new URL(v) : null; } catch { u = null; } if (!u || u.protocol !== 'https:' || u.username || u.password || u.search || u.hash) return null; const address = u.href.replace(/\\/$/, ''); return shown(address, 4096) === address ? address : null; };
 
@@ -975,7 +986,7 @@ function setupNeededServer(why, lazy = null) {
       const id = msg.id;
       const reply = (result) => send({ jsonrpc: '2.0', id, result });
       const text = (t, isError) => reply({ content: [{ type: 'text', text: t }], ...(isError ? { isError: true } : {}) });
-      if (msg.method === 'initialize') { initializeParams = msg.params && typeof msg.params === 'object' ? msg.params : null; reply({ protocolVersion: (msg.params && msg.params.protocolVersion) || '2025-06-18', capabilities: { tools: { listChanged: true } }, serverInfo: { name: 'claude-test-browser', version: '0-setup' } }); }
+      if (msg.method === 'initialize') { initializeParams = msg.params && typeof msg.params === 'object' ? msg.params : null; reply({ protocolVersion: (msg.params && msg.params.protocolVersion) || '2025-06-18', capabilities: { tools: { listChanged: true } }, serverInfo: { name: 'claude-test-browser', version: '0-setup' }, ...(PREVIEW_INSTRUCTIONS ? { instructions: PREVIEW_INSTRUCTIONS } : {}) }); }
       else if (msg.method === 'tools/list') reply({ tools: [tool(), installTool, ...allowTool.tools] });
       else if (msg.method === 'tools/call' && msg.params && msg.params.name === 'claude_test_install') {
         if (upgrading) { answerLoading(text); continue; }

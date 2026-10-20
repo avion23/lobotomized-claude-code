@@ -3,7 +3,7 @@ name: 'Data: Anthropic CLI'
 description: >-
   claude-api skill reference file (Anthropic CLI) inlined as <doc> or extracted
   for the model to Read when the skill's Reading Guide points to it.
-ccVersion: 2.1.299
+ccVersion: 2.1.304
 -->
 # Anthropic CLI (\`ant\`)
 
@@ -35,11 +35,12 @@ curl -fsSL "https://github.com/anthropics/anthropic-cli/releases/download/v\${VE
 go install github.com/anthropics/anthropic-cli/cmd/ant@latest
 \`\`\`
 
-**Auth** - the CLI resolves credentials the same way the SDKs do (first match wins): explicit flags, then \`ANTHROPIC_API_KEY\`, then \`ANTHROPIC_AUTH_TOKEN\`, then the \`ANTHROPIC_PROFILE\`-selected or active profile, then Workload Identity Federation env vars, then the default profile on disk. Override the host with \`ANTHROPIC_BASE_URL\` or \`--base-url\`.
+**Auth** - the CLI resolves credentials the same way the SDKs do (first match wins): explicit flags, then \`ANTHROPIC_API_KEY\`, then \`ANTHROPIC_AUTH_TOKEN\`, then the \`ANTHROPIC_PROFILE\`-selected or active profile, then Workload Identity Federation env vars, then the Claude Platform on AWS settings (below), then the default profile on disk. Override the host with \`ANTHROPIC_BASE_URL\` or \`--base-url\`.
 
 - **API key**: set \`ANTHROPIC_API_KEY\` in the environment.
 - **OAuth profile** (no static key to manage): \`ant auth login\` opens a browser, exchanges for a short-lived token, and stores a profile under \`$ANTHROPIC_CONFIG_DIR\` (default \`~/.config/anthropic/\` on Linux/macOS, \`%APPDATA%\\Anthropic\` on Windows - \`configs/<profile>.json\` for settings, \`credentials/<profile>.json\` for tokens). Subsequent \`ant\` (and SDK) calls pick it up automatically - a bare \`Anthropic()\` client works after login, but scripts that read \`ANTHROPIC_API_KEY\` directly do not. Claude Code and the Claude Agent SDK honor the same profile resolution. \`ant auth status\` shows which credential source and profile won (it reports status only - don't script against its exit code as a health check); \`ant auth logout\` clears the active profile (\`--all\` for every profile). On a remote host without a browser, \`ant auth login --no-browser\` prints the authorize URL and accepts the code back in the terminal.
 - **Non-interactive workloads** (CI, servers, containers): interactive login is for development on your own machine - use Workload Identity Federation instead (see the authentication docs via \`shared/live-sources.md\`).
+- **Claude Platform on AWS** (needs \`ant\` 1.42.0 or later): set \`AWS_REGION\` and \`ANTHROPIC_AWS_WORKSPACE_ID\`, or pass \`--aws-region\` and \`--aws-workspace-id\`. Every command, \`ant apply\` included, then goes to the AWS gateway, SigV4-signed with whatever the AWS default credential chain finds (\`AWS_PROFILE\`, SSO, environment keys, a role). To use an API key generated in the AWS Console instead, set \`ANTHROPIC_AWS_API_KEY\` or pipe it to \`--aws-api-key-stdin\`. The workspace ID, \`--aws-region\` or an AWS API key selects AWS; \`AWS_REGION\` alone doesn't. \`ant auth login\` doesn't apply there. Unset \`ANTHROPIC_API_KEY\`, \`ANTHROPIC_AUTH_TOKEN\` and \`ANTHROPIC_PROFILE\` and leave out \`--profile\`, since each outranks these settings, then confirm with \`ant auth status\` that AWS is the active credential. \`--base-url\` and \`ANTHROPIC_BASE_URL\` aren't used (\`--aws-base-url\` or \`ANTHROPIC_AWS_BASE_URL\` overrides the gateway URL), and \`ant beta:worker\` doesn't read these settings. Platform details: \`shared/claude-platform-on-aws.md\`.
 
 > **The #1 auth trap:** profiles are only consulted when no API key is set. A stale exported \`ANTHROPIC_API_KEY\` silently overrides every profile - requests hit whatever org/workspace that key is scoped to. \`ant auth status\` shows which source won; unset the key (or per-command: \`env -u ANTHROPIC_API_KEY ant ...\`) before relying on a profile. Truly **unset** it - an empty \`ANTHROPIC_API_KEY=""\` still wins its precedence slot and authenticates with an empty key. The same shadowing applies in reverse to Claude Code: after \`ant auth login\`, Claude Code may warn about an auth conflict between the profile and its own \`/login\` credential - keep one (use the profile and \`/logout\` in Claude Code, or \`ant auth logout\` to keep Claude Code's own login).
 

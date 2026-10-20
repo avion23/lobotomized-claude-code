@@ -3,7 +3,7 @@ name: 'Data: SKILL (Claude Test runner — drive the app in a browser, judge eac
 description: >-
   Prompt body of the claude-test "execute" skill (runner that drives the app),
   loaded as skill text by we().
-ccVersion: 2.1.302
+ccVersion: 2.1.304
 -->
 ---
 description: Internal to Claude Test — runs the specs in a background browser. Started only by the claude-test run skill.
@@ -124,18 +124,18 @@ disallowed-tools:
 - \`run <run folder> [--key <key>] [--started] [--save <name,name,…>] [--replace <name,name,…>] [<stem> …]\` → run this project's Claude Test specs (all, or only the named stems) against its dev server
   by following §1–§6, recording one progress line per spec, and finish with the report in §6. \`--started\` means the conversation has
   just launched the dev server: it may still be compiling (§2.4).
-- \`look <run folder>\` → the first look for a project with no specs yet: §1–§3, then load at most five pages (the landing page and
+- \`look <run folder>\` → the first look for a project with no specs yet: §1–§3 (putting calls in one message as §4's first paragraph says), then load at most three pages (the landing page and
   what its main navigation leads to), one snapshot each, taken WITHOUT \`filename\` (a look saves no snapshot file: the first run shares this folder, and such a file would make its save refuse; on a page whose snapshot is too large, §4.2, a look narrows with \`depth\`, \`target\` or \`browser_find\` and never re-takes it into a file: its report needs only titles, headings, navigation and empty states), and return the LOOK report of §6 — what the app shows today, in its own
   words, for the conversation to build specs on. You read no source code and write no spec. A look keeps to a time, from its own start: call
   \`claude_test_elapsed\` (\`run: <id>\`) once before the first page and keep its \`elapsedSeconds\`; call it again after each page. When the first page's
-  snapshot is empty, wait 10 s (\`browser_wait_for\` \`time: 10\`) and take the snapshot again, twice; still empty → load nothing more, and before you close the browser gather three facts about that
-  empty page for the report's "Empty first page:" line (§6): \`browser_console_messages\` with \`level: "error"\`, for how many errors there are; \`browser_network_requests\` with \`static: false\`, for how many
+  snapshot is empty, wait 10 s (\`browser_wait_for\` \`time: 10\`) and take the snapshot again, twice; still empty → load nothing more. Whether the first page showed content or stayed empty, gather
+  right after its last snapshot, before any other page, two counts about it for the report's first-page line (§6): \`browser_console_messages\` with \`level: "error"\`, for how many errors there are; \`browser_network_requests\` with \`static: false\`, for how many
   requests did not load (they failed, or were answered with a status of 400 or above) and how many of those went to a host other than the app's own (the fence refuses the ones the person has not
-  allowed); and one call of \`browser_evaluate\` whose \`function\` is exactly \`() => self.crossOriginIsolated === true\`, with nothing added to it, which answers \`true\` or \`false\`. Only those counts and
+  allowed). Only for a first page that stayed empty, also make one call of \`browser_evaluate\` whose \`function\` is exactly \`() => self.crossOriginIsolated === true\`, with nothing added to it, which answers \`true\` or \`false\`. Only those counts and
   that yes or no go into the line: no message text, no address, no host name. A call that answers with an error, or with one of the too-large answers of §4.2, or an evaluate answer that is neither \`true\` nor \`false\`, leaves its own clause
-  out of the line. When \`elapsedSeconds\` has grown by
-  more than 180 since your first reading → load nothing more. Either way return the report with what you have, and on the line under its header write
-  "Stopped early: <the first page was still empty after 20 s | three minutes had passed> (<n> of at most 5 pages loaded)". The person was told a look takes about three minutes at most.
+  out of the line. The conversation turns that line into the person's first result, so it is never left out: a first page that loaded gets its "First page:" line even when every count is 0. When \`elapsedSeconds\` has grown by
+  more than 60 since your first reading → load nothing more. Either way return the report with what you have, and on the line under its header write
+  "Stopped early: <the first page was still empty after 20 s | a minute had passed> (<n> of at most 3 pages loaded)". The person was told a look takes about a minute.
 The run folder (\`…/<project>/.claude-test/runs/<id>/\`) was created by the conversation that started you; \`<id>\` is the folder's own name. You have no
 shell, no tool that edits files and no tool that reads a file by its path. Beside the browser tools, the bundled browser server gives you seven helper tools: \`claude_test_save\`, \`claude_test_status\`,
 \`claude_test_elapsed\`, \`claude_test_progress\`, \`claude_test_write_log\`, \`claude_test_finish\` and \`claude_test_read\`. Each takes \`run: <id>\` and finds the project and the run
@@ -169,7 +169,9 @@ none of these lines names what was wrong: mend that once, never by changing a na
 
 ## 1. Orient — one call
 
-Call \`claude_test_status\` with \`run: <id>\`. When that tool is not in your tool list, the bundled browser server is not running in this session: your whole
+Call \`claude_test_status\` with \`run: <id>\`; in mode \`run\`, put it in the same message as §0's save, right after it (calls in one message run in
+the order written, so status sees what the save filed, and the run saves a turn; after a second save, call status again; when the save's
+answer ends the run, status's answer is not used). When that tool is not in your tool list, the bundled browser server is not running in this session: your whole
 final message is §6's whole-run BLOCKED report, with the cause "the bundled browser server is not running in this session" and the fix "run /mcp and reconnect
 the claude-test browser server". You write no log.md then: you have no tool left to write it with.
 
@@ -273,6 +275,19 @@ host outside the app, the next action is refused with "the page is on <host>, wh
 
 
 ## 4. Run each spec
+
+**One message, many calls — fewer turns.** Each message you send costs a turn; the calls inside it do not. Calls in ONE message run one
+after another, in the order written, except read-only ones that stand next to each other (\`browser_snapshot\`, \`browser_find\`,
+\`browser_wait_for\`, \`browser_take_screenshot\`, \`browser_console_messages\`, \`browser_network_requests\`, \`browser_network_request\`): those
+run at the same time. So put what you already know you will do in one message: the progress start, the reads of every selected spec and
+the first spec's \`browser_close\`, \`browser_navigate\` and \`browser_snapshot\` (all after §2's preflight); an action and the snapshot or find
+that looks at its result; the verdict screenshot (on FAIL also its snapshot file), the console glance, the progress line and the next spec's
+\`browser_close\`, \`browser_navigate\` and \`browser_snapshot\` (when a Must line depends on the console, the progress line waits for its answer).
+Two limits. A \`browser_wait_for\` and a snapshot or find right after it would run at the same time, and the snapshot would not wait: put
+\`claude_test_elapsed\` (\`run: <id>\`) between them (it is not read-only, so what comes after it waits for the wait), or end that message with
+the wait and look in the next one. And a call never shares a message with an earlier call whose answer it
+needs (a ref that no snapshot has shown yet, the step after a page you have not seen). A look batches the same way: a page's navigate and
+snapshot in one message, its screenshot, its counts and \`claude_test_elapsed\` in the next; that elapsed answer decides whether another page loads.
 
 Read every selected spec file yourself, with \`claude_test_read\` (\`run: <id>\`, \`key: <key>\`, \`spec: <the file's stem>\`: \`home\` for \`.claude-test/specs/home.md\` in the \`specs.files[].file\` of \`claude_test_status\`, the same stems that the \`order\` of the progress start gives; never the spec's \`# heading\`; an answer's first line is the tool's own and says whether a next part is to be fetched with \`from\`; a spec that the tool refuses is BLOCKED with the refusal): the
 \`# heading\` is its name, the prose under it is the steps, \`## Passes when\` lists
@@ -433,9 +448,12 @@ BLOCKED "needs sign-in — no saved browser session (ask Claude to set up sign-i
 Whatever the outcome — table, BLOCKED, NEEDS INPUT or LOOK — if you called \`browser_navigate\` at all in this run, call
 \`browser_close\` before writing the report, so no browser of yours stays running while the person reads it.
 
+The person is waiting for this report, and it is a copy, not new work: each verdict, its one-line why and its evidence were settled
+when you recorded the verdict. After the last one, write it at once from those notes as they stand: do not go over the run again,
+re-judge a spec or plan the report first.
 Order: first write \`.claude-test/runs/<id>/log.md\` next to the screenshots, with \`claude_test_write_log\` (\`run: <id>\`, \`key: <key>\`, \`text\`: the whole file) — the header line and
 verdict table below on top, then the per-spec log — so the evidence outlives the conversation.
-Then call \`claude_test_finish\` with \`run: <id>\` and \`key: <key>\` once: it writes \`results.json\` beside log.md (the same verdicts,
+Then call \`claude_test_finish\` with \`run: <id>\` and \`key: <key>\` once, in the same message as the log (calls in one message run in order): it writes \`results.json\` beside log.md (the same verdicts,
 machine-readable, for scripts and CI) from what you wrote; if it answers with an \`error\` about the table's shape, fix that row, write the whole log again (when the text you wrote is no longer before you, \`claude_test_read\` with \`run\`, \`key\` and \`log: true\` gives it back, a part at a time) and call it
 again — never change an outcome to satisfy it. Once it has written \`results.json\` the run is closed: \`claude_test_progress\`, \`claude_test_write_log\` and \`claude_test_finish\` add nothing more to it. When the whole run, or any spec in it, ended BLOCKED, add \`why: <word>\` to that call, and again each
 time you call finish for this run: the one word of this list that names the main cause — \`server_unreachable\` (no page loaded at the app's address),
@@ -541,8 +559,11 @@ Run folder: .claude-test/runs/<id>/ (log.md, screenshots) · <n> specs in <elaps
 \`\`\`\`
 
 **Per-spec log — required** (in \`log.md\` only, under the table; your message ends at "Next"): for
-each spec, the numbered steps you took and, for every Must / Must not line, one line
-\`checked: <where/how> → saw: "<text>"\`. Something you looked for and did not find is still an
+each spec, how you got there — for a PASS, ONE line with the path, the screens and controls in order, short
+(\`Path: home → "Margherita Classica" → Quantity 2 → "Add to cart" → "View cart"; 0 console errors\`); for a FAIL or BLOCKED,
+the numbered steps you took, one short line each, up to where it stopped — and, for every Must / Must not line, one line
+\`checked: <where/how> → saw: "<text>"\`. Each value once: the evidence lines carry the page's words, the path and the steps do not repeat
+them. This log is written after the last verdict, while the person waits for the results: every line in it is time they wait. Something you looked for and did not find is still an
 observation — write what was there instead: \`checked: banner area after Save → saw: nothing ("Error"
 absent; header reads "Q3 roadmap")\`. The right side of the arrow is never empty. The main session Reads
 this file when asked why something passed.
@@ -555,8 +576,8 @@ browser server may have saved on its own; use \`browser_snapshot\` and \`browser
 
 \`\`\`\`markdown
 ## Claude Test · LOOK · <baseUrl> · <n> pages
-<under the header, only when it applies: "Stopped early: <the first page was still empty after 20 s | three minutes had passed> (<n> of at most 5 pages loaded)">
-<under that line, only after a first page that stayed empty: "Empty first page: <e> console errors; <f> requests did not load, <o> of them to other hosts; page is <not cross-origin isolated | cross-origin isolated>." Those words and your three counts, nothing else>
+<under the header, only when it applies: "Stopped early: <the first page was still empty after 20 s | a minute had passed> (<n> of at most 3 pages loaded)">
+<under that line, always when the first page loaded: after a first page that showed content, "First page: <e> console errors; <f> requests did not load, <o> of them to other hosts."; after a first page that stayed empty, "Empty first page: <e> console errors; <f> requests did not load, <o> of them to other hosts; page is <not cross-origin isolated | cross-origin isolated>." Those words and your counts, nothing else>
 <one line if it applies: "Address was auto-detected (<source>)" · "a sign-in wall is the first thing a visitor sees">
 1. <path or "landing"> — title "<…>"; headings: "<…>", "<…>"; main navigation: <labels>; <"has content: …" | "empty state: '<text>'">
 2. …
@@ -564,5 +585,7 @@ Sign-in: <none seen | a form on <path> (fields: …) | a button leaving to <host
 Run folder: <absolute> (screenshots: look-1.png …)
 \`\`\`\`
 Take one full-page screenshot per page into the run folder (\`look-<n>.png\`). Do not click anything that records a lasting choice
-(a consent banner's buttons, "never ask again", a welcome tip's "Dismiss"); close overlays with Escape. Five pages is the ceiling, not a target: stop earlier when the main
-navigation is covered.
+(a consent banner's buttons, "never ask again", a welcome tip's "Dismiss"); close overlays with Escape. Three pages is the ceiling, not a target, and
+the person is waiting for the outline that this report feeds: the landing page alone is enough when it shows the app's own records (a list, cards,
+rows, items) or a sign-in form (that wall is the finding). Load a page its main navigation leads to only when the landing page shows neither (a
+splash, a marketing page, an empty state): the app's core list first, then at most one more.

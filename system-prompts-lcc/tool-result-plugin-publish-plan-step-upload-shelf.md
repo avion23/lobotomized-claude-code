@@ -1,8 +1,8 @@
 <!--
-name: 'Tool Result: Plugin publish plan — upload to shelf step'
+name: 'Tool Result: Plugin publish plan step upload shelf'
 description: >-
-  Publish plan step: first uploads to the user's own claude.ai shelf where it is
-  scanned.
-ccVersion: 2.1.292
+  Publish plan step that the plugin is first uploaded to the person's own
+  claude.ai shelf, scanned depending on the organization
+ccVersion: 2.1.304
 -->
-First uploads it to your own shelf on claude.ai (My Uploads), where it is scanned
+First uploads it to your own shelf on claude.ai (My Uploads); whether it is scanned there depends on your organization
