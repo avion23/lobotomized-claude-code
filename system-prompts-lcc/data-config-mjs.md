@@ -4,7 +4,7 @@ description: >-
   claude-test shared library (skills/run/scripts/lib/config.mjs) whose config
   warnings, consent and sign-in notes surface in ct.mjs status JSON and the
   browser server's tool results that the model reads.
-ccVersion: 2.1.302
+ccVersion: 2.1.305
 -->
 
 
@@ -433,12 +433,14 @@ function sharedRegistryProblem(dir) { if (process.platform === 'win32') return n
 
 
 
+
 const SERVER_ENV_KEEP = new Set(['PATH', 'HOME', 'USER', 'LOGNAME', 'SHELL', 'LANG', 'LANGUAGE', 'TZ', 'TMPDIR', 'TEMP', 'TMP', 'DISPLAY', 'WAYLAND_DISPLAY', 'XAUTHORITY', 'DBUS_SESSION_BUS_ADDRESS', 'LD_LIBRARY_PATH', 'CHROME_DEVEL_SANDBOX', 'FONTCONFIG_FILE', 'FONTCONFIG_PATH', 'SSL_CERT_FILE', 'SSL_CERT_DIR', 'NODE_EXTRA_CA_CERTS', 'HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY', 'ALL_PROXY', 'PLAYWRIGHT_BROWSERS_PATH',
   'SYSTEMROOT', 'WINDIR', 'COMSPEC', 'PATHEXT', 'USERPROFILE', 'USERNAME', 'APPDATA', 'LOCALAPPDATA', 'PROGRAMFILES', 'PROGRAMFILES(X86)', 'PROGRAMDATA', 'PROGRAMW6432', 'COMMONPROGRAMFILES', 'HOMEDRIVE', 'HOMEPATH', 'OS', 'PROCESSOR_ARCHITECTURE', 'NUMBER_OF_PROCESSORS', 'SYSTEMDRIVE']);
 const SERVER_ENV_KEEP_PREFIX = ['LC_', 'XDG_', 'CLAUDE_TEST_'];
+const SERVER_ENV_EXACT = new Set(['LD_LIBRARY_PATH', 'CHROME_DEVEL_SANDBOX']);
 export function browserServerEnv(env = process.env) {
   const out = {};
-  for (const [k, v] of Object.entries(env)) { const K = k.toUpperCase(); if (v !== undefined && (SERVER_ENV_KEEP.has(K) || SERVER_ENV_KEEP.has(k) || SERVER_ENV_KEEP_PREFIX.some((p) => K.startsWith(p)) || /^(http|https|no|all)_proxy$/.test(k))) out[k] = v; }
+  for (const [k, v] of Object.entries(env)) { const K = k.toUpperCase(); if (v !== undefined && v !== '' && (k === K || !SERVER_ENV_EXACT.has(K)) && (SERVER_ENV_KEEP.has(K) || SERVER_ENV_KEEP.has(k) || SERVER_ENV_KEEP_PREFIX.some((p) => K.startsWith(p)) || /^(http|https|no|all)_proxy$/.test(k))) out[k] = v; }
   return out;
 }
 
@@ -532,10 +534,10 @@ export function safeGit(dir, args, options = {}) {
     .find((file) => { try { fs.accessSync(file, fs.constants.X_OK); return fs.statSync(file).isFile() && !through(file) && !theirs(fs.realpathSync(file)); } catch { return false; } });
   if (!program) throw new Error('no git on PATH outside the checkout');
   const searched = ['PATH', 'PYTHONPATH', 'NODE_PATH', 'RUBYLIB', 'PERL5LIB', 'PERLLIB', 'GEM_PATH', 'CLASSPATH', 'DYLD_LIBRARY_PATH', 'DYLD_FRAMEWORK_PATH', 'LD_LIBRARY_PATH', 'LIBRARY_PATH', 'CPATH', 'C_INCLUDE_PATH', 'CPLUS_INCLUDE_PATH', 'R_LIBS', 'R_LIBS_USER', 'R_LIBS_SITE', 'DYLD_FALLBACK_LIBRARY_PATH', 'DYLD_FALLBACK_FRAMEWORK_PATH'];
-  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^GIT_/i.test(k) && (searched.includes(k) || !/^(LD_|DYLD_|GCONV_PATH$|BASH_ENV$|ENV$)/.test(k))));
+  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^GIT_/i.test(k) && (searched.includes(k) || !/^(LD_|DYLD_|GCONV_PATH$|BASH_ENV$|ENV$|SHELLOPTS$|BASHOPTS$|PS4$|DEVELOPER_DIR$)/.test(k))));
   for (const name of searched) {
     if (env[name] === undefined) continue;
-    const kept = env[name].split(path.delimiter).filter((folder) => plain(folder) && !through(folder));
+    const kept = env[name].split(path.delimiter).filter((folder) => plain(folder) && !/[;$]/.test(folder) && !through(folder));
     if (kept.length) env[name] = kept.join(path.delimiter); else delete env[name];
   }
 
@@ -1032,4 +1034,63 @@ export function listSpecs(cfg) {
       try { const s = parseSpec(fs.readFileSync(p, 'utf8'), path.relative(cfg.projectDir, p)); return { file: s.file, id: typeof s.frontMatter.id === 'string' && /^ct_[a-z2-7]{8}$/.test(s.frontMatter.id) ? s.frontMatter.id : null, name: s.name, allow_navigation: s.frontMatter.allow_navigation, timeout_ms: s.frontMatter.timeout_ms, tags: Array.isArray(s.frontMatter.tags) ? s.frontMatter.tags : undefined, must: s.must.length, mustNot: s.mustNot.length, warnings: s.warnings }; }
       catch (e) { return { file: path.relative(cfg.projectDir, p), name: null, warnings: ['unreadable: ' + e.message] }; }
     });
+}
+
+
+
+
+export const SECRET_FILE = /(^|\\/)\\.?env([.-][^/]*)?$|(^|\\/)[^/]*\\.env(\\.[^/]*)?$|(^|\\/)\\.envrc$|(^|\\/)\\.npmrc$|(^|\\/)\\.netrc$|\\.(pem|key|p12|pfx|crt|cer|jks|keystore|sqlite3?|db)$|(^|\\/)[^/]*(secrets?|credentials?|creds|passw(or)?ds?|passwd|api[-_]?keys?|keystore|private[-_.]?keys?|id_rsa|id_ed25519|service[-_]?account|tokens?|kubeconfig)[^/]*\\.(json|ya?ml|toml|txt|env|ini|cfg|conf)$|(^|\\/)(?![^/]*\\.(tsx?|jsx?|mjs|cjs|vue|svelte|css|scss|html?)$)(id_(rsa|dsa|ecdsa|ed25519)([-_.][^/]*)?|([^/]*[-_.])?kubeconfig([-_.][^/]*)?)$|(^|\\/)\\.(git-credentials|pgpass|pypirc)$|(^|\\/)(secrets?|credentials?|creds|private[-_.]?keys?|\\.ssh|\\.aws|\\.gnupg|\\.kube)\\//i;
+
+
+export const AFFECTED_ONLY_ABOVE = 4;
+
+
+
+
+
+
+
+
+export function affectedPlan(specs, changed, { complete = true } = {}) {
+  const valid = specs.filter((s) => s && typeof s.stem === 'string' && s.stem).sort((a, b) => a.stem < b.stem ? -1 : a.stem > b.stem ? 1 : 0);
+  const live = valid.filter((s) => stemOk(s.stem)); const unnamedSpecs = valid.filter((s) => !stemOk(s.stem)); const unnamed = unnamedSpecs.length;
+  const changedSet = new Set(changed);
+  const because = (s) => { const hit = (s.files || []).find((f) => changedSet.has(f)); return hit ? (SECRET_FILE.test(hit) ? 'names a changed file whose name looks like a secrets file, so the name is not shown' : 'names ' + hit) : s.failedLast ? 'did not pass the last time it ran' : s.noRecentResult ? 'has not run recently' : null; };
+  const affected = live.filter((s) => because(s)); const unknown = live.filter((s) => !because(s) && !s.files); const rest = live.filter((s) => !because(s) && s.files);
+  const inOrder = (parts) => [...parts.flatMap((p) => p.filter((s) => !s.data)), ...parts.flatMap((p) => p.filter((s) => s.data))].map((s) => s.stem);
+  const all = inOrder([affected, unknown, rest]);
+  const unnamedAffected = unnamedSpecs.filter((s) => because(s)).length;
+  const why = !valid.length ? 'no-specs' : unnamedAffected || unnamedSpecs.some((s) => !s.files) ? 'unnamed-spec-must-run' : !affected.length ? 'nothing-affected' : !complete ? 'history-not-compared' : !rest.length ? 'every-spec-affected' : live.length <= AFFECTED_ONLY_ABOVE ? 'few-specs' : 'affected-only';
+  const plural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
+
+
+  const startedWhy = () => {
+    const byFile = affected.filter((s) => (s.files || []).some((f) => changedSet.has(f))).length;
+    const failed = affected.filter((s) => !(s.files || []).some((f) => changedSet.has(f)) && s.failedLast).length;
+    const parts = [[byFile, 'the one the changes may affect', 'the ones the changes may affect'], [failed, 'the one that did not pass last time', 'the ones that did not pass last time'], [affected.length - byFile - failed, 'the one not run recently', 'the ones not run recently'], [unknown.length, 'the one that does not say what it covers', 'the ones that do not say what they cover']].filter(([n]) => n > 0).map(([n, one, many]) => (n === 1 ? one : many));
+    return parts.length > 1 ? parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1] : parts[0];
+  };
+  const plan = { mode: why === 'affected-only' ? 'affected' : 'all', why, total: live.length + unnamed, run: why === 'affected-only' ? inOrder([affected, unknown]) : all, all, affected: affected.map((s) => ({ stem: s.stem, because: because(s) })), ...(unnamed > 0 ? { unnamed } : {}), ...(unnamedAffected > 0 ? { unnamedAffected } : {}) };
+  if (plan.mode === 'affected') Object.assign(plan, { skipped: rest.length + unnamed, started: 'Started ' + plan.run.length + ' of ' + (live.length + unnamed) + ' tests: ' + startedWhy(), skippedLine: plural(rest.length + unnamed, 'other test', 'other tests') + ' skipped. Type /claude-test:run all to run every test.' });
+  return plan;
+}
+
+
+
+
+
+export function fixPlan(specs, failed, touched) {
+  const failedSet = new Set(failed);
+  const plan = affectedPlan(specs.map((s) => ({ ...s, failedLast: failedSet.has(s && s.stem), noRecentResult: false })), touched);
+  const picked = new Set(plan.affected.map((a) => a.stem));
+  return { run: plan.all.filter((s) => picked.has(s)), also: plan.affected.filter((a) => !failedSet.has(a.stem)), ...(plan.unnamedAffected ? { unnamed: plan.unnamedAffected } : {}) };
+}
+
+
+export function appRelative(projectDir, file) {
+  const s = String(file ?? '');
+  if (!s || s.includes('\\0')) return null;
+  const inside = (base) => { const rel = path.relative(base, path.resolve(base, s)); return rel && rel !== '..' && !rel.startsWith('..' + path.sep) && !path.isAbsolute(rel) ? rel.split(path.sep).join('/') : null; };
+  let real = null; try { real = fs.realpathSync(projectDir); } catch {                                             }
+  return inside(path.resolve(projectDir)) ?? (real ? inside(real) : null);
 }

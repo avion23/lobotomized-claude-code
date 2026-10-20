@@ -3,10 +3,11 @@ name: 'Data: ct.mjs'
 description: >-
   claude-test helper script (skills/run/scripts/ct.mjs) that the run skill has
   the model execute; its JSON output (status notes, needsInput questions,
-  forClaude remedies, errors) is written for the model to read.
-ccVersion: 2.1.302
+  forClaude remedies, write-spec/file/finish errors) is read by the model.
+ccVersion: 2.1.305
 -->
 #!/usr/bin/env node
+
 
 
 
@@ -34,7 +35,7 @@ import http from 'node:http';
 import https from 'node:https';
 import net from 'node:net';
 import { fileURLToPath } from 'node:url';
-import { loadConfig, commandLineClean, consentKey, readConsent, writeConsent, isLocalHost, reallyInsideDir, fromComment, listSpecs, ensureRunsDir, assertRunsDirInsideProject, parseSpec, mintSpecId, withSpecId, shown, shownDeep, shownText, parseDotenv, resolveProjectDir, projectDirReason, projectsBelow, sessionRoot, specsDirProblem, appPointerInfo, rootConfiguresItself, sanitizeBrowserEnv, trackedClaudeTestSymlinks, RC_FILE, safeGit, gitOff, RUN_ID, joinWrappedCriteria, stemOk, withoutPrivateFolders } from './lib/config.mjs';
+import { SECRET_FILE, loadConfig, commandLineClean, consentKey, readConsent, writeConsent, isLocalHost, reallyInsideDir, fromComment, listSpecs, ensureRunsDir, assertRunsDirInsideProject, parseSpec, mintSpecId, withSpecId, shown, shownDeep, shownText, parseDotenv, resolveProjectDir, projectDirReason, projectsBelow, sessionRoot, specsDirProblem, appPointerInfo, rootConfiguresItself, sanitizeBrowserEnv, trackedClaudeTestSymlinks, RC_FILE, safeGit, gitOff, RUN_ID, joinWrappedCriteria, stemOk, withoutPrivateFolders, affectedPlan, fixPlan, appRelative } from './lib/config.mjs';
 import { ALLOW_TOOL, UP_TOOL, SHOW_TOOL } from './lib/allow-tool.mjs';
 import { runFolders, runStart, writeInRunFolder, withinProject, writingIn as writingInFolder, keepsCreationTime, insideSomeCheckout, RUNNER_WORDS, LOG_MD_BYTES } from './lib/runs.mjs';
 import { livePageFile, livePagePlan, prefsPath, readPrefs, writePrefs, openByHand } from './lib/open-page.mjs';
@@ -42,7 +43,7 @@ import { pathToFileURL } from 'node:url';
 import { groupRefusedHosts, plainHostName, isBrowserServiceHost } from './lib/hosts.mjs';
 import { toolsDir, mcpCliPath, installTools, toolsInstallInfo, findChrome, browsersDir, useOwnBrowsersIfPresent, toolsProblem, browserProblem, chromeSandboxProblem, downloadBrowser } from './lib/tools.mjs';
 import { listSkills, authFileInfo, bypassHints } from './lib/signin.mjs';
-import { readJson, discoverDevServer, candidateList, COMMON_PORTS } from './lib/discover.mjs';
+import { readJson, discoverDevServer, candidateList, COMMON_PORTS, recentWorkFrom, RECENT_COMMITS, RECENT_BULK } from './lib/discover.mjs';
 import { environmentReport } from './lib/envreport.mjs';
 
 const args = process.argv.slice(2);
@@ -287,6 +288,7 @@ async function status() {
   const startLine = cdAndStart(cfg.projectDir, dev.startCommandCwd, dev.startCommand); const cdPrefix = cdTo(cfg.projectDir, null);
   const setupLine = cdAndStart(cfg.projectDir, null, cfg.setupCommand);
   const lastRun = ran ? { runId: ran.runId, finishedAt: ran.finishedAt, outcome: ran.outcome, specs: ran.specs, secondsPerSpec: paced ? paced.secondsPerSpec : null } : null;
+  const recentWork = !args.includes('--runner') && !verdict.blocked && !specsProblem && specs.filter((s) => !s.skipped).length === 0 ? recentWorkOf(cfg) : null;
   const answer = {
     ...(notFiled === null ? (specs.some((s) => !s.skipped) ? { specsNotFiled: { recordAbsent: true, count: 0, files: [], note: 'no .claude-test/filed record yet (specs written before this record existed, or by hand): nothing to compare. The record starts at the next write-spec, which adopts every spec then in the folder as-is and lists them — a notice, not a refusal' } } : {}) : notFiled.length ? { specsNotFiled: { files: notFiled.slice(0, 20), count: notFiled.length, note: 'edited or added outside write-spec — normal when the person wrote or changed them; otherwise Read each once and show it to the person before running (a notice, not a refusal)' } } : {}),
     ready: { runner: notReady.length === 0, firstRun: !specsProblem && specs.filter((s) => !s.skipped).length === 0, ...(notReady.length ? { reasons: notReady } : {}) },
@@ -309,6 +311,7 @@ async function status() {
     specs: specsProblem ? { dir: path.relative(cfg.projectDir, cfg.specsDir), error: specsProblem + ' — fix that before any run (BLOCKED)', count: 0, files: [] } : { dir: path.relative(cfg.projectDir, cfg.specsDir), count: specs.filter((s) => !s.skipped).length, files: specs },
     runsDir: path.relative(cfg.projectDir, cfg.runsDir),
     git: { dirty: gitDirty },
+    ...(recentWork ? { recentWork } : {}),
     auth: { bypassHints: bypassHints(cfg.projectDir) },
   };
   if (!args.includes('--runner')) { out(answer); return; }
@@ -318,6 +321,20 @@ async function status() {
   const withoutFolders = withoutPrivateFolders(cfg.projectDir);
   const everyString = (value) => typeof value === 'string' ? withoutFolders(value) : Array.isArray(value) ? value.map(everyString) : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).map(([key, inner]) => [key, everyString(inner)])) : value;
   out(everyString(answer));
+}
+
+
+
+function recentWorkOf(cfg) {
+  const git = (argv) => safeGit(cfg.projectDir, ['-c', 'core.quotePath=false', ...argv], { maxBuffer: 4 * 1024 * 1024, timeout: 30000 }).toString();
+  try {
+    const prefix = git(['rev-parse', '--show-prefix']).trim();
+    let log = ''; try { log = git(['log', '-n', String(RECENT_COMMITS), '--no-merges', '--no-renames', '--no-ext-diff', '--no-textconv', '--no-show-signature', '--format=%x01%P', '--name-only', '--', '.']); } catch {                                            }
+    const status = git(['status', '--porcelain', '--no-renames', '--untracked-files=all', '--', '.']);
+    const isFile = (f) => { try { return reallyInsideDir(path.join(cfg.projectDir, f), cfg.projectDir) && fs.lstatSync(path.join(cfg.projectDir, f)).isFile(); } catch { return false; } };
+    const found = recentWorkFrom({ log, status, prefix, isFile });
+    return { ...found, note: found.files.length ? 'paths and counts from git only: the last ' + RECENT_COMMITS + ' commits in this folder and the uncommitted changes (the first commit and any commit touching more than ' + RECENT_BULK + ' app files are not counted). The crawl and the outline lean towards journeys through these files (onboarding.md, "What changed lately")' : 'no user-facing file changed lately (only the first commit, or only configuration, tests or docs): no preference — the outline follows the app\\'s core journeys' };
+  } catch { return null; }
 }
 
 function authRel(cfg) { const p = path.join(path.dirname(fileURLToPath(import.meta.url)), 'ct-auth.mjs'); const r = path.relative(cfg.projectDir, p); return r.startsWith('..') ? p : r; }
@@ -787,22 +804,52 @@ function finishCmd() {
   const specs = listSpecs(cfg);
   const byName = new Map(specs.filter((s) => s.name).map((s) => [s.name.trim().toLowerCase(), s]));
   const byStem = new Map(specs.map((s) => [path.basename(s.file, '.md'), s]));
-  const rows = rep.rows.map((r) => { const s = byName.get(r.name.trim().toLowerCase()) || (r.screenshot ? byStem.get(path.basename(r.screenshot, '.png')) : null) || null; return { file: s ? s.file : null, id: s ? s.id : null, name: r.name, verdict: r.verdict, why: r.why, screenshot: r.screenshot && fs.existsSync(path.join(runDir, r.screenshot)) ? r.screenshot : null }; });
+
+  let progressLines = null; try { const pf = path.join(runDir, 'progress.ndjson'); const ps = fs.lstatSync(pf); if (!ps.isFile() || ps.size >= 4 * 1024 * 1024) throw new Error('not a progress file'); progressLines = writingIn(cfg, runDir, (at) => readPlainFile(at('progress.ndjson'), 4 * 1024 * 1024)).toString('utf8').split('\\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return {}; } }); } catch {                        }
+  const retriedStems = new Set((progressLines || []).filter((l) => l && l.retried === true && typeof l.spec === 'string').map((l) => l.spec));
+  const RETRIED_WHY = /^(passed on retry|failed twice|blocked on retry)\\b/i;
+  const rows = rep.rows.map((r) => { const s = byName.get(r.name.trim().toLowerCase()) || (r.screenshot ? byStem.get(path.basename(r.screenshot, '.png')) : null) || null; const stem = s ? path.basename(s.file, '.md') : r.screenshot ? path.basename(r.screenshot, '.png') : null; const retried = (stem !== null && retriedStems.has(stem)) || RETRIED_WHY.test(r.why); return { file: s ? s.file : null, id: s ? s.id : null, name: r.name, verdict: r.verdict, why: r.why, screenshot: r.screenshot && fs.existsSync(path.join(runDir, r.screenshot)) ? r.screenshot : null, ...(retried ? { retried: true } : {}) }; });
   const counts = { specs: rows.length, passed: rows.filter((r) => r.verdict === 'PASS').length, failed: rows.filter((r) => r.verdict === 'FAIL').length, blocked: rows.filter((r) => r.verdict === 'BLOCKED').length };
   const outcome = counts.failed ? 'failed' : (counts.blocked || (rep.blockedReason && !rows.length)) ? 'blocked' : counts.passed ? 'passed' : 'blocked';
   const m = runId.match(/^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2})-(\\d{2})-(\\d{2})/);
   const startedAt = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])).toISOString();
 
-  let secondsPerSpec = null; try { const pf = path.join(runDir, 'progress.ndjson'); const ps = fs.lstatSync(pf); if (!ps.isFile() || ps.size >= 4 * 1024 * 1024) throw new Error('not a progress file'); const ls = writingIn(cfg, runDir, (at) => readPlainFile(at('progress.ndjson'), 4 * 1024 * 1024)).toString('utf8').split('\\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return {}; } }); const start = ls.find((l) => l.event === 'start'); const specsAt = ls.filter((l) => typeof l.spec === 'string').map((l) => Date.parse(l.at)).filter(Number.isFinite).sort((a, b) => a - b); if (start && specsAt.length) secondsPerSpec = Math.round((specsAt[specsAt.length - 1] - Date.parse(start.at)) / specsAt.length / 1000); else if (specsAt.length >= 2) secondsPerSpec = Math.round((specsAt[specsAt.length - 1] - specsAt[0]) / (specsAt.length - 1) / 1000); } catch {                        }
+  let secondsPerSpec = null; try { if (!progressLines) throw new Error('no progress file'); const ls = progressLines; const start = ls.find((l) => l.event === 'start'); const specsAt = ls.filter((l) => typeof l.spec === 'string').map((l) => Date.parse(l.at)).filter(Number.isFinite).sort((a, b) => a - b); if (start && specsAt.length) secondsPerSpec = Math.round((specsAt[specsAt.length - 1] - Date.parse(start.at)) / specsAt.length / 1000); else if (specsAt.length >= 2) secondsPerSpec = Math.round((specsAt[specsAt.length - 1] - specsAt[0]) / (specsAt.length - 1) / 1000); } catch {                        }
   const word = blockedWord(cfg, runDir, outcome, counts, whyGiven);
-  const results = { schema: 'claude-test-results/1', tool: 'claude-test', toolVersion: pluginVersion(), runId, startedAt, finishedAt: finishedAt.toISOString(), runnerSeconds, hostsRefused, ...(word ? { blockedWord: word } : {}), ...(secondsPerSpec ? { secondsPerSpec } : {}), ...(refusedHosts ? { refusedHosts } : {}), ...(pageLeftAppFor ? { pageLeftAppFor } : {}), git: gitFor(cfg, runId), baseUrl: cfg.baseUrl || (rep.head && /^https?:\\/\\//.test(rep.head.baseUrl) ? rep.head.baseUrl : null), outcome, counts, ...(rep.blockedReason ? { blockedReason: rep.blockedReason } : {}), specs: rows };
+
+  const full = rows.length > 0 && specs.filter((s) => !s.skipped && stemOk(path.basename(s.file, '.md'))).every((s) => rows.some((r) => r.file === s.file));
+  const results = { schema: 'claude-test-results/1', tool: 'claude-test', toolVersion: pluginVersion(), runId, startedAt, finishedAt: finishedAt.toISOString(), runnerSeconds, hostsRefused, ...(word ? { blockedWord: word } : {}), ...(full ? { full: true } : {}), ...(secondsPerSpec ? { secondsPerSpec } : {}), ...(refusedHosts ? { refusedHosts } : {}), ...(pageLeftAppFor ? { pageLeftAppFor } : {}), git: gitFor(cfg, runId), baseUrl: cfg.baseUrl || (rep.head && /^https?:\\/\\//.test(rep.head.baseUrl) ? rep.head.baseUrl : null), outcome, counts, ...(rep.blockedReason ? { blockedReason: rep.blockedReason } : {}), specs: rows };
   writeResults(cfg, runDir, results);
   const notes = [];
   const unmatched = rows.filter((r) => !r.file).map((r) => r.name); if (unmatched.length) notes.push('rows whose Spec cell matches no spec file\\'s "# name" (file and id are null for them): ' + unmatched.join('; '));
   const files = rows.map((r) => r.file).filter(Boolean); const dup = [...new Set(files.filter((f, i) => files.indexOf(f) !== i))]; if (dup.length) notes.push('more than one row for the same spec file: ' + dup.join(', '));
   if (rep.head && rep.head.specs !== rows.length) notes.push('the header says ' + rep.head.specs + ' specs but the table has ' + rows.length + ' rows');
-  out({ ok: true, results: path.relative(cfg.projectDir, path.join(runDir, 'results.json')), outcome, counts, ...(refusedHosts ? { refusedHosts } : {}), ...(pageLeftAppFor ? { pageLeftAppFor } : {}), ...(notes.length ? { note: notes.join(' · ') } : {}) });
+  const unlisted = specs.filter((s) => !s.skipped && !listableStem(path.basename(s.file, '.md')) && !rows.some((r) => r.file === s.file)).length;
+  const leftOutLine = !unlisted ? null : unlisted === 1 ? '1 spec file in the specs folder is left out whenever every spec runs: its file name is longer than 120 characters or holds an invisible character such as a tab or a line break; rename it' : unlisted + ' spec files in the specs folder are left out whenever every spec runs: their file names are longer than 120 characters or hold an invisible character such as a tab or a line break; rename them';
+
+  const noticed = (([...logText.matchAll(/^Noticed: (.+)$/gm)].pop() || [])[1] || '').split(' · ').map((item) => item.trim()).filter((item) => NOTICED_ITEMS.some((shape) => shape.test(item))).slice(0, 4);
+  const noticedLine = noticed.length ? 'Noticed: ' + noticed.join(' · ') : null;
+
+  const specName = new Map(specs.map((s) => [s.file, s.name]));
+  const flaky = rows.filter((r) => r.retried && r.verdict === 'PASS' && r.file).map((r) => shown(specName.get(r.file) || r.name, 140));
+  const retriedLine = flaky.length ? 'Passed on a second try (may be flaky): ' + flaky.join(', ') : null;
+  out({ ok: true, results: path.relative(cfg.projectDir, path.join(runDir, 'results.json')), outcome, counts, ...(retriedLine ? { retriedLine } : {}), ...(noticedLine ? { noticedLine } : {}), ...(leftOutLine ? { leftOutLine } : {}), ...(refusedHosts ? { refusedHosts } : {}), ...(pageLeftAppFor ? { pageLeftAppFor } : {}), ...(notes.length ? { note: notes.join(' · ') } : {}) });
 }
+
+
+
+function listableStem(stem) { return !!stem && stem.length <= 120 && !/[\\u0000-\\u001f\\u007f\\u2028\\u2029]/.test(stem); }
+
+
+
+
+const NOTICED_PATH = String.raw\`\\/(?!\\/)[A-Za-z0-9._~:@\\/-]{0,119}\`;
+const NOTICED_ITEMS = [
+  /^\\d{1,4} console errors? \\([A-Z][A-Za-z0-9]{0,40}(, [A-Z][A-Za-z0-9]{0,40}){0,2}\\)$/,
+  /^\\d{1,4} console errors?$/,
+  new RegExp('^(?:[45]\\\\d\\\\d|failed) ' + NOTICED_PATH + '$'),
+  new RegExp('^(?:NaN|undefined|\\\\[object Object\\\\]|Invalid Date) on ' + NOTICED_PATH + '$'),
+];
 
 
 
@@ -813,22 +860,33 @@ function pastRuns(cfg) {
     const r = readJson(path.join(cfg.runsDir, d, 'results.json')); if (!r || r.schema !== 'claude-test-results/1') continue;
     const specs = r.counts && Number.isInteger(r.counts.specs) && r.counts.specs >= 0 ? r.counts.specs : 0;
     const judged = r.counts && Number.isInteger(r.counts.passed) && Number.isInteger(r.counts.failed) ? r.counts.passed + r.counts.failed : 0;
-    rows.push({ runId: d, at: t, judged, outcome: ['passed', 'failed', 'blocked'].includes(r.outcome) ? r.outcome : null, finishedAt: typeof r.finishedAt === 'string' && /^\\d{4}-\\d{2}-\\d{2}T[\\d:.]+Z$/.test(r.finishedAt) ? r.finishedAt : null, specs, secondsPerSpec: Number.isFinite(r.secondsPerSpec) && r.secondsPerSpec >= 1 && r.secondsPerSpec <= 3600 ? Math.round(r.secondsPerSpec) : null, head: r.git && typeof r.git.head === 'string' && /^[0-9a-f]{40}$/.test(r.git.head) ? r.git.head : null });
+    rows.push({ runId: d, at: t, judged, outcome: ['passed', 'failed', 'blocked'].includes(r.outcome) ? r.outcome : null, finishedAt: typeof r.finishedAt === 'string' && /^\\d{4}-\\d{2}-\\d{2}T[\\d:.]+Z$/.test(r.finishedAt) ? r.finishedAt : null, specs, secondsPerSpec: Number.isFinite(r.secondsPerSpec) && r.secondsPerSpec >= 1 && r.secondsPerSpec <= 3600 ? Math.round(r.secondsPerSpec) : null, head: r.git && typeof r.git.head === 'string' && /^[0-9a-f]{40}$/.test(r.git.head) ? r.git.head : null, dirty: r.git && typeof r.git.dirty === 'boolean' ? r.git.dirty : null, changed: changedOf(r.git), secretChanged: !!(r.git && r.git.secretChanged === true), full: r.full === true });
   }
   return rows.sort((a, b) => b.at - a.at);
 }
 
 
 function recordedGit(cfg, runId) {
-  try { const at = JSON.parse(writingIn(cfg, path.join(cfg.runsDir, runId), (name) => readPlainFile(name('git.json'), 400)).toString('utf8')); return at && typeof at === 'object' && typeof at.head === 'string' && /^[0-9a-f]{40}$/.test(at.head) && (typeof at.dirty === 'boolean' || at.dirty === null) ? { head: at.head, dirty: at.dirty } : null; } catch { return null; }
+  try { const at = JSON.parse(writingIn(cfg, path.join(cfg.runsDir, runId), (name) => readPlainFile(name('git.json'), 256 * 1024)).toString('utf8')); if (!(at && typeof at === 'object' && typeof at.head === 'string' && /^[0-9a-f]{40}$/.test(at.head) && (typeof at.dirty === 'boolean' || at.dirty === null))) return null; const changed = changedOf(at); return { head: at.head, dirty: at.dirty, ...(changed !== null ? { changed } : {}), ...(changed !== null && at.secretChanged === true ? { secretChanged: true } : {}) }; } catch { return null; }
 }
 
 function gitFor(cfg, runId) { return gitOff() ? recordedGit(cfg, runId) : gitState(cfg.projectDir); }
 
+
+
+
+const CHANGED_AT_MOST = 400;
 function gitState(dir) {
 
-  try { const head = safeGit(dir, ['rev-parse', 'HEAD']).toString().trim(); let dirty = null; try { dirty = safeGit(dir, ['status', '--porcelain', '--untracked-files=no'], { timeout: 60000 }).toString().trim() !== ''; } catch {                                                                      } return /^[0-9a-f]{40}$/.test(head) ? { head, dirty } : null; } catch { return null; }
+  try {
+    const head = safeGit(dir, ['rev-parse', 'HEAD']).toString().trim(); let dirty = null; let changed = null; let secretChanged = false;
+    try { dirty = safeGit(dir, ['status', '--porcelain', '--untracked-files=no'], { timeout: 60000 }).toString().trim() !== ''; } catch {                                                                      }
+    try { const files = safeGit(dir, ['-c', 'core.quotePath=false', 'status', '--porcelain', '--no-renames', '--untracked-files=all', '--', '.'], { maxBuffer: 4 * 1024 * 1024, timeout: 60000 }).toString().split('\\n').filter(Boolean).map((l) => l.slice(3).replace(/^"(.*)"$/, '$1')); const shown = files.filter((f) => !SECRET_FILE.test(f)); changed = shown.length <= CHANGED_AT_MOST && JSON.stringify(shown).length <= 200 * 1024 ? changedOf({ changed: shown }) : null; secretChanged = shown.length < files.length; } catch {                                                }
+    return /^[0-9a-f]{40}$/.test(head) ? { head, dirty, ...(changed !== null ? { changed } : {}), ...(changed !== null && secretChanged ? { secretChanged: true } : {}) } : null;
+  } catch { return null; }
 }
+
+function changedOf(git) { const c = git && git.changed; return Array.isArray(c) && c.length <= CHANGED_AT_MOST && c.every((f) => typeof f === 'string' && f.length > 0 && f.length <= 400 && !f.includes('\\0')) ? c : null; }
 
 
 
@@ -872,6 +930,8 @@ async function progressCmd() {
   try { assertRunsDirInsideProject(cfg); } catch (e) { out({ error: e.message }); process.exit(1); }
   const runId = targetRunId(cfg);
   if (!runId) { out({ error: 'no run folder yet ("ct.mjs new-run" first)' }); process.exit(1); }
+
+  const retriedAt = args.indexOf('--retried'); const retried = retriedAt > 0; if (retried) args.splice(retriedAt, 1);
   const file = path.join(cfg.runsDir, runId, 'progress.ndjson');
   try { const st = fs.lstatSync(file); if (!st.isFile()) { out({ error: path.relative(cfg.projectDir, file) + ' exists and is not a regular file — not writing through it' }); process.exit(1); } } catch {                                            }
   const read = () => { try { return fs.readFileSync(file, 'utf8').split('\\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean); } catch { return []; } };
@@ -911,9 +971,10 @@ async function progressCmd() {
   const startWithStems = args[1] === 'start' && args.length > 2 && !(args.length === 3 && ['PASS', 'FAIL', 'BLOCKED'].includes(String(args[2]).toUpperCase()) && specNamedStart());
   if (startWithStems && !args.slice(2).every((x) => stemOk(x))) { out({ error: 'usage: ct.mjs progress start [<spec file stem> …] — the stems of a run limited to some specs, each in single quotes' }); process.exit(2); }
   if (args.length === 1 || (args[1] === 'start' && args.length === 2) || startWithStems) {
+    if (retried) { out({ error: 'usage: --retried goes with a verdict only: ct.mjs progress <spec file stem> PASS|FAIL|BLOCKED --retried' }); process.exit(2); }
     if (args[1] === 'start' && !startLine()) {
       let specs = []; let names = {}; try {
-        const all = listSpecs(cfg).filter((x) => !x.skipped).map((x) => ({ stem: path.basename(x.file, '.md'), name: typeof x.name === 'string' && x.name.trim() ? x.name.trim().slice(0, 140) : null, last: Array.isArray(x.tags) && x.tags.includes('creates-data') })).filter((x) => x.stem && x.stem.length <= 120 && !/[\\u0000-\\u001f\\u007f\\u2028\\u2029]/.test(x.stem));
+        const all = listSpecs(cfg).filter((x) => !x.skipped).map((x) => ({ stem: path.basename(x.file, '.md'), name: typeof x.name === 'string' && x.name.trim() ? x.name.trim().slice(0, 140) : null, last: Array.isArray(x.tags) && x.tags.includes('creates-data') })).filter((x) => listableStem(x.stem));
         const want = startWithStems ? [...new Set(args.slice(2))] : null;
         const chosen = want ? want.map((w) => all.find((x) => x.stem === w) || { stem: w, last: false }) : all.sort((a, b) => a.stem < b.stem ? -1 : a.stem > b.stem ? 1 : 0);
         const ordered = [...chosen.filter((x) => !x.last), ...chosen.filter((x) => x.last)].slice(0, 500);
@@ -925,12 +986,12 @@ async function progressCmd() {
     const sl = startLine(); out({ runId, file: path.relative(cfg.projectDir, file), absolute: file, ...(args[1] === 'start' && sl && Array.isArray(sl.specs) ? { order: sl.specs } : {}), ...summary(), ...(drop.length ? { drop } : {}) }); return;
   }
   const stem = args[1]; const verdict = String(args[2] || '').toUpperCase();
-  if (!stemOk(stem) || !['PASS', 'FAIL', 'BLOCKED'].includes(verdict)) { out({ error: 'usage: ct.mjs progress <spec file stem> PASS|FAIL|BLOCKED' }); process.exit(2); }
+  if (!stemOk(stem) || !['PASS', 'FAIL', 'BLOCKED'].includes(verdict)) { out({ error: 'usage: ct.mjs progress <spec file stem> PASS|FAIL|BLOCKED [--retried]' }); process.exit(2); }
   const now = new Date(); const st0 = startLine(); const t0 = st0 && st0.at ? Date.parse(st0.at) : NaN;
 
 
   let frames = []; try { const taken = new Set(read().flatMap((l) => Array.isArray(l.frames) ? l.frames : [])); const all = fs.readdirSync(path.join(cfg.runsDir, runId, 'frames')).filter((f) => /^f-\\d{4}\\.jpeg$/.test(f) && !taken.has(f)).sort(); frames = all.length <= 40 ? all : [...new Set(Array.from({ length: 40 }, (_, k) => all[Math.round(k * (all.length - 1) / 39)]))]; } catch {                                                                                }
-  const line = { spec: stem, verdict, at: now.toISOString(), ...(Number.isFinite(t0) ? { s: Math.max(0, Math.round((now.getTime() - t0) / 1000)) } : {}), ...(frames.length ? { frames } : {}) };
+  const line = { spec: stem, verdict, at: now.toISOString(), ...(Number.isFinite(t0) ? { s: Math.max(0, Math.round((now.getTime() - t0) / 1000)) } : {}), ...(retried ? { retried: true } : {}), ...(frames.length ? { frames } : {}) };
   addLine(line);
   out({ ok: true, file: path.relative(cfg.projectDir, file), done: specLines().length, ...(drop.length ? { drop } : {}) });
 }
@@ -938,27 +999,106 @@ async function progressCmd() {
 
 
 
-const SECRET_FILE = /(^|\\/)\\.?env([.-][^/]*)?$|(^|\\/)[^/]*\\.env(\\.[^/]*)?$|(^|\\/)\\.envrc$|(^|\\/)\\.npmrc$|(^|\\/)\\.netrc$|\\.(pem|key|p12|pfx|crt|cer|jks|keystore|sqlite3?|db)$|(^|\\/)[^/]*(secrets?|credentials?|private[-_]?key|id_rsa|id_ed25519|service[-_]?account|tokens?)[^/]*\\.(json|ya?ml|toml|txt|env|ini|cfg|conf)$/i;
+
+
+function planSpecsOf(cfg, failedLast, changed = new Set(), judged = null) {
+  const planSpecs = [];
+  for (const s of listSpecs(cfg)) {
+    if (s.skipped) continue;
+    const stem = path.basename(s.file, '.md');
+    let text = null; try { text = fs.readFileSync(path.join(cfg.projectDir, s.file), 'utf8'); } catch {                                                        }
+    const fc = text === null ? null : fromComment(text);
+    const named = [...new Set((fc ? fc.files : []).map((f) => appRelative(cfg.projectDir, f)).filter((f) => f !== null))];
+    const live = named.filter((f) => changed.has(f) || fs.existsSync(path.join(cfg.projectDir, f)));
+    planSpecs.push({ stem, files: live.length ? live : null, data: Array.isArray(s.tags) && s.tags.includes('creates-data'), failedLast: failedLast.has(stem), noRecentResult: judged !== null && !judged.has(s.file) });
+  }
+  return planSpecs;
+}
+
+
+
+const NOT_SOURCE_FOLDER = /(^|\\/)(\\.claude-test|\\.claude|node_modules)\\/|^(dist|build|coverage|\\.next)\\//;
+
+function notASourceChange(f) { return NOT_SOURCE_FOLDER.test(f) || /(^|\\/)(package-lock\\.json|pnpm-lock\\.yaml|yarn\\.lock|bun\\.lockb?)$|\\.lock$/.test(f); }
+
+
+
+
+
+function fixPlanCmd() {
+  const cfg = loadConfig(projectDir);
+  if (args.length > 1) { out({ error: 'usage: ct.mjs fix-plan (it takes no arguments: it reads the tests that did not pass from the last run, and the changed files from git)' }); process.exit(1); }
+  try { assertRunsDirInsideProject(cfg); } catch (e) { out({ error: e.message }); process.exit(1); }
+  const newest = pastRuns(cfg).find((r) => r.specs > 0);
+  const results = newest ? readJson(path.join(cfg.runsDir, newest.runId, 'results.json')) : null;
+  const notPassed = (results && Array.isArray(results.specs) ? results.specs : []).filter((row) => row && row.verdict !== 'PASS');
+  const failedAll = [...new Set(notPassed.filter((row) => typeof row.file === 'string').map((row) => path.basename(row.file, '.md')))];
+  if (!results) { out({ error: 'no run has test results yet, so there is nothing to re-run' }); process.exit(1); }
+  if (!notPassed.length) { out({ error: 'the newest run with test results has no failed or blocked test, so there is nothing to re-run' }); process.exit(1); }
+
+  if (failedAll.some((s) => !stemOk(s))) { out({ error: 'the file name of a test that did not pass has a character the runner cannot take, such as a quote or a leading hyphen: re-run every spec instead, giving the runner no stems' }); process.exit(1); }
+
+
+  const git = (argv) => { try { return safeGit(cfg.projectDir, ['-c', 'core.quotePath=false', ...argv], { maxBuffer: 4 * 1024 * 1024, timeout: 60000 }).toString(); } catch { return null; } };
+  const prefix = git(['rev-parse', '--show-prefix']);
+  const status = git(['status', '--porcelain', '--no-renames', '--untracked-files=all', '--', '.']);
+
+  const changedUnknown = prefix === null || status === null;
+  const at = (prefix || '').trim(); const rel = (f) => at && f.startsWith(at) ? f.slice(at.length) : (at ? null : f);
+  const touched = changedUnknown ? [] : [...new Set(status.split('\\n').filter(Boolean).map((l) => rel(l.slice(3).replace(/^"(.*)"$/, '$1'))).filter((f) => f && !notASourceChange(f)))];
+  const planSpecs = planSpecsOf(cfg, new Set(failedAll), new Set(touched));
+  if (notPassed.some((row) => typeof row.file !== 'string') || failedAll.some((s) => !planSpecs.some((p) => p.stem === s))) { out({ error: 'a test that did not pass in the last run is not a spec the runner can take now: re-run every spec instead, giving the runner no stems' }); process.exit(1); }
+  const plan = fixPlan(planSpecs, failedAll, touched);
+  out({ run: plan.run, also: plan.also, ...(plan.unnamed ? { unnamed: plan.unnamed } : {}), ...(changedUnknown ? { changedUnknown: true } : {}) });
+}
+
+
+
+
 function changesCmd() {
   const cfg = loadConfig(projectDir);
   try { assertRunsDirInsideProject(cfg); } catch (e) { out({ error: e.message }); process.exit(1); }
-  const last = pastRuns(cfg).find((r) => r.specs > 0 && r.head);
+  const past = pastRuns(cfg);
+  const last = past.find((r) => r.specs > 0 && r.head && r.full);
   let since = last ? { runId: last.runId, head: last.head, finishedAt: last.finishedAt, outcome: last.outcome } : null;
 
   const git = (argv) => { try { return safeGit(cfg.projectDir, ['-c', 'core.quotePath=false', ...argv], { maxBuffer: 4 * 1024 * 1024, timeout: 60000 }).toString(); } catch { return null; } };
   const head = (git(['rev-parse', 'HEAD']) || '').trim() || null;
   const prefix = (git(['rev-parse', '--show-prefix']) || '').trim();
   const rel = (f) => prefix && f.startsWith(prefix) ? f.slice(prefix.length) : (prefix ? null : f);
-  const keep = (f) => f && !/(^|\\/)(\\.claude-test|\\.claude|node_modules|dist|build|coverage|\\.next)\\//.test(f) && !/(^|\\/)(package-lock\\.json|pnpm-lock\\.yaml|yarn\\.lock|bun\\.lockb?|\\.gitignore)$/.test(f) && !/\\.(test|spec)\\.[a-z]+$|\\.(md|lock|log|png|jpg|svg|ico|map)$/.test(f) && !SECRET_FILE.test(f);
+  const keep = (f) => f && !NOT_SOURCE_FOLDER.test(f) && !/(^|\\/)(package-lock\\.json|pnpm-lock\\.yaml|yarn\\.lock|bun\\.lockb?|\\.gitignore)$/.test(f) && !/\\.(test|spec)\\.[a-z]+$|\\.(md|lock|log|png|jpg|svg|ico|map)$/.test(f) && !SECRET_FILE.test(f);
   const gone = !!(since && git(['cat-file', '-e', since.head + '^{commit}']) === null);
   if (gone) since = { ...since, gone: true };
-  const committed = since && !gone && head && since.head !== head ? (git(['diff', '--no-ext-diff', '--no-textconv', '--name-only', since.head, 'HEAD', '--', '.']) || '').split('\\n').map(rel).filter(keep) : [];
-  const porcelain = (git(['status', '--porcelain', '--untracked-files=all', '--', '.']) || '').split('\\n').filter(Boolean).map((l) => ({ untracked: l.startsWith('??'), file: rel(l.slice(3).replace(/^.* -> /, '').replace(/^"(.*)"$/, '$1')) })).filter((e) => keep(e.file));
+  const diffOut = since && !gone && head && since.head !== head ? git(['diff', '--no-ext-diff', '--no-textconv', '--no-renames', '--name-only', since.head, 'HEAD', '--', '.']) : '';
+  const statusOut = git(['status', '--porcelain', '--no-renames', '--untracked-files=all', '--', '.']);
+  const committedAny = (diffOut || '').split('\\n').map(rel);
+  const porcelainAny = (statusOut || '').split('\\n').filter(Boolean).map((l) => ({ untracked: l.startsWith('??'), file: rel(l.slice(3).replace(/^.* -> /, '').replace(/^"(.*)"$/, '$1')) }));
+  const committed = committedAny.filter(keep);
+  const porcelain = porcelainAny.filter((e) => keep(e.file));
   const uncommitted = porcelain.map((e) => e.file); const untracked = new Set(porcelain.filter((e) => e.untracked).map((e) => e.file));
-  const changed = [...new Set([...committed, ...uncommitted])].slice(0, 200);
+  const changedAll = [...new Set([...committed, ...uncommitted])]; const changed = changedAll.slice(0, 200);
+
+
+
+
+
+
+  const judgingRuns = last ? past.slice(0, past.indexOf(last) + 1).filter((r) => r.specs > 0) : [];
+  const testedLists = judgingRuns.map((r) => r.changed ?? (r.dirty === false ? [] : null));
+  const testedDirty = testedLists.includes(null) ? null : [...new Set(testedLists.flat())];
+  const planChangedAll = [...new Set([...committedAny, ...porcelainAny.map((e) => e.file), ...(testedDirty || []).map(rel)])].filter((f) => f && !notASourceChange(f));
+  const planChanged = planChangedAll.slice(0, 400);
+  const answered = head !== null && diffOut !== null && statusOut !== null;
 
   const citedBy = Object.create(null);
-  for (const s of listSpecs(cfg)) { let text = ''; try { text = fs.readFileSync(path.join(cfg.projectDir, s.file), 'utf8'); } catch { continue; } const fc = fromComment(text); for (const clean of fc ? fc.files : []) { const stem = path.basename(s.file, '.md'); (citedBy[clean] = citedBy[clean] || []); if (!citedBy[clean].includes(stem)) citedBy[clean].push(stem); } }
+
+  const latest = new Map(); for (const p of past.filter((x) => x.specs > 0).slice(0, 30)) { const r = readJson(path.join(cfg.runsDir, p.runId, 'results.json')); for (const row of r && Array.isArray(r.specs) ? r.specs : []) if (row && typeof row.file === 'string' && typeof row.verdict === 'string' && !latest.has(row.file)) latest.set(row.file, row.verdict); }
+  const failedLast = new Set([...latest].filter(([, verdict]) => verdict !== 'PASS').map(([file]) => path.basename(file, '.md')));
+  const planSpecs = planSpecsOf(cfg, failedLast, new Set(planChanged), new Set(latest.keys()));
+  for (const { stem, files: cites } of planSpecs) for (const clean of cites || []) { (citedBy[clean] = citedBy[clean] || []); if (!citedBy[clean].includes(stem)) citedBy[clean].push(stem); }
+
+  const secretTested = judgingRuns.some((r) => r.secretChanged) ? planSpecs.flatMap((s) => (s.files || []).filter((f) => SECRET_FILE.test(prefix + f) || SECRET_FILE.test(f))) : [];
+  const plan = affectedPlan(planSpecs, [...new Set([...planChanged, ...secretTested])], { complete: !!since && !gone && answered && testedDirty !== null && planChangedAll.length <= planChanged.length });
   const covered = changed.filter((f) => citedBy[f]); const uncovered = changed.filter((f) => !citedBy[f]);
 
 
@@ -971,7 +1111,7 @@ function changesCmd() {
     const exists = fs.existsSync(path.join(cfg.projectDir, f));
     return { file: f, status: !exists ? 'deleted' : num.length === 3 && num[0] !== '-' && git(['cat-file', '-e', base + ':' + prefix + f]) === null ? 'added' : 'modified', ...(num.length === 3 && /^\\d+$/.test(num[0]) ? { added: Number(num[0]), removed: Number(num[1]) } : {}), ...(hunks.length ? { changedLines: hunks } : {}) };
   });
-  out({ since, head, ...(since && head === since.head ? { sameCommit: true } : {}), changedFiles: changed, uncommittedFiles: uncommitted.slice(0, 100), cited: covered.map((f) => ({ file: f, specs: citedBy[f] })), uncovered, files, ...(covered.length ? { citedNote: 'cited is not covered — check the behaviour: a spec names these files as a source, which says nothing about the NEW behaviour in them; read the change and ask whether that spec\\'s steps and Must lines would notice it — if not, it needs a spec of its own' } : {}), note: since && gone ? 'the last run (' + since.runId + ') recorded commit ' + since.head.slice(0, 8) + ', which is no longer in this repository (rebased away, or the run folder came from elsewhere): committed history was NOT compared — only uncommitted files are listed; say so rather than "nothing changed"' : since ? 'changed since run ' + since.runId + ' (' + since.head.slice(0, 8) + ')' + (changed.length ? '' : ': nothing in the app\\'s source') : 'no earlier run recorded a commit (results.json git.head): everything uncommitted is listed; committed history is not compared' });
+  out({ since, head, ...(since && head === since.head ? { sameCommit: true } : {}), plan, changedFiles: changed, uncommittedFiles: uncommitted.slice(0, 100), cited: covered.map((f) => ({ file: f, specs: citedBy[f] })), uncovered, files, ...(covered.length ? { citedNote: 'cited is not covered — check the behaviour: a spec names these files as a source, which says nothing about the NEW behaviour in them; read the change and ask whether that spec\\'s steps and Must lines would notice it — if not, it needs a spec of its own' } : {}), note: since && gone ? 'the last run (' + since.runId + ') recorded commit ' + since.head.slice(0, 8) + ', which is no longer in this repository (rebased away, or the run folder came from elsewhere): committed history was NOT compared — only uncommitted files are listed; say so rather than "nothing changed"' : since ? 'changed since run ' + since.runId + ' (' + since.head.slice(0, 8) + ')' + (changed.length ? '' : ': nothing in the app\\'s source') : 'no earlier run that ran every test recorded a commit (results.json full and git.head): everything uncommitted is listed; committed history is not compared' });
 }
 
 
@@ -1005,12 +1145,13 @@ switch (cmd) {
   case 'prefs': prefsCmd(); break;
   case 'allow': allowCmd(); break;
   case 'changes': changesCmd(); break;
+  case 'fix-plan': fixPlanCmd(); break;
   case 'finish': finishCmd(); break;
   case 'install': case 'install-browser': install(); break;
   case 'browser':
     process.stderr.write('ct.mjs browser is not available: specs run only through the Claude Test browser tools, which are held to the allowed addresses. Nothing was started.\\n');
     process.exit(2);
   default:
-    process.stderr.write('usage: ct.mjs status | new-run | allow [--remove <address>…] | prefs [live-page open|link] | write-spec <name…> | drafts | progress [start | <stem> <verdict>] | changes | finish [--why <word>] | elapsed | install [browser]   (sign-in commands: ct-auth.mjs)\\n');
+    process.stderr.write('usage: ct.mjs status | new-run | allow [--remove <address>…] | prefs [live-page open|link] | write-spec <name…> | drafts | progress [start | <stem> <verdict> [--retried]] | changes | fix-plan | finish [--why <word>] | elapsed | install [browser]   (sign-in commands: ct-auth.mjs)\\n');
     process.exit(2);
 }

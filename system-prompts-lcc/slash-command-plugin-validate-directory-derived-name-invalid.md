@@ -1,0 +1,10 @@
+<!--
+name: 'Plugin validate: derived name invalid'
+description: 'Finding: the folder-derived name is not valid.'
+ccVersion: 2.1.305
+variables:
+  - SLASH_COMMAND_PLUGIN_VALIDATE_DIRECTORY_DERIVED_NAME_INVALID_VAR_0
+  - SLASH_COMMAND_PLUGIN_VALIDATE_DIRECTORY_DERIVED_NAME_INVALID_VAR_1
+  - SLASH_COMMAND_PLUGIN_VALIDATE_DIRECTORY_DERIVED_NAME_INVALID_VAR_2
+-->
+There is no plugin.json, so ${SLASH_COMMAND_PLUGIN_VALIDATE_DIRECTORY_DERIVED_NAME_INVALID_VAR_0(SLASH_COMMAND_PLUGIN_VALIDATE_DIRECTORY_DERIVED_NAME_INVALID_VAR_1)} (the folder or repository name) stands in for the plugin name, and it is not a valid one: ${SLASH_COMMAND_PLUGIN_VALIDATE_DIRECTORY_DERIVED_NAME_INVALID_VAR_2}

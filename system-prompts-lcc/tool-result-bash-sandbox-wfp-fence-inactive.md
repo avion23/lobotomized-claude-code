@@ -1,6 +1,6 @@
 <!--
-name: 'Tool result: sandbox WFP fence inactive'
-description: Opening of the reason given when the Windows WFP egress fence is not active
-ccVersion: 2.1.296
+name: WFP fence not active lead
+description: Lead of the error saying the WFP egress fence is not active.
+ccVersion: 2.1.305
 -->
-WFP egress fence is not active — direct outbound from the 
+WFP egress fence is not active — 

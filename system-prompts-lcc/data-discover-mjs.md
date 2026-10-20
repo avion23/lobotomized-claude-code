@@ -4,7 +4,7 @@ description: >-
   Claude Test discover.mjs: finds the dev server start command and ports from
   package.json, Makefiles, launch.json and config files, with the conflict and
   'unknown — ask' notes status prints.
-ccVersion: 2.1.304
+ccVersion: 2.1.305
 -->
 
 
@@ -13,7 +13,7 @@ ccVersion: 2.1.304
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { RC_FILE, reallyInsideDir } from './config.mjs';
+import { RC_FILE, reallyInsideDir, SECRET_FILE } from './config.mjs';
 
 export function readJson(p) { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return null; } }
 
@@ -201,4 +201,60 @@ export function candidateList(cfg, dev) {
   return ports.map((p) => ({ url: 'http://localhost:' + p + '/', port: p, from: dev.portHintFrom[p] || 'common default port', own: !!dev.portHintFrom[p] }))
     .filter((x, i, arr) => x.own || arr.slice(0, i).filter((y) => !y.own).length < 4)
     .slice(0, 8);
+}
+
+
+
+export const RECENT_COMMITS = 20;
+export const RECENT_FILES = 8;
+export const RECENT_BULK = 40;
+
+
+
+const RECENT_SAFE = /^[\\w@+$~()[\\]-]+(\\.[\\w@+$~()[\\]-]+)*(\\/[\\w@+$~()[\\]-]+(\\.[\\w@+$~()[\\]-]+)*)*$/;
+const RECENT_EXT = /\\.(tsx|jsx|ts|js|mjs|cjs|vue|svelte|astro|html?|css|scss|sass|less|erb|haml|slim|ejs|hbs|handlebars|njk|liquid|twig|php|py|rb|ex|exs|heex|eex|go|rs|cs|cshtml|razor|java|kt|json|ya?ml)$/i;
+const RECENT_DATA_DIR = /(^|\\/)(data|fixtures?|seeds?|content|locales?|i18n|messages|mocks?)\\//i;
+const RECENT_NOT_UI = /(^|\\/)(node_modules|vendor|dist|build|out|coverage|\\.next|\\.nuxt|\\.svelte-kit|\\.turbo|\\.cache|\\.claude|\\.claude-test|\\.github|\\.husky|\\.vscode|\\.idea|\\.storybook|__tests__|__mocks__|tests?|e2e|cypress|playwright|scripts|migrations|bin)\\/|(^|\\/)[^/]*\\.(test|spec|stories|story|d)\\.[a-z]+$|(^|\\/)(\\.[^/]*rc|[^/]*\\.config)\\.[a-z]+$|(^|\\/)(tsconfig[^/]*|package|composer|jsconfig|deno|turbo|nx|lerna|vercel|netlify|firebase|app|manifest|renovate|\\.[^/]*)\\.json$|(^|\\/)(pnpm-workspace|docker-compose|\\.[^/]*)\\.ya?ml$|(^|\\/)(manage|setup|conftest|wsgi|asgi)\\.py$/i;
+
+
+
+
+const RECENT_SECRET_NAME = /(^|\\/)[^/]*(secrets?|credentials?|creds|api[-_]?keys?|keystore|private[-_.]?keys?|service[-_]?account|tokens?|kubeconfig)[^/]*$|(^|\\/)keys([-_.][^/]*)?(\\/|$)|(^|\\/)(api[-_]?keys?|keystores?|service[-_]?accounts?)\\//i;
+
+
+export function userFacingPath(file) {
+  if (typeof file !== 'string' || file.length > 160 || !RECENT_SAFE.test(file) || file.includes('$(') || file.split('/').includes('..')) return false;
+  if (!RECENT_EXT.test(file) || RECENT_NOT_UI.test(file) || SECRET_FILE.test(file) || RECENT_SECRET_NAME.test(file)) return false;
+  if (/\\.(json|ya?ml)$/i.test(file) && !RECENT_DATA_DIR.test(file)) return false;
+  return true;
+}
+
+
+
+
+
+export function recentWorkFrom({ log, status, prefix = '', isFile = () => true }) {
+  const rel = (f) => (prefix ? (f.startsWith(prefix) ? f.slice(prefix.length) : null) : f);
+  const seen = new Map();
+  const entry = (f) => { let e = seen.get(f); if (!e) { e = { commits: 0, first: Infinity, uncommitted: false }; seen.set(f, e); } return e; };
+  const chunks = String(log || '').split('\\x01').slice(1);
+  let counted = 0;
+  chunks.forEach((chunk, i) => {
+    const lines = chunk.split('\\n'); const parents = (lines.shift() || '').trim();
+    if (!/^[0-9a-f]{7,64}( [0-9a-f]{7,64})*$/.test(parents)) return;
+    const files = [...new Set(lines.map((l) => l.trim()).filter(Boolean).map(rel).filter(userFacingPath))];
+    if (!files.length || files.length > RECENT_BULK) return;
+    counted++;
+    for (const f of files) { const e = entry(f); e.commits++; e.first = Math.min(e.first, i); }
+  });
+  for (const line of String(status || '').split('\\n')) {
+    if (line.length < 4) continue;
+    const f = rel(line.slice(3));
+    if (userFacingPath(f)) entry(f).uncommitted = true;
+  }
+  const files = [...seen.entries()].filter(([f]) => isFile(f))
+    .sort(([, a], [, b]) => Number(b.uncommitted) - Number(a.uncommitted) || b.commits - a.commits || a.first - b.first)
+    .slice(0, RECENT_FILES)
+    .map(([file, e]) => ({ file, commits: e.commits, ...(e.uncommitted ? { uncommitted: true } : {}) }));
+  return { files, commitsLooked: chunks.length, commitsCounted: counted };
 }

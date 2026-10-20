@@ -1,0 +1,14 @@
+<!--
+name: 'Data: Monitor expired with events notification'
+description: >-
+  Task notification sent when a Monitor watch expires after delivering events;
+  tells the model how long it ran, how many events arrived, and the re-arm
+  guidance.
+ccVersion: 2.1.305
+variables:
+  - DATA_TASK_NOTIFICATION_MONITOR_EXPIRED_WITH_EVENTS_VAR_0
+  - DATA_TASK_NOTIFICATION_MONITOR_EXPIRED_WITH_EVENTS_VAR_1
+  - DATA_TASK_NOTIFICATION_MONITOR_EXPIRED_WITH_EVENTS_VAR_2
+  - DATA_TASK_NOTIFICATION_MONITOR_EXPIRED_WITH_EVENTS_VAR_3
+-->
+[Monitor expired after ${DATA_TASK_NOTIFICATION_MONITOR_EXPIRED_WITH_EVENTS_VAR_0} with ${DATA_TASK_NOTIFICATION_MONITOR_EXPIRED_WITH_EVENTS_VAR_1} ${DATA_TASK_NOTIFICATION_MONITOR_EXPIRED_WITH_EVENTS_VAR_2(DATA_TASK_NOTIFICATION_MONITOR_EXPIRED_WITH_EVENTS_VAR_1,"event")} delivered. ${DATA_TASK_NOTIFICATION_MONITOR_EXPIRED_WITH_EVENTS_VAR_3}.]

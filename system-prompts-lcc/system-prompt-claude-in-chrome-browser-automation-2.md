@@ -4,12 +4,8 @@ description: >-
   Browser-automation guidance for the claude-in-chrome MCP tools: deferred-tool
   loading, GIF recording, console debugging, dialog avoidance, tab-context
   startup, and rabbit-hole limits
-ccVersion: 2.1.273
+ccVersion: 2.1.305
 -->
-# Claude in Chrome browser automation
-
-You have access to browser automation tools (mcp__claude-in-chrome__*) for interacting with web pages in Chrome.
-
 ## GIF recording
 
 When performing multi-step browser interactions that the user may want to review or share, use mcp__claude-in-chrome__gif_creator to record them.

@@ -3,7 +3,7 @@ name: 'Data: SKILL (Claude Test — the spec author (background; nobody is watch
 description: >-
   Prompt body of the claude-test "draft" skill (spec-author background), loaded
   as skill text by we().
-ccVersion: 2.1.304
+ccVersion: 2.1.305
 -->
 ---
 description: Internal to Claude Test — drafts spec files in the background for a first run. Started only by the claude-test run skill.
@@ -195,6 +195,12 @@ is not watching.
    file when only a name is given), and compose the full spec by the format and rules below. Keep exactly the behaviour the outline line
    names; do not add, merge or drop specs. If a line cannot be written honestly (the string it needs is nowhere in the code), skip it
    and say so in your report.
+   A line ending "(changed recently)" is a journey through files changed lately in this repository (the brief's "Changed lately:"
+   line names them): read those first, keep the steps on the changed screen, and name them in the from-comment. Those words are the
+   outline's, never the title's.
+   A line ending "(looks like a bug)" checks a suspected bug (the map's "Suspected bug:" line names its file:line when the map found it): write it
+   as "A suspected bug is checked, never walked around" below says, so that it FAILS while the bug is there. Those words are the outline's, never the title's, and a draft that
+   would fail is never a reason to skip, soften or reroute it.
 2. Write each draft to \`<run folder>/proposed/<name>.md\` with the Write tool — \`<name>\` is the title in lower-case ASCII words joined
    by hyphens (letters, digits, hyphens only). That folder is the only place you write, and only \`.md\` files; you never write a spec
    into \`.claude-test/specs/\`, never touch \`.claude-testrc\`, a skill, a memory file or any configuration, and never write anywhere
@@ -278,6 +284,23 @@ bugs), do not silently skip them: pin at most one documented defect that is obse
 (counted in the specs the outline lists), asserting the broken behaviour exactly as documented; every other documented defect is an
 item under "Not covered:", "<defect>: a bug the app documents.", adding "It takes too many steps to check." when it needs more than two steps, with no question.
 
+**Only strong evidence makes a suspected bug.** A suspected bug is code that contradicts itself or its own visible promise:
+arithmetic that ignores a quantity or a price the page shows, a total that leaves out a line the page shows, a label that says one
+thing while the code does another, a crash or a console error on a core path, a 404 for one of the app's own files. A preference, a
+UX choice, a missing feature and what a fuzzy search "should" match are never bugs: never a "(looks like a bug)" line, a failing test
+or a \`Suspected bug:\` line; at most one, the map's "Suggestion:" line, comes back as one "Also noticed" item worded as a suggestion.
+When in doubt it is no bug: a clean app's first run passes. No other draft leans on such a
+preference either: a search journey searches a word as the app's own data spells it.
+
+**A suspected bug is checked, never walked around.** A defect nobody documents (the map's "Suspected bug:" lines, or what you read
+yourself: a cart total that ignores the quantity) is the finding this suite exists for. Never shape any draft around it: no "one bag"
+where the journey would take two, no value or path picked to keep clear of it. The outline's "(looks like a bug)" line takes exactly the
+path that shows it, and its Must lines state the CORRECT outcome, worked out from what the code means and what the page shows (its unit
+prices, labels and names), never from what the faulty code computes, with the arithmetic and the suspect file:line in the from-comment
+(\`<!-- from: src/cart.js:42 — data/products.json — 2 × 14.00 = 28.00 -->\`). It is meant to fail until the code is fixed. A suspected
+bug you find while drafting, on no line of the outline, changes no draft: name it in your report's \`Suspected bug:\` line, only on
+the strong evidence above.
+
 Drop or rework a draft that fails one of these:
 
 - A person can finish it in about two minutes and it is safe to repeat on every run: it
@@ -312,6 +335,7 @@ account — a later run that meets a sign-in wall uses exactly these words to te
 <name-2>.md
 …
 Skipped: <outline number> — <why, one line>   (only if any)
+Suspected bug: <file:line> — <what the code does, a few words>   (one line per bug, at most three, only for a bug that no line of the outline checks)
 \`\`\`
 
-No spec text, no summary of what they check, no advice: the conversation needs only the file names.
+No spec text, no summary of what they check, no advice: the conversation needs only the file names and the Suspected bug lines.

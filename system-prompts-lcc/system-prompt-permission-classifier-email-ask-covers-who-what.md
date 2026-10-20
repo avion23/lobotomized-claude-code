@@ -1,0 +1,8 @@
+<!--
+name: 'Auto-mode classifier: ask covers who and what'
+description: >-
+  A send clears only when the sender's ask covers both the recipients and the
+  content.
+ccVersion: 2.1.305
+-->
+It clears only when the sender's ask covers both who receives it and what is sent, where the ask is the sender's own new words in a mail, read with the mail they are answering as above. Who: each address the call names must be one the ask names, in the sender's words or in the question they approved.

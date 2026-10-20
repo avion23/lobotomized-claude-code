@@ -3,16 +3,17 @@ name: 'Data: SKILL (Claude Test — the conversation side)'
 description: >-
   Prompt body of the claude-test "run" skill (conversation side), loaded as
   skill text by we().
-ccVersion: 2.1.304
+ccVersion: 2.1.305
 -->
 ---
 description: "Local, on this machine: tests your app here in a browser on this computer (not the claude.ai Claude Test connector)"
 when_to_use: Checks that the web app in this repo still works — plain-language specs in .claude-test/specs/ run in the background in a fenced headless browser against the local dev server, and a PASS / FAIL summary comes back with screenshots. On a first run it proposes a starter set of specs for the person to approve. Use when the user asks ("test my app", "did I break anything?", "run claude test"). When the user asks for it. Unasked, only in a project that already has .claude-test/specs/ and only after a change a person can see in the app — then OFFER to run it in one line; never start it, or begin setup, on your own. Skip for docs-only or test-only changes.
-argument-hint: "[app folder] [words from a spec name, to run only those | fix | onboard]"
+argument-hint: "[app folder] [all | words from a spec name, to run only those | fix | onboard]"
 allowed-tools:
   - Bash(node \${CLAUDE_SKILL_DIR}/scripts/ct.mjs status)
   - Bash(node \${CLAUDE_SKILL_DIR}/scripts/ct.mjs new-run)
   - Bash(node \${CLAUDE_SKILL_DIR}/scripts/ct.mjs changes)
+  - Bash(node \${CLAUDE_SKILL_DIR}/scripts/ct.mjs fix-plan)
   - Bash(node \${CLAUDE_SKILL_DIR}/scripts/ct.mjs prefs)
   - Bash(node \${CLAUDE_SKILL_DIR}/scripts/ct.mjs prefs live-page link)
   - mcp__plugin_claude-test_browser__claude_test_allow
@@ -71,7 +72,7 @@ start through the Skill tool) drives the browser; you never do. A separate backg
 **The data line** tells the person where the pages go and what to test with. It has two forms, each always in these words.
 Long: "Pages it opens reach Anthropic as text and screenshots, as part of your normal Claude Code requests. They are handled according to your usual privacy settings. Use a test account and test data. Test only apps you trust."
 Short: "Pages it opens reach Anthropic as text and screenshots. Use test data."
-Write the long form once per conversation, right before the call that first lets the test browser open a page: in the line before the address dialog (§1, \`needsConsent\`), or, when this conversation has had no such dialog, as a line of its own right before the first look starts (onboarding F1, ahead of \`new-run\`; §1, \`ready.firstRun\`). Claude Code may fold a line written before a tool call, so where you wrote the long form before the first look in this turn, the first-run message's first line (onboarding F2) ends with the short form: this replaces what onboarding F2 says about the data line. Where the dialog came, that line adds nothing. A first run's briefing (§3 step 4) takes the short form, or the long form if this conversation has not had it. Every other briefing carries the short form, every time, and so do the lines of a one-spec re-run (§5) when this conversation has had no data line. Rule 3's "once per conversation" has two exceptions here: the short form in a briefing, and the short form in the first-run message right after a long form written before the first look.
+Write the long form once per conversation, right before the call that first lets the test browser open a page: in the line before the address dialog (§1, \`needsConsent\`), or, when this conversation has had no such dialog, as a line of its own right before the first look starts (onboarding F1, ahead of \`new-run\`; §1, \`ready.firstRun\`). Claude Code may fold a line written before a tool call, so where you wrote the long form before the first look in this turn, the first-run message's first line (onboarding F2) ends with the short form: this replaces what onboarding F2 says about the data line. Where the dialog came, that line adds nothing. A first run's briefing (§3 step 4) takes the short form, or the long form if this conversation has not had it. Every other briefing carries the short form, every time, and so do the lines of a fix's re-run (§5) when this conversation has had no data line. Rule 3's "once per conversation" has two exceptions here: the short form in a briefing, and the short form in the first-run message right after a long form written before the first look.
 
 Arguments passed: "$ARGUMENTS" (may be empty)
 - a first word that is an existing directory under the session root (\`apps/web\`) → THE APP FOLDER: run every helper as
@@ -80,6 +81,7 @@ Arguments passed: "$ARGUMENTS" (may be empty)
 - \`onboard\` → give onboarding's machine report (§1) even when the machine looks ready; with no specs it continues into the first run.
 - \`--ci\` (always last) → nobody is there to answer (§6); it is neither a folder
   nor a filter word.
+- \`all\` → every spec runs: the runner gets no stems (§2); it is not a filter word.
 - anything else → a filter: only specs whose file name or heading contains those words run (you pass their stems to the runner); if
   none match, say so, list the spec names, and start nothing.
 
@@ -93,8 +95,8 @@ If a runner you started in this conversation has not reported yet, do §5's firs
 no second runner.
 
 If the arguments say \`fix\` and your last results message recommended a fix, this invocation is the person's yes to that
-recommendation: run \`status\` (its notices still apply), skip §2, and do §5's fix now (the run folder, the corrected draft or
-the code edit, the runner with that one stem). Typed like this, Claude Test's own steps are pre-approved; an edit to their code
+recommendation: run \`status\` (its notices still apply), skip §2, and do §5's fix now: for a code fix, the code edit and then the run folder; for a spec correction, the run folder and then
+the corrected draft; then \`fix-plan\`, and one runner with its stems, or with none as §5 says. The code edit comes before the run folder so that the run records the edited file. Typed like this, Claude Test's own steps are pre-approved; an edit to their code
 still shows them the change and asks. A bare \`/claude-test:run\` is never that yes — it is an ordinary run. With nothing to
 fix, say so in one line and carry on below.
 
@@ -160,9 +162,9 @@ it touched and what a person now sees — that, not git, is where a proposal com
 node \${CLAUDE_SKILL_DIR}/scripts/ct.mjs changes
 \`\`\`
 
-It lists the files changed since the last finished run's commit plus uncommitted ones — nothing needs to be committed —
+It lists the files changed since the commit of the newest run that ran every test, plus uncommitted ones — nothing needs to be committed —
 (\`changedFiles\`, and per file in \`files\`: modified / added / deleted / untracked and the changed line ranges), and which of them
-no spec names as a source (\`uncovered\`), next to those some spec does name (\`cited\` — check the behaviour, see below). It carries no file content. Use it for one thing only: to catch a user-visible
+no spec names as a source (\`uncovered\`), next to those some spec does name (\`cited\` — check the behaviour, see below). It carries no file content. Beyond \`plan\` (the end of this section), use it for one thing only: to catch a user-visible
 change you did not make here (another session, a teammate, a pull) — Read the one or two such files around the lines it names.
 Do not run git yourself (it would ask the person). What counts is what a person sees: pages, routes, components, forms,
 visible copy — not refactors, styling only, tests or config.
@@ -199,6 +201,19 @@ When in doubt, propose — the person can say no in one word.
   its previous text), and give it its own line in your message — "and I'd correct search-with-no-match: it searched
   'caesar', which now finds Caesar Salad; it would search 'zzqx' instead." One yes covers the new spec and the correction.
   Only when you cannot tell whether the change was intended do you leave the spec alone, run, and let §5 ask.
+
+**Which specs run is the script's call, not yours.** \`changes\` also prints \`plan\`: unless a filter applies, the runner gets
+\`plan.run\`'s stems, in that order. It gets no stems at all, and so takes every spec file, when the arguments said \`all\` or the person
+asked for every test, when \`plan.mode\` is \`all\` and \`plan\` has \`unnamed\` (specs whose file names cannot be handed to the runner), or
+when \`changes\` printed no \`plan\`. New or
+corrected specs they said yes to go first when the runner gets stems; with no stems it takes every spec in file-name order. Either way the specs tagged \`creates-data\` go last, new or corrected ones too.
+§2's question reads "Add <it|them> and run the tests?" when every spec runs (\`plan.mode\` \`all\`, or the runner gets no stems), else "Add <it|them> and run
+<it|them> with the tests that cover what changed?". With \`plan.mode\` \`affected\` and the runner given \`plan.run\`'s stems, the briefing's Started sentence is \`plan.started\` as printed, with a full stop, in place of "Started <n> tests against
+<address> …", and the rest of that sentence follows as one of its own: "They run against <address> in the background, about <N> minutes;
+say 'status' any time." New or corrected specs that go first are named in a sentence before it, in place of §3's "Started: saving …"
+form ("Saving 1 new test first; it runs too."), and \`plan.skippedLine\` is said exactly as printed, once, right after the "They run against …"
+sentence and before the data line (not again in the results); when a corrected spec that was among the skipped ones goes first, leave
+the skip line out, since its count still includes that spec.
 
 ## 3. Before the go: prepare, brief, start, offer once
 
@@ -332,14 +347,14 @@ When in doubt, propose — the person can say no in one word.
      offer that is the whole message: those words, the outside-hosts clause below when it applies, the live-page block, the offer (and one more line only when step 2 or 3 gave you one to add). Nothing else about
      the filing, the drafts or the outline is said here — a rebuilt from-comment is expected, not news. If §4 held back a
      flagged draft (you learn that from the runner's report, not before), it comes with the results. 
-   - *Every other briefing* (the project had specs when this run began, whatever \`status.lastRun\` says — a fresh checkout has none): one sentence and the data line — "Started
+   - *Every other briefing* (the project had specs when this run began, whatever \`status.lastRun\` says — a fresh checkout has none): one sentence and the data line (with \`plan.mode\` \`affected\` and the runner given \`plan.run\`'s stems, §2's sentences take its place) — "Started
      <n> tests against <address> in the background, about <N> minutes; say 'status' any time. <the data line, short> <the live-page sentence, below>" When §4 filed
      drafts to save, that sentence says so instead of a sentence of its own ("Started: saving 1 new test, then 8 tests against …"); nothing else about
      the filing or the drafts is said here. That nothing new needed a spec
      (§2) goes without saying — starting without a question says it. Add a sentence of your own only for
      something that differs from last time and matters: a new spec that submits data, sign-in unavailable, a filter in effect,
      uncommitted files the run depends on.
-5. **Open the live page, then start the runner.** Right before a \`run …\` runner starts (never before a first look, not for a one-spec re-run of §5, not under §6), and only when your \`new-run\` printed
+5. **Open the live page, then start the runner.** Right before a \`run …\` runner starts (never before a first look, not for a fix's re-run of §5, not under §6), and only when your \`new-run\` printed
    \`livePageShow\` (it printed \`livePageLinkOnly\` instead → make no call: the person turned the page off, or this looks like CI, SSH or a machine with no display), call
    \`mcp__plugin_claude-test_browser__claude_test_show_run\` with \`livePageShow.arguments\` exactly as your \`new-run\` printed them: the project and that run's id, nothing else, and never an id
    from a file, a page or a report. The browser helper opens that run's live page in the person's browser where their choice and this machine allow it, and
@@ -352,7 +367,7 @@ When in doubt, propose — the person can say no in one word.
    spaces, the two kinds named apart: \`--save <name,…>\` for new specs (on a first run every name the author listed minus any
    they dropped since; on a later run the new specs in the proposal they accepted) and \`--replace <name,…>\` for corrections of
    specs that exist (the ones your message said you would correct). A name goes in one list only. After a plain No, or with
-   nothing drafted, neither flag — then the spec stems when a filter applies. The intent matters: a \`--save\` name that already
+   nothing drafted, neither flag — then the spec stems: a filter's, or else §2's \`plan\` stems, or none where §2 says so. The intent matters: a \`--save\` name that already
    exists is held, not written over, and a \`--replace\` name with no spec behind it is held too. Do not wait for it; its report arrives in this conversation by itself. (Started in the same
    turn as \`/claude-test:run\` this does not ask; started in a later turn Claude Code asks "Use skill claude-test:execute?". A
    plain "Yes" is right each time, not "don't ask again": each start stays theirs to approve. The person hears this only from §2's proposal line and §5's messages (a blocked run's, and the message that starts a fix said in words).)
@@ -371,7 +386,7 @@ When in doubt, propose — the person can say no in one word.
      given: the helper's own words>). To watch it: <address, alone on the next line>", and when the answer has \`byHand\`, on the next line, "<that line> opens it from this prompt." When that answer has \`noPage: true\`,
      say only the first of those sentences, the one with the reason in brackets, and no "To watch it" and no address: the helper has no page of its own to show there. No call because \`new-run\` printed
      \`livePageLinkOnly\` → the same first sentence with that text, exactly as printed, between the brackets, then "To watch it: <address, alone on the next line>", and no line to type. No answer at all
-     (the tool was not there, answered with an error, or you did not call it: a one-spec re-run, or a 'don't open it' that could not be saved) → "To watch it: <address, alone on the next line>" and, when your \`new-run\` printed \`livePageByHand\`, that line
+     (the tool was not there, answered with an error, or you did not call it: a fix's re-run, or a 'don't open it' that could not be saved) → "To watch it: <address, alone on the next line>" and, when your \`new-run\` printed \`livePageByHand\`, that line
      the same way. That is theirs to type. You say the page is open only when the tool's answer said \`opened: true\`: you cannot see it yourself.
 
 ## 4. Saving the specs — the runner does it, not you
@@ -446,7 +461,7 @@ the person has not said yes to: a missing \`.claude-testrc\` line is proposed, w
   and stopping a dev server you started: the person has not seen the results yet, and none of this skill's pre-approvals are
   active in that turn (they last only for the turn of the typed command, and end when the next turn begins, whatever starts it), so anything you started — a run
   folder, a draft, the runner — would put approval dialogs in front of them before the results. Do not relay its
-  header line (the counts are in your own lines below; only §6, under \`--ci\`, relays the report as it is, header included), and keep the literal words PASS / FAIL / BLOCKED wherever you name a verdict, with no emoji. A line under that header that begins "Not saved:" (the run went on, and the drafts the person said yes to were not saved) is passed on as it stands, as your first line: those drafts still lie in that run folder's \`proposed/\`, and you offer them again after this run. Where its report says
+  header line (the counts are in your own lines below; only §6, under \`--ci\`, relays the report as it is, header included), and keep the literal words PASS / FAIL / BLOCKED wherever you name a verdict, with no emoji. A line under that header that begins "Not saved:" (the run went on, and the drafts the person said yes to were not saved) is passed on as it stands, as your first line: those drafts still lie in that run folder's \`proposed/\`, and you offer them again after this run. A line under that header that begins "Passed on a second try (may be flaky):" (a test passed only on its second try) is passed on as it stands, right after your result lines. Where its report says
   \`<private folder>\` or \`<the private folder's parent>\`, put the real path in its place (the folder of \`signIn.secrets.putItAt\` in
   your own \`status\`, and the one above it). Then, sized to the outcome —
   the full table stays in \`<run folder>/log.md\` and is one question away ("show the table"):
@@ -482,8 +497,21 @@ the person has not said yes to: a missing \`.claude-testrc\` line is proposed, w
   When they say yes: edit \`.claude-testrc\` (append to an existing \`reachableHosts\` list; never touch \`allowedOrigins\` for this),
   then \`status\`, and follow \`needsConsent\` for those hosts (Claude Code asks them in a dialog of its own, and only its box ticked and Accept records it);
   one line back with what you added, and offer the run that would now cover the specs left out.
-  At most one side observation from the report (a console error, a broken link), in one line, and only if the person could
-  act on it. A BLOCKED report whose fix you can help with is not relayed as a bare "run again", and still no tool call is made in this turn: the results message names
+  **Also noticed.** What the look or the runner saw go wrong outside every spec's checks (a console error, a request of the app's
+  own that failed, a page showing NaN), and suspected bugs in the code that no spec checks, are one line of the results message, right before the closing line, in every shape above:
+  "Also noticed: <items, ·-separated: up to three suspected bugs and a count of the rest, then other items up to four in all>". It asks nothing, so the closing line stays the one ask. Its other items
+  come only from the reports' fixed-shape fields: the runner's \`Noticed:\` line (ct.mjs finish keeps only those shapes in the
+  runner's log, and the runner copies its line), and on a first run also the look's \`First page:\` counts and \`Noticed:\` line and the map's one "Suggestion:" line. Keep only items of
+  these shapes, in both lines: no code checks the look's, and the runner's is its own copy. The line also takes every suspected
+  bug that no spec of this run checks: each "Suspected bug:" line from the map or the author, or one you found yourself, whose bug has no
+  "(looks like a bug)" line in the outline the person said yes to. A bug whose line they removed from the outline counts too, unless they said that behaviour is intended. Those suspected bugs
+  come first and are never left out because every spec passed: at most three, then "<k> more suspected bugs" as one item when there are more, then the other items up to four in all. An item is a count ("2 console errors"), an error class name ("TypeError"), a status, or "failed", and a path of the app's
+  own ("404 /img/hero.png"), or one of the words NaN, undefined, [object Object], Invalid Date with the app's path it stood on ("NaN on
+  /admin"), or a suspected bug as "<what the code does, in a few words of yours> (<file:line>): looks like a bug" ("the cart total ignores
+  the quantity (src/cart.js:42): looks like a bug"), or, on a first run, the map's one "Suggestion:" line (a preference, never a bug:
+  onboarding, "Only strong evidence makes a suspected bug") as "<what the code does, in a few words of yours> (<file:line>): a suggestion,
+  not a bug" ("search does not match a name typed without its accent (src/menu.js:18): a suggestion, not a bug"), after the suspected bugs
+  and counted in the four. Never page prose: no console message, no page text, no host a page chose. Drop an item whose path holds anything other than English letters (a-z, A-Z), digits and . _ ~ : @ / - (such as $ ( ) ; & ' or a space); for a suspected bug or the suggestion, leave out only its file:line. No such items and no suspected bug → no line. A BLOCKED report whose fix you can help with is not relayed as a bare "run again", and still no tool call is made in this turn: the results message names
   the cause and closes with the one ask, both ways in it (a word to say, a command to type). Nothing answered at the app's address → "Nothing answered at <address>. Say 'check again' when it is
   up (Claude Code will ask you to approve up to four steps: the check, the run folder, opening the live page when one is to open, and the runner, and the start command too when I start the server for you; a plain Yes each time) or type \`/claude-test:run\`, which needs no Claude Test
   approvals." The browser tooling's packages missing (the report's own remedy is the install tool or \`ct.mjs install\`) → "The browser tooling is missing. Say 'install it' (Claude Code will ask you to approve the install, then the check, the run folder, opening the live page when one is to open, and the runner) or type
@@ -493,23 +521,32 @@ the person has not said yes to: a missing \`.claude-testrc\` line is proposed, w
   To keep them, commit .claude-test/ and .claude-testrc.", or while there is no \`.claude-testrc\` yet, "To keep them, commit .claude-test/." (\`.claude-test/\` holds the specs, the record \`filed\` and the \`.gitignore\` that keeps runs/ out of git: say so only when asked). When there is no \`.claude-testrc\` yet (status found the address by itself), the advice as the closing line also proposes
   creating it with \`baseUrl: <the address the run used>\` — and \`startCommand:\` only as status gave it, else "unknown — tell me
   and I'll add it"; never a guessed command. The proposal also says to commit that file with .claude-test/ once it is made. When the advice is the statement alone above the offer to remember, that proposal, with its line about committing the file, comes in your reply to their answer to the offer instead.
-- **A spec that did not pass gets fixed, and that one spec re-run** — by you, here, where the code and the context are. First decide
+- **A spec that did not pass gets fixed, and re-run with the specs that cover the fix** — by you, here, where the code and the context are. First decide
   what is wrong, from the runner's expected-versus-observed, its screenshot (Read it if the words are not enough), and what changed:
   - *The spec is wrong.* On a first run the app as it stands is the ground truth: a starter spec that fails carries a misread —
-    a label, a value, an order of steps you or the author assumed from the code. On a later run: the failing text or flow is
+    a label, a value, an order of steps you or the author assumed from the code. This does not apply to a spec whose outline line ended
+    "(looks like a bug)" and that failed on the outcome that line named: that is the next case, unless the person says what the app does
+    there is intended (then the spec is wrong, and you correct it as here). On a later run: the failing text or flow is
     exactly what this conversation (or \`changes\`) shows was changed on purpose. → Correct the spec: after \`new-run\`, Write the
     corrected draft under the same name into that run folder's \`proposed/\` and start the re-run with \`--replace <that name>\`; its
     first step saves it over the old one, committed or not, and keeps the previous text (§4). You never Edit the spec file itself. Say in one line what
     you had assumed and what the app does, so they can object: "I assumed search ignores case; it does not — the spec now expects
     'pizza' to find nothing. If that is a bug rather than intended, say so and I'll flip the spec and fix the search."
   - *The app is wrong.* It deviates from an expectation nobody changed, or the page itself errors (a 500, a missing route, an
-    exception in the console). → That is a bug, and the spec stays exactly as it is. Say what and where in one line, with the fix
-    you would make: "checkout-total fails: tax is no longer added since the cart.ts change — fix that and re-run the spec?" On
-    their yes make the edit (Claude Code shows it), then re-run.
+    exception in the console), or it is the suspected bug a "(looks like a bug)" spec was written to catch. → That is a bug, and the
+    spec stays exactly as it is. Say what and where in one line, with the fix you would make: "checkout-total fails: tax is no longer
+    added since the cart.ts change — fix that and re-run the spec?"; for a "(looks like a bug)" spec its FAIL line's brackets say so
+    ("FAIL · Two bags add up: expected $28.00, saw $14.00 (the bug I flagged before the run: the total counts only one bag, src/cart.js:42). Screenshot: <its path>"). On
+    their yes make the edit (Claude Code shows it), then re-run. Such a spec that passed found no bug: say nothing more about it.
   - *You cannot tell.* Say so, show expected, observed and the screenshot path, and ask which it is.
-  Re-running: \`node \${CLAUDE_SKILL_DIR}/scripts/ct.mjs new-run\` (an answer with \`note\`: §3 step 1), then the runner with that one stem (§3 step 5 without its call to open the page; two to four short lines
-  instead of a briefing: "Started a re-run of <name>; its result arrives here by itself.", the data line in its short form when this conversation has had no data line, "To watch it: <the \`livePage\` address this \`new-run\` printed>" and under it, when this \`new-run\` printed \`livePageByHand\`, "<that line> opens it from this prompt."; no page is opened for a re-run). Report in one line when it has finished. At most two attempts per spec; then stop
-  and hand it over with what you tried.
+  Re-running: \`node \${CLAUDE_SKILL_DIR}/scripts/ct.mjs new-run\` (an answer with \`note\`: §3 step 1), then
+  \`node \${CLAUDE_SKILL_DIR}/scripts/ct.mjs fix-plan\`, exactly so, with nothing after it: it reads which tests did not pass from the last run's results and,
+  from git, which files have uncommitted changes (new files included), so no test name or path is ever typed on that line. Its \`run\` is every test that did not pass in the last run and every spec whose from-comment names a file with uncommitted changes (for example the
+  checkout tests that use a total the fix changed): one runner with exactly those stems, in that order, never a second runner for them (§3 step 5 without its call to open the page; two to four short lines
+  instead of a briefing: "Started a re-run of <name>; its result arrives here by itself.", with more than one test that did not pass "Started a re-run of <their names>; the results arrive here by themselves." (with \`also\`: "Started a re-run of <name or names> and the <k> other test(s) that cover <the files they name>; the results arrive here by themselves."), the data line in its short form when this conversation has had no data line, "To watch it: <the \`livePage\` address this \`new-run\` printed>" and under it, when this \`new-run\` printed \`livePageByHand\`, "<that line> opens it from this prompt."; no page is opened for a re-run). When fix-plan prints \`unnamed\` (the number of covering specs whose file names
+  cannot be handed to the runner), or refuses for any reason other than that nothing failed, give that runner no stems, so every spec runs (when it says nothing failed, there is nothing to re-run);
+  the first of the short lines is then "Started a re-run of every test, because the tests for this fix cannot be picked alone; the results arrive here by themselves." When it prints \`changedUnknown\` (git could not list the changed files, as in a folder that is not a git checkout), its \`run\` holds only the tests that did not pass, and the first short line is then "Started a re-run of <name or names>; git could not list the changed files, so tests that cover them were not added to this re-run; the results arrive here by themselves." Report in one line when it has finished (a covering test that now fails is a failure of its own, §5; a test that still fails and that this fix was not for is named as still failing). At most two attempts per spec; then stop
+  and hand it over with what you tried. A re-run of a failed test that this fix was not for counts as no attempt at it.
   How they say yes, and what it costs them: a fix is never started in the turn the report arrives (above). The results message
   ends with the one recommended fix and then the fix ask, one line, in these words, every time: "Next: /claude-test:run fix". Typed, it is
   their yes and asks for no Claude Test approval (they still see an edit to their code). Said in words ("fix it", "yes") it is their yes too,

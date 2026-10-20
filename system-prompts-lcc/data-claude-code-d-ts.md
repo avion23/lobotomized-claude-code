@@ -4,7 +4,7 @@ description: >-
   Claude Code plugin API declarations written as the plugin-authoring skill file
   types/claude-code.d.ts, which SKILL.md points the model to as the API
   reference (also used for type-checking).
-ccVersion: 2.1.304
+ccVersion: 2.1.305
 -->
 // Claude Code function hooks: the plugin API's TypeScript declarations.
 //
@@ -5461,7 +5461,9 @@ declare module 'claude-code' {
 
   /**
    * The props of \`Image\`, the terminal surface's picture leaf: pixels over a
-   * box of cells where the terminal can (kitty, Ghostty), the \`alt\` elsewhere.
+   * box of cells where the terminal can (kitty and Ghostty, or iTerm2 3.5 and
+   * later for \`png\` and \`rgba\` bytes under fullscreen rendering), the \`alt\`
+   * elsewhere.
    *
    * A leaf: no children, \`hover\` or \`onPress\`; the cells are text, so the
    * picture scrolls and clips as a word does. Drawn again with another \`source\`

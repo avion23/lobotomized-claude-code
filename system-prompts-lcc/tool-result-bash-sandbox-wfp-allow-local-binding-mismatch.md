@@ -1,0 +1,14 @@
+<!--
+name: WFP filters do not match allowLocalBinding
+description: >-
+  Installed loopback mode differs from configured network.allowLocalBinding;
+  re-run the install.
+ccVersion: 2.1.305
+variables:
+  - TOOL_RESULT_BASH_SANDBOX_WFP_ALLOW_LOCAL_BINDING_MISMATCH_VAR_0
+  - TOOL_RESULT_BASH_SANDBOX_WFP_ALLOW_LOCAL_BINDING_MISMATCH_VAR_1
+  - TOOL_RESULT_BASH_SANDBOX_WFP_ALLOW_LOCAL_BINDING_MISMATCH_VAR_2
+  - TOOL_RESULT_BASH_SANDBOX_WFP_ALLOW_LOCAL_BINDING_MISMATCH_VAR_3
+-->
+WFP filters under sublayer ${TOOL_RESULT_BASH_SANDBOX_WFP_ALLOW_LOCAL_BINDING_MISMATCH_VAR_0??"(default)"} do not match network.allowLocalBinding (installed: loopback ${TOOL_RESULT_BASH_SANDBOX_WFP_ALLOW_LOCAL_BINDING_MISMATCH_VAR_1(TOOL_RESULT_BASH_SANDBOX_WFP_ALLOW_LOCAL_BINDING_MISMATCH_VAR_2.allowLoopback)}; configured: ${TOOL_RESULT_BASH_SANDBOX_WFP_ALLOW_LOCAL_BINDING_MISMATCH_VAR_1(TOOL_RESULT_BASH_SANDBOX_WFP_ALLOW_LOCAL_BINDING_MISMATCH_VAR_3)}). Re-run the install for this configuration (one UAC prompt):
+  
