@@ -5,7 +5,7 @@ description: >-
   in one ToolSearch call
 ccVersion: 2.1.305
 variables:
-  - SYSTEM_PROMPT_CLAUDE_IN_CHROME_DEFERRED_TOOL_LOADING_VAR_0
+  - TASK_SPECIFIC_CHROME_TOOLS_GUIDANCE
 -->
 ## Loading deferred tools
 
@@ -13,4 +13,4 @@ If the mcp__claude-in-chrome__* tools are deferred (must be loaded via ToolSearc
 
 ${'ToolSearch with query "select:mcp__claude-in-chrome__tabs_context_mcp,mcp__claude-in-chrome__navigate,mcp__claude-in-chrome__computer,mcp__claude-in-chrome__read_page,mcp__claude-in-chrome__tabs_create_mcp,mcp__claude-in-chrome__tabs_close_mcp"'}
 
-${SYSTEM_PROMPT_CLAUDE_IN_CHROME_DEFERRED_TOOL_LOADING_VAR_0}
+${TASK_SPECIFIC_CHROME_TOOLS_GUIDANCE}
