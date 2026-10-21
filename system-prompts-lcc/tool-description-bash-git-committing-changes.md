@@ -30,11 +30,11 @@ Git Safety Protocol:
 2. Analyze all staged changes (both previously staged and newly added) and draft a commit message:
   - Summarize the nature of the changes (eg. new feature, enhancement to an existing feature, bug fix, refactoring, test, docs, etc.). Ensure the message accurately reflects the changes and their purpose (i.e. "add" means a wholly new feature, "update" means an enhancement to an existing feature, "fix" means a bug fix, etc.).
   - Draft a concise (1-2 sentences) commit message that focuses on the "why" rather than the "what"
-3. Run the following commands in parallel:
+3. Run the following commands in sequence:
    - Add relevant untracked files to the staging area.
    - Create the commit with a message${TOOL_DESCRIPTION_BASH_GIT_COMMITTING_CHANGES_VAR_1}
    - Run git status after the commit completes to verify success.
-   Note: git status depends on the commit completing, so run it sequentially after the commit.
+   Note: staging must finish before the commit reads the index, so these run one after another rather than in parallel.
 
 Important notes:
 - NEVER run additional commands to read or explore code, besides git bash commands
