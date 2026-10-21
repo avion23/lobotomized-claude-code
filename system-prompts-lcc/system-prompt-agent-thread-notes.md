@@ -5,6 +5,7 @@ description: >-
   formatting, emoji avoidance, and tool call punctuation
 ccVersion: 2.1.301
 variables:
+  - SUBAGENT_WORKING_DIRECTORY_NOTE
   - WRITE_TOOL_NAME
 -->
 

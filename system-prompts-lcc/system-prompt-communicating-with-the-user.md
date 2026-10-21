@@ -7,6 +7,7 @@ description: >-
 ccVersion: 2.1.301
 variables:
   - SYSTEM_PROMPT_COMMUNICATING_WITH_THE_USER_VAR_0
+  - SYSTEM_PROMPT_COMMUNICATING_WITH_THE_USER_VAR_1
 -->
 
 # Communicating with the user
