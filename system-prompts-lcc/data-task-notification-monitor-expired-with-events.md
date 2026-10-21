@@ -1,12 +1,14 @@
 <!--
-name: 'Data: Task Notification Monitor Expired With Events'
+name: 'Data: Monitor expired with events notification'
 description: >-
-  Housekeeping task notification telling the model a bounded monitor expired
-  after delivering events and should be re-armed if still needed.
-ccVersion: 2.1.268
+  Task notification sent when a Monitor watch expires after delivering events;
+  tells the model how long it ran, how many events arrived, and the re-arm
+  guidance.
+ccVersion: 2.1.305
 variables:
   - DATA_TASK_NOTIFICATION_MONITOR_EXPIRED_WITH_EVENTS_VAR_0
   - DATA_TASK_NOTIFICATION_MONITOR_EXPIRED_WITH_EVENTS_VAR_1
   - DATA_TASK_NOTIFICATION_MONITOR_EXPIRED_WITH_EVENTS_VAR_2
+  - DATA_TASK_NOTIFICATION_MONITOR_EXPIRED_WITH_EVENTS_VAR_3
 -->
-[Monitor expired after ${DATA_TASK_NOTIFICATION_MONITOR_EXPIRED_WITH_EVENTS_VAR_0} with ${DATA_TASK_NOTIFICATION_MONITOR_EXPIRED_WITH_EVENTS_VAR_1} ${DATA_TASK_NOTIFICATION_MONITOR_EXPIRED_WITH_EVENTS_VAR_2(DATA_TASK_NOTIFICATION_MONITOR_EXPIRED_WITH_EVENTS_VAR_1,"event")} delivered. Re-arm it if you still need the watch.]
+[Monitor expired after ${DATA_TASK_NOTIFICATION_MONITOR_EXPIRED_WITH_EVENTS_VAR_0} with ${DATA_TASK_NOTIFICATION_MONITOR_EXPIRED_WITH_EVENTS_VAR_1} ${DATA_TASK_NOTIFICATION_MONITOR_EXPIRED_WITH_EVENTS_VAR_2(DATA_TASK_NOTIFICATION_MONITOR_EXPIRED_WITH_EVENTS_VAR_1,"event")} delivered. ${DATA_TASK_NOTIFICATION_MONITOR_EXPIRED_WITH_EVENTS_VAR_3}.]

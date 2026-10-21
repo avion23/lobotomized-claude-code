@@ -1,13 +1,12 @@
 <!--
-name: ExitWorktree could not remove
-description: >-
-  ExitWorktree result returned to the model when the worktree was exited but
-  could not be removed.
-ccVersion: 2.1.206
+name: 'Tool result: ExitWorktree could not remove'
+description: ExitWorktree result when removal failed and the worktree was kept.
+ccVersion: 2.1.302
 variables:
   - TOOL_RESULT_EXITWORKTREE_COULD_NOT_REMOVE_VAR_0
   - TOOL_RESULT_EXITWORKTREE_COULD_NOT_REMOVE_VAR_1
   - TOOL_RESULT_EXITWORKTREE_COULD_NOT_REMOVE_VAR_2
   - TOOL_RESULT_EXITWORKTREE_COULD_NOT_REMOVE_VAR_3
+  - TOOL_RESULT_EXITWORKTREE_COULD_NOT_REMOVE_VAR_4
 -->
-Exited worktree but could not remove it — kept at ${TOOL_RESULT_EXITWORKTREE_COULD_NOT_REMOVE_VAR_0}. ${TOOL_RESULT_EXITWORKTREE_COULD_NOT_REMOVE_VAR_1(TOOL_RESULT_EXITWORKTREE_COULD_NOT_REMOVE_VAR_2,TOOL_RESULT_EXITWORKTREE_COULD_NOT_REMOVE_VAR_3)}
+Exited worktree but could not remove it — kept at ${TOOL_RESULT_EXITWORKTREE_COULD_NOT_REMOVE_VAR_0(TOOL_RESULT_EXITWORKTREE_COULD_NOT_REMOVE_VAR_1)}. ${TOOL_RESULT_EXITWORKTREE_COULD_NOT_REMOVE_VAR_2(TOOL_RESULT_EXITWORKTREE_COULD_NOT_REMOVE_VAR_3,TOOL_RESULT_EXITWORKTREE_COULD_NOT_REMOVE_VAR_4)}

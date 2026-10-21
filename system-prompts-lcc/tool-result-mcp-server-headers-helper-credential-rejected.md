@@ -1,10 +1,10 @@
 <!--
-name: 'Tool Result: MCP Server Headers Helper Credential Rejected'
+name: MCP HeadersHelper Credential Rejected
 description: >-
-  McpAuthError message surfaced as the MCP tool call's error result when the
-  server rejects the credential minted by headersHelper.
-ccVersion: 2.1.273
+  MCP tool error when the server rejects the headersHelper credential; run /mcp
+  to reconnect.
+ccVersion: 2.1.302
 variables:
   - TOOL_RESULT_MCP_SERVER_HEADERS_HELPER_CREDENTIAL_REJECTED_VAR_0
 -->
-MCP server "${TOOL_RESULT_MCP_SERVER_HEADERS_HELPER_CREDENTIAL_REJECTED_VAR_0}" rejected the credential from its headersHelper (check the helper and run /mcp to reconnect, or to authenticate if the server also uses OAuth)
+${TOOL_RESULT_MCP_SERVER_HEADERS_HELPER_CREDENTIAL_REJECTED_VAR_0} (check the helper and run /mcp to reconnect, or to authenticate if the server also uses OAuth)

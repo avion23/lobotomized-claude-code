@@ -1,8 +1,8 @@
 <!--
-name: 'System Reminder: Tool Hosts Unknown-Sync Description'
+name: 'Tool hosts: personal machine description'
 description: >-
-  Personal-machine description used when project sync is unknown, injected into
-  the tool_hosts_notice attachment the model receives as ambient isMeta context.
-ccVersion: 2.1.246
+  Describes that the user's downloads and toolchains are on that machine, which
+  decides what may run.
+ccVersion: 2.1.305
 -->
-The user's downloads, local toolchains and anything not in the repository live here; its own Claude Code decides what may run there and may ask the user first
+The user's downloads, local toolchains and anything not in the repository are on this machine, not in this session's environment; its own Claude Code decides what may run there and may ask the user first

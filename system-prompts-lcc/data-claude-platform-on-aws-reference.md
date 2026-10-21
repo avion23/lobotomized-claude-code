@@ -4,7 +4,7 @@ description: >-
   claude-api skill reference file (Claude Platform on AWS reference) inlined as
   <doc> or extracted for the model to Read when the skill's Reading Guide points
   to it.
-ccVersion: 2.1.296
+ccVersion: 2.1.304
 -->
 # Claude Platform on AWS
 
@@ -25,6 +25,7 @@ ccVersion: 2.1.296
 | Java | See SDK repo in \`shared/live-sources.md\` | See SDK repo in \`shared/live-sources.md\` |
 | Ruby | \`gem install anthropic aws-sdk-core\` | See SDK repo in \`shared/live-sources.md\` |
 | PHP | \`composer require anthropic-ai/sdk aws/aws-sdk-php\` | See SDK repo in \`shared/live-sources.md\` |
+| \`ant\` CLI | See \`shared/anthropic-cli.md\` -> Install and auth | No client to construct: with the two values below set, \`ant\` commands other than \`ant beta:worker\` go to Claude Platform on AWS. A missing workspace ID doesn't throw, so confirm with \`ant auth status\` |
 
 After construction, **use the client exactly as you would \`Anthropic()\`** - \`client.messages.create(...)\`, \`client.beta.sessions.*\`, etc., with bare model IDs.
 

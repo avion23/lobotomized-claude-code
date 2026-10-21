@@ -1,8 +1,8 @@
 <!--
-name: Skill Claude Test Needs Terminal
+name: 'Skill: Claude Test needs terminal'
 description: >-
-  Claude Test skill/command failure telling the model to relay that the browser
-  helper only starts from an interactive terminal session.
-ccVersion: 2.1.286
+  Tells Claude to relay that Claude Test works only in the interactive CLI in a
+  terminal, not with claude -p
+ccVersion: 2.1.304
 -->
-Claude Test needs an interactive Claude Code session in a terminal. Run claude in the project folder and type /claude-test there.
+Claude Test works only in the Claude Code CLI in a terminal, not with claude -p. Open a terminal in your project folder, run claude, and type /claude-test there.

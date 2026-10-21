@@ -1,9 +1,8 @@
 <!--
 name: 'Skill: Plugin authoring description'
 description: >-
-  Description of the plugin-authoring skill for writing Claude Code mods
-  (function-hook plugins with panes, bands, status lines, toasts) that
-  hot-reload in-session
-ccVersion: 2.1.295
+  Description of the make-a-mod skill: changing Claude's own interface or
+  behaviour (panes, bands, status line, toasts, commands, hooks)
+ccVersion: 2.1.304
 -->
-Make a mod: a change to Claude's own interface or behaviour, such as a live pane or panel, a band above the prompt, a status line, a toast, a slash command, or a hook on tool calls or prompts. Use to make, change or debug a mod or its hooks module.
+Make a mod: a change to Claude's own interface or behaviour, such as a panel or pane that stays beside the chat and updates, a band, status line, toast, slash command, or hook on tool calls. Use to make, change or debug a mod or its hooks module.

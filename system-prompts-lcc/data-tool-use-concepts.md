@@ -3,7 +3,7 @@ name: 'Data: Tool use concepts'
 description: >-
   claude-api skill reference file (Tool use concepts) inlined as <doc> or
   extracted for the model to Read when the skill's Reading Guide points to it.
-ccVersion: 2.1.296
+ccVersion: 2.1.304
 -->
 # Tool Use Concepts
 
@@ -394,11 +394,13 @@ For full documentation, use WebFetch:
 
 Computer use lets Claude interact with a desktop environment (screenshots, mouse, keyboard). It is a client-side tool - your application provides the environment and executes the actions Claude requests; Anthropic processes the screenshots and action requests in real time but does not host the environment or retain the data.
 
+Computer use requires a sandboxed computing environment, such as a dedicated virtual machine or container with minimal privileges (\`https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool#security-considerations\`).
+
 **Two request shapes.** The current one is the **computer toolset** - GA on the Claude API and Google Cloud, no beta header: one \`tools\` entry \`{"type": "computer_toolset_20260801"}\` with **no \`name\`** and no display dimensions, plus an optional \`configs\` map to turn member tools off (\`{"zoom": {"enabled": false}}\`; all 17 members, \`zoom\` included, are on by default). Claude's calls are \`tool_use\` blocks whose \`name\` is the member (\`screenshot\`, \`left_click\`, \`type\`, \`zoom\`, ...) carrying \`"toolset_name": "computer"\`, often several per turn; return one \`tool_result\` per call in the next \`user\` message, **each echoing \`"toolset_name": "computer"\`** (only \`screenshot\` / \`zoom\` need an image; \`OK\` suffices for the rest). Coordinates are in the pixel space of the full screenshots you return, also after a \`zoom\`, and screenshots must already fit the model's image limits. The earlier \`computer_20251124\` tool (beta \`computer-use-2025-11-24\`, a \`name: "computer"\` entry with \`display_width_px\` / \`display_height_px\`, actions in \`input.action\`) keeps working on the models and platforms that offer it - Bedrock, Claude Platform on AWS, and Foundry offer only the earlier beta versions today - and the two forms can't share a request. **{{OPUS_NAME}} accepts only the toolset**: \`computer_20251124\` returns a 400 there (\`shared/model-migration.md\` -> Migrating to {{OPUS_NAME}} -> Breaking change 4 has the request and agent-loop changes; test them on {{PREV_OPUS_NAME}}, which accepts both). **{{SONNET_NAME}} accepts only the toolset on the Claude API and Google Cloud** (\`computer_20251124\` returns a 400 there; Amazon Bedrock still accepts it, and no platform accepts \`computer_20250124\`) - see \`shared/model-migration.md\` -> Migrating to {{SONNET_NAME}} -> Breaking change 4.
 
 For full documentation (member reference, batch actions, scaling, the \`computer_20251124\` migration steps), use WebFetch:
 
-- URL: \`https://platform.claude.com/docs/en/agents-and-tools/computer-use/overview\`
+- URL: \`https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool.md\`
 
 ---
 
@@ -486,6 +488,8 @@ For full implementation examples, use WebFetch:
 The bash and text editor tools are **Anthropic-defined, schema-less** tools. Declare them by \`type\` and \`name\` only - the input schema is built into the model and cannot be modified. **Do not pass an \`input_schema\`**, and do not define a custom tool that happens to be named \`"bash"\` - that creates a user-defined tool without the built-in behavior.
 
 Both are **client-executed**: Claude returns a \`tool_use\` block, your code performs the action locally, and you send back a \`tool_result\`. The API is stateless; your application maintains the shell session or filesystem between turns.
+
+Anthropic hosts no sandbox for client-side tools. Any sandbox is yours to host, such as a container or a virtual machine for the bash tool (\`https://platform.claude.com/docs/en/agents-and-tools/tool-use/bash-tool#security\`).
 
 ### Bash tool declaration
 

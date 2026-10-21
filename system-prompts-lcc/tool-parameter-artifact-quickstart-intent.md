@@ -3,6 +3,6 @@ name: 'Tool Parameter: Artifact Quickstart Intent'
 description: >-
   Artifact quickstart intent enum describing whether the work is a document,
   slides, design, or other.
-ccVersion: 2.1.273
+ccVersion: 2.1.302
 -->
-quickstart only (required): what is being made — 'document' (text to read or edit together), 'slides' (a deck or one slide), 'design' (a visual design or prototype on a canvas), 'other' (anything else, or unsure).
+quickstart only (required): what is being made — 'document' (text to read or edit together), 'slides' (a deck or one slide), 'design' (a visual design or prototype on a canvas), 'other' (a dashboard that shows data, anything else, or unsure).

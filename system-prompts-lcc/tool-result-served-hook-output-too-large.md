@@ -1,6 +1,6 @@
 <!--
-name: 'Tool Result: Served hook output too large'
-description: Explains a hook output exceeding the remote answer limit.
-ccVersion: 2.1.295
+name: 'Tool Result: served hook output too large'
+description: Placeholder replacing hook output that exceeds the passed-on size limit
+ccVersion: 2.1.301
 -->
-the hook printed more than one run may answer
+The hook printed more than is passed on.

@@ -1,16 +1,14 @@
 <!--
 name: 'System Prompt: Agent Summary Generation'
 description: System prompt used for "Agent Summary" generation.
-ccVersion: 2.1.274
+ccVersion: 2.1.302
 variables:
-  - PREVIOUS_AGENT_SUMMARY
-  - JSON_STRINGIFY_FN
+  - IS_BACKGROUND_AGENT
+  - PREVIOUS_SUMMARY_LINE
 -->
 
-Describe your most recent action in 3-5 words using present tense (-ing). Name the file or function, not the branch. Do not use tools.
-${PREVIOUS_AGENT_SUMMARY?`
-Previous: ${JSON_STRINGIFY_FN(PREVIOUS_AGENT_SUMMARY)} — say something NEW.
-`:""}
+Describe ${IS_BACKGROUND_AGENT?"the agent's":"your"} most recent action in 3-5 words using present tense (-ing). Name the file or function, not the branch.${IS_BACKGROUND_AGENT?"":" Do not use tools."}
+${PREVIOUS_SUMMARY_LINE}
 Good: "Reading runAgent.ts implementation"
 Good: "Adding retry logic to fetchUser"
 

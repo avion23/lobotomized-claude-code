@@ -4,12 +4,15 @@ description: >-
   Describes the DesignSync tool — reads/updates the user's claude.ai/design
   design-system projects through their claude.ai login, dispatching on a method
   field, paired with the /design-sync skill
-ccVersion: 2.1.273
+ccVersion: 2.1.302
 variables:
   - SHOULD_INCLUDE_ARTIFACT_DESIGN_REDIRECTION
   - ARTIFACT_DESIGN_REDIRECTION_NOTE
+  - STANDALONE_CLAUDE_DESIGN_CLOSURE_NOTE
 -->
 Read and update the user's claude.ai/design design-system projects through their claude.ai login (or, for sessions without one, a dedicated design authorization from /design-login). Use this only with the /design-sync skill, which the user starts, to keep a local component library in sync with one of those projects — incrementally, one component at a time, never as a wholesale replace.${SHOULD_INCLUDE_ARTIFACT_DESIGN_REDIRECTION?ARTIFACT_DESIGN_REDIRECTION_NOTE:""}
+
+${STANDALONE_CLAUDE_DESIGN_CLOSURE_NOTE} If the server refuses a call because standalone Claude Design or the project has closed or moved, give the user the server's message as written and stop.
 
 The tool dispatches on \`method\`:
 

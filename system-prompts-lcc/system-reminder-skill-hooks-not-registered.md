@@ -1,0 +1,9 @@
+<!--
+name: 'System Reminder: Skill hooks not registered'
+description: >-
+  Notice that the skill's hooks were not registered (limits, untestable matchers
+  or policy), its allowed-tools were not granted, and to tell the user if it
+  relies on hooks
+ccVersion: 2.1.304
+-->
+This skill declares hooks, and they were not registered in this session: a limit on hooks, a matcher that cannot be tested here, or the organization's policy kept them out. The tools that its allowed-tools would grant were not granted either. If the skill relies on its hooks to check or block tool calls, nothing checks them now: tell the user.

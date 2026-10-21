@@ -5,4 +5,4 @@ description: >-
   credential and should use a sensitive userConfig option or env var.
 ccVersion: 2.1.281
 -->
-header value looks like a literal credential. Everything shipped in a plugin is readable by everyone who installs it; reference a sensitive userConfig option (${user_config.KEY}) or an environment variable (${VAR}) instead of committing the value.
+header value looks like a literal credential. Everything shipped in a plugin is readable by everyone who installs it; reference a sensitive userConfig option (\${user_config.KEY}) or an environment variable (\${VAR}) instead of committing the value.

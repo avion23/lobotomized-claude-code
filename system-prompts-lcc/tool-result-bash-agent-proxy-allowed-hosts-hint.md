@@ -1,6 +1,8 @@
 <!--
-name: 'Agent proxy: allowed hosts hint'
-description: Explains where allowed hosts are configured after an egress refusal.
-ccVersion: 2.1.300
+name: 'Tool result: agent proxy allowed hosts hint'
+description: >-
+  Hint on where allowed network domains are configured per plan, appended to
+  agent-proxy failure notes.
+ccVersion: 2.1.302
 -->
-Allowed hosts come from network settings. On a paid individual plan, the person changes them on claude.ai in a web browser, under Settings > Capabilities. On a Team or Enterprise plan, an organization owner changes them. On the free plan, only package registries can be allowed.
+Allowed domains are set on claude.ai in a web browser: on a paid individual plan by the person, under Settings > Capabilities; on a Team or Enterprise plan by their admin, under Organization settings > Capabilities. On the Free plan, only package managers can be allowed.
