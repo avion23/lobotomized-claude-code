@@ -4,7 +4,7 @@ description: >-
   claude-api skill reference file (Managed Agents reference — PHP) inlined as
   <doc> or extracted for the model to Read when the skill's Reading Guide points
   to it.
-ccVersion: 2.1.299
+ccVersion: 2.1.308
 -->
 # Managed Agents - PHP
 
@@ -259,7 +259,7 @@ curl_setopt_array($ch, [
     CURLOPT_POST => true,
     CURLOPT_HTTPHEADER => [
         'x-api-key: ' . getenv('ANTHROPIC_API_KEY'),
-        'anthropic-version: 2023-06-01',
+        'anthropic-version: 2026-10-21',
         'anthropic-beta: files-api-2025-04-14',
     ],
     CURLOPT_POSTFIELDS => ['file' => new CURLFile($csvPath, 'text/csv', 'data.csv')],

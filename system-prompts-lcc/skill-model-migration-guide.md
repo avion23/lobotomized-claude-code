@@ -4,7 +4,7 @@ description: >-
   The claude-api skill's model-migration reference (shared/model-migration.md),
   read by `/claude-api migrate`: per-model breaking changes, behavioral shifts
   and migration checklists.
-ccVersion: 2.1.301
+ccVersion: 2.1.308
 -->
 # Model Migration Guide
 
@@ -127,7 +127,7 @@ Code examples here are Python. The same fields exist in every official Anthropic
 
 ### Sampling parameters - \`temperature\` / \`top_p\` / \`top_k\`
 
-(Remove the field entirely on Opus 4.7; on Claude 4.x keep at most one of \`temperature\` or \`top_p\`.)
+(Remove the field entirely on Opus 4.7; on Claude 4.x keep at most one of \`temperature\` or \`top_p\`. On API version \`2026-10-21\`, remove all three on every model - \`shared/api-version-migration.md\`.)
 
 | SDK | Field(s) to remove |
 |---|---|
@@ -1198,7 +1198,7 @@ output_config={"effort": "high"},  # or "xhigh" for the hardest coding/agentic t
 
 To turn thinking off entirely, set \`thinking: {type: "disabled"}\` - but see *Adaptive vs. disabled* below first.
 
-**2. Sampling parameters rejected.** Setting \`temperature\`, \`top_p\`, or \`top_k\` to a non-default value returns a 400; omitting it, or passing its default, is still accepted. Safest migration: omit them and steer with prompting. If the caller relied on \`temperature=0\` for determinism, note in the migration comment that it never guaranteed identical outputs.
+**2. Sampling parameters rejected.** Setting \`temperature\`, \`top_p\`, or \`top_k\` to a non-default value returns a 400; omitting the parameter is accepted, and so is passing its default on API version \`2023-06-01\` (on \`2026-10-21\` any value returns a 400). Safest migration: omit them and steer with prompting. If the caller relied on \`temperature=0\` for determinism, note in the migration comment that it never guaranteed identical outputs.
 
 \`\`\`python
 # Before
@@ -2296,7 +2296,7 @@ client.messages.create(
 
 ### Breaking change 2: non-default sampling parameters return a 400
 
-Claude Haiku 4.5 accepts \`temperature\`, \`top_p\`, and \`top_k\`. On {{HAIKU_NAME}}, omit all three and guide the model's behavior from the prompt instead. The accepted values are narrow: \`temperature\` must be \`1\`, and \`top_p\` must be \`0.99\`, its default; any other value of either returns a 400 (a \`top_p\` of \`1\` included), and so does any \`top_k\` value, and so does a request that sends both \`temperature\` and \`top_p\`. This holds on every request, whether or not thinking is used. \`temperature=0\` on a classification route is the common case: remove it, and constrain the output with structured outputs or an enum-valued tool. The per-language fields are in **Per-SDK Syntax Reference** -> Sampling parameters above.
+Claude Haiku 4.5 accepts \`temperature\`, \`top_p\`, and \`top_k\`. On {{HAIKU_NAME}}, omit all three and guide the model's behavior from the prompt instead. On API version \`2023-06-01\` the accepted values are narrow: \`temperature\` must be \`1\`, and \`top_p\` must be \`0.99\`, its default; any other value of either returns a 400 (a \`top_p\` of \`1\` included), and so does any \`top_k\` value, and so does a request that sends both \`temperature\` and \`top_p\`. This holds on every request, whether or not thinking is used. On API version \`2026-10-21\`, any value of any of the three returns a 400. \`temperature=0\` on a classification route is the common case: remove it, and constrain the output with structured outputs or an enum-valued tool. The per-language fields are in **Per-SDK Syntax Reference** -> Sampling parameters above.
 
 ### Breaking change 3: assistant prefill returns a 400
 

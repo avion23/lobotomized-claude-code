@@ -3,7 +3,7 @@ name: 'Data: Claude Test spec file format'
 description: >-
   claude-test spec file format reference (skills/run/spec-format.md) the run and
   draft skills tell the model to Read.
-ccVersion: 2.1.296
+ccVersion: 2.1.308
 -->
 # Spec file format
 
@@ -32,7 +32,7 @@ A spec has three parts:
 |---|---|
 | \`# heading\` | The label people see in results. One line. |
 | prose under it (an optional \`## Steps\` heading is allowed) | The goal and the data, not the clicks: where to start, what to do, what made-up values to type. "Add the travel mug to the cart and open the cart", not "click …, then click …". Name pages by path (\`/pricing\`), never by full URL. |
-| \`## Passes when\` | \`- Must: …\` and \`- Must not: …\` lines about the one screen where the steps end. Quote visible text exactly. "The page loads" or "no error" alone is not a criterion. |
+| \`## Passes when\` | \`- Must: …\` and \`- Must not: …\` lines about the one screen where the steps end. Quote visible text exactly: "reads" for a whole string, "contains" for its stable part. "The page loads" or "no error" alone is not a criterion. |
 
 Front matter is optional. \`id\` is the spec's stable identity (a run's \`write-spec\` helper mints it; a hand-written
 spec may omit it, and nothing else should invent or change one). \`allow_navigation\` (default false: the agent
@@ -56,8 +56,33 @@ that name and the ingredient "2 eggs". Then search the recipe list for "demo rec
 - Must: the results list shows a card titled "Claude Test demo recipe".
 \`\`\`
 The fixed "Claude Test demo …" name lets later runs find and reuse the record instead of adding
-another. Such a spec never deletes anything. Before running these specs against a site other
-people use, review the \`creates-data\` ones. There is no URL in a spec: the address comes from
+another — for a record the journey only NEEDS. Such a spec never deletes anything.
+
+**\`{run}\`: a value of this run's own.** When the journey under test IS the creating or editing (add a
+note, save a change), a record an earlier run left behind must not be able to pass it. Write \`{run}\` in
+the value the steps type and quote the same value in the Must line; each run shows \`{run}\` as a short
+stamp of its own (like \`1017-102442\`) when it reads the spec, so only this run's typing can make the
+line hold:
+
+\`\`\`markdown
+---
+tags: [creates-data]
+---
+# Add a note
+
+Add a note titled "Note from run {run}" with the body "Written by Claude Test".
+
+## Passes when
+- Must: the notes list shows an entry titled "Note from run {run}".
+\`\`\`
+
+\`{run}\` is the format's one placeholder: written exactly so, only inside a value the steps type and the
+Must lines that quote it, never in the spec's \`# heading\` or a path, and never followed directly by a digit or by a dash and
+a digit (\`Item {run} a\`, not \`Item {run}-1\`). A run records PASS for such a spec only
+after it typed that value and then acted on the page again (a click, key press, navigation, wait or
+more typing), in the browser it opened new for that spec.
+
+Before running specs tagged \`creates-data\` against a site other people use, review them. There is no URL in a spec: the address comes from
 \`baseUrl\` in \`.claude-testrc\`, so the same spec runs against a laptop, a preview, or staging.
 
 **Goal-oriented, not prescriptive.** Say WHAT to achieve; the agent figures out HOW from what it
@@ -76,6 +101,9 @@ A good spec:
 - names only controls and strings that really exist (copied from the code or the screen);
 - quotes the whole visible string when it says a line "reads" something, or says "contains …" when
   it means part of it — a half-quoted string is judged differently by different runs;
+- when the code renders a heading or label with a dynamic part (a count, a name, a date), quotes only
+  its stable part, with "contains" wording, never the dynamic part: \`Must: the heading contains "My notes"\`
+  for a heading rendered as "My notes (2 notes)", never \`Must: the heading reads "My notes"\`;
 - checks an outcome the page would not show if the step did nothing;
 - says *where* on the screen the outcome appears ("the results list shows …", "the dialog headed
   'Search' shows …", "the order summary's total line reads …") — on a very large app this lets a run
@@ -84,7 +112,7 @@ A good spec:
 - asserts seeded data by value when a seed, fixture or migration file fixes it (and cites that file),
   and nothing the code computes at run time (dates, random ids, rotating content);
 - uses an unmistakable sentinel for any free text it types ("zzqx-test-note", "Claude Test demo recipe") so the
-  end screen can be checked for exactly that string;
+  end screen can be checked for exactly that string, with \`{run}\` in it when the journey creates or edits that record;
 - contains no credentials, no environment variables, no other hosts;
 - when the app has accounts, says from which vantage it is written — "As a visitor, …" or "Signed in, …"
   at the start of the steps — so a run that meets a sign-in screen can tell a regression from a

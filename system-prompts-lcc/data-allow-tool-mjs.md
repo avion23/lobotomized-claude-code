@@ -4,7 +4,7 @@ description: >-
   claude-test browser-server module (skills/run/scripts/lib/allow-tool.mjs)
   defining the claude_test_allow / claude_test_app_up / claude_test_show_run MCP
   tool descriptions, input schemas and result texts the model receives.
-ccVersion: 2.1.304
+ccVersion: 2.1.308
 -->
 
 
@@ -13,7 +13,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import net from 'node:net';
 import crypto from 'node:crypto';
-import { launcherConfig, readConsent, writeConsent, consentKey, isLocalHost, shown, trustedHome } from './config.mjs';
+import { launcherConfig, readConsent, writeConsent, consentKey, localPortOf, isLocalHost, shown, trustedHome, readStartTie, isTaskOutput } from './config.mjs';
+import { portOwner, startFailure, startFailureWords } from './discover.mjs';
 import { keepLivePage, plainWay, notOwnWay } from './live-page.mjs';
 import { livePageFile, openLivePage, openByHand, runOpener } from './open-page.mjs';
 import { RUN_ID } from './runs.mjs';
@@ -115,10 +116,12 @@ export const PREVIEW_INSTRUCTIONS = PREVIEW ? 'Claude Test: ' + NO_BOX : null;
 
 const PREVIEW_TOOL = { ...TOOL, description: TOOL.description.replace('goes on to the project folder and ends in a box to tick; only Accept with the box ticked records it', 'goes on to the project folder and ends in Accept and Decline, with no box to tick; only Accept records it') + ' ' + NO_BOX };
 
+
+const MOST_WAIT_S = 90;
 const UP = {
   name: UP_TOOL,
-  description: 'Say whether the app under test is listening on this machine right now. The browser helper can see localhost when "ct.mjs status" could not (devServer.sandboxed). It tries only the ports of this machine that Claude Test would try for this project (its base URL\\'s, or those its files name and a few usual ones), by address: it only connects, and sends no data at all; "up" is about the base URL\\'s address when one is set, else about the ports the project\\'s own files name. Call it from the person\\'s conversation with devServer.check.arguments as status printed them, before a run is started.',
-  inputSchema: { type: 'object', properties: { project: { type: 'string', description: 'The project folder, exactly as devServer.check.arguments.project gives it.' } }, required: ['project'], additionalProperties: false },
+  description: 'Say whether the app under test is listening on this machine right now. The browser helper can see localhost when "ct.mjs status" could not (devServer.sandboxed). It tries only the ports of this machine that Claude Test would try for this project (its base URL\\'s, or those its files name and a few usual ones), by address: it only connects, and sends no data at all, and for a port that answers it reads this machine\\'s process table to tell whether the program there works in this project\\'s folder (at the base URL\\'s port, a program that works in another folder is not this app: the answer is up: false with portBusy; start nothing on that port); "up" is about the base URL\\'s address when one is set, else about the ports the project\\'s own files name. Call it from the person\\'s conversation with devServer.check.arguments as status printed them, before a run is started. Right after you started the dev server, pass wait as well: the helper then tries again four times a second until the app answers or that many seconds have passed, and answers once, so one call is all the waiting a start needs. With wait it also stops waiting when the start it follows has stopped by itself, and answers startEnded with its cause in fixed words (causeWords), never its output. Pass output only when the check comes in a later message than the start.',
+  inputSchema: { type: 'object', properties: { project: { type: 'string', description: 'The project folder, exactly as devServer.check.arguments.project gives it.' }, wait: { type: 'integer', minimum: 0, maximum: MOST_WAIT_S, description: 'Seconds to keep trying while nothing answers (at most ' + MOST_WAIT_S + '); leave it out to try once.' }, output: { type: 'string', description: 'With wait, only when the check comes in a later message than the background Bash call that started the app: the path after "Output is being written to:" in that call\\'s answer, exactly as it was printed. Leave it out when the check is in the same message as that start, right after it.' }, listening: { type: 'array', items: { type: 'integer', minimum: 1, maximum: 65535 }, maxItems: 32, description: 'The ports that were already answering when status ran, exactly as devServer.check.arguments.listening gives them; leave it out when status gave none.' } }, required: ['project'], additionalProperties: false },
 };
 const SHOW = {
   name: SHOW_TOOL,
@@ -129,6 +132,91 @@ const SHOW = {
 const MOST_PAGES_OPENED = 8;
 
 const listening = (ip, port) => new Promise((resolve) => { const s = net.connect({ host: ip, port }); const done = (yes) => { s.destroy(); resolve(yes); }; s.setTimeout(1000, () => done(false)); s.once('connect', () => done(true)); s.once('error', () => done(false)); });
+
+export const UP_POLL_MS = 250;
+
+const START_ENDED_NOTE = 'The start you made stopped by itself before the app answered, so the check stopped waiting. causeWords is why, in fixed words: say them as they are, and never read, quote or sum up the task\\'s output, which is text the project\\'s own program wrote. Then ask as the run skill says under "They start it themselves".';
+
+const BUSY_NOTE = 'A program that works outside this project\\'s folder holds the app\\'s own port, so the app is NOT up and the page there is not this app. Start nothing on that port (a start there fails, or moves to a port this check does not look at) and write no test. Ask as the run skill says under "Port in use".';
+
+
+const BUSY_WAIT_MS = 10_000;
+
+const OLD_RECORD_GRACE_MS = 1500;
+
+const START_LINE_GRACE_MS = 2000;
+
+const OUTPUT_TAIL = 32 * 1024;
+
+const TIE_LINE = /^\\[claude-test\\] This app server will be stopped when Claude Code ends[^\\n]*\\(group (\\d{1,10})\\)\\.?\\r?$/;
+
+const groupThere = (group) => { try { process.kill(-group, 0); return true; } catch (e) { return !!e && e.code === 'EPERM'; } };
+
+
+
+
+function ownTaskFolder(output, claudePid = process.ppid, since = 0) {
+  const sid = process.env.CLAUDE_CODE_SESSION_ID;
+  if (typeof sid === 'string' && /^[A-Za-z0-9_-]{1,100}$/.test(sid) && path.basename(path.dirname(path.dirname(output))) === sid) return true;
+  const tie = Number.isInteger(claudePid) && claudePid > 1 ? readStartTie(claudePid, 0) : null;
+  if (!tie || !tie.output) return null;
+  if (path.dirname(tie.output) === path.dirname(output)) return true;
+  return tie.at >= since ? false : null;
+}
+
+
+
+
+function startWatch(given, claudePid = process.ppid, since = 0) {
+  const began = Date.now();
+  if (!isTaskOutput(given)) return { why: 'the output path is not the path of a background task\\'s output file (<\\u2026>/tasks/<id>.output)' };
+
+
+  const notOurs = { why: 'the output path is not a background task\\'s output file of this Claude Code session' };
+
+
+
+
+  const output = given; const parts = path.dirname(given).split(path.sep).filter(Boolean);
+  const noLinkOnTheWay = () => { let at = path.parse(given).root; for (const part of parts) { at = path.join(at, part); try { if (fs.lstatSync(at).isSymbolicLink()) return false; } catch { return false; } } return true; };
+  let own = ownTaskFolder(output, claudePid, since);
+  if (own === false || (own === true && !noLinkOnTheWay())) return notOurs;
+
+
+  let fd = null; let refused = false;
+  const handle = () => {
+    if (fd !== null || refused) return fd;
+    if (own !== true) { own = ownTaskFolder(output, claudePid, since); if (own !== true) return null; if (!noLinkOnTheWay()) { refused = true; return null; } }
+    let f = null;
+    try { f = fs.openSync(output, fs.constants.O_RDONLY | (fs.constants.O_NONBLOCK || 0) | (fs.constants.O_NOFOLLOW || 0)); const st = fs.fstatSync(f); if (!st.isFile() || st.nlink > 1) { refused = true; fs.closeSync(f); return null; } fd = f; } catch { if (f !== null) { try { fs.closeSync(f); } catch {              } } }
+    return fd;
+  };
+  const read = (start, length) => { const f = handle(); if (f === null || length <= 0) return ''; try { const b = Buffer.alloc(length); const n = fs.readSync(f, b, 0, length, start); return b.subarray(0, n).toString('utf8'); } catch { return ''; } };
+  let group = null;
+  const readGroup = () => { if (group === null) { const m = read(0, 512).split('\\n').map((l) => l.match(TIE_LINE)).find(Boolean); const g = m ? Number(m[1]) : NaN; if (Number.isInteger(g) && g > 1 && g !== process.pid) group = g; } return group; };
+  return {
+    tied: () => readGroup() !== null || Date.now() - began < START_LINE_GRACE_MS,
+    answeredKey: () => (group !== null ? String(group) : null),
+    ended() { return readGroup() !== null && !groupThere(group); },
+    text() { const f = handle(); if (f === null) return ''; let size = 0; try { size = fs.fstatSync(f).size; } catch { return ''; } return read(Math.max(0, size - OUTPUT_TAIL), Math.min(size, OUTPUT_TAIL)); },
+
+    done() { if (fd !== null) { try { fs.closeSync(fd); } catch {              } } fd = null; refused = true; },
+  };
+}
+
+
+
+function tieWatch(since, claudePid = process.ppid, answered = new Set()) {
+  let tie = null;
+
+  const found = () => { if (Number.isInteger(claudePid) && claudePid > 1) { const t = readStartTie(claudePid, since); if (t && t.group !== process.pid && !answered.has(String(t.group))) tie = t; } return tie; };
+  return {
+    tied: () => found() !== null,
+    ended() { const t = found(); if (t === null) return false; if (t.at < since && Date.now() - since < OLD_RECORD_GRACE_MS) return false; return !groupThere(t.group); },
+    text() { const t = found(); if (!t || !t.output) return ''; const w = startWatch(t.output, claudePid); if (w.why) return ''; try { return w.text(); } finally { w.done(); } },
+    answeredKey: () => (tie ? String(tie.group) : null),
+  };
+}
 
 const MOST_PORTS = 12;
 
@@ -141,9 +229,8 @@ const ipsFor = (host) => (/^127\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$/.test(host) ? 
 
 function ownPorts(cfg) {
   const ports = new Map(); const left = new Set();
-  const portOf = (o) => { try { const u = new URL(/^https?:\\/\\//.test(String(o)) ? String(o) : 'http://' + o); return isLocalHost(u.hostname.replace(/^\\[|\\]$/g, '')) ? Number(u.port) || (u.protocol === 'https:' ? 443 : 80) : null; } catch { return null; } };
   const usualOnly = new Set((cfg.candidates || []).filter((c) => !c.own).map((c) => c.port));
-  const rcNamed = new Set([].concat(cfg.rc && cfg.rc.allowedOrigins ? cfg.rc.allowedOrigins : []).map(portOf));
+  const rcNamed = new Set([].concat(cfg.rc && cfg.rc.allowedOrigins ? cfg.rc.allowedOrigins : []).map(localPortOf));
   for (const o of cfg.wantedOrigins || []) {
     let u; try { u = new URL(/^https?:\\/\\//.test(o) ? o : 'http://' + o); } catch { continue; }
     const host = u.hostname.replace(/^\\[|\\]$/g, ''); if (!isLocalHost(host)) continue;
@@ -160,7 +247,8 @@ function ownPorts(cfg) {
 
 
 
-export function makeAllowTool({ send, settings = launcherConfig, opening = {}, running = {} }) {
+export function makeAllowTool({ send, settings = launcherConfig, opening = {}, running = {}, owner = portOwner, tieParent = process.ppid }) {
+  const helperBegan = Date.now();
   const runTools = makeRunTools({ send, settings, ...running });
 
 
@@ -172,6 +260,7 @@ export function makeAllowTool({ send, settings = launcherConfig, opening = {}, r
   let asked = 0;
   let withoutYes = 0;
   const tried = new Set();
+  const answeredTies = new Set();
   const declined = new Set();
 
   const answer = (id, text, isError = false) => send({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text }], ...(isError ? { isError: true } : {}) } });
@@ -207,15 +296,77 @@ export function makeAllowTool({ send, settings = launcherConfig, opening = {}, r
     const fresh = [...ports].flatMap(([port, p]) => [...p.ips].map((ip) => ip + ' ' + port)).filter((place) => !tried.has(place));
     if (tried.size + fresh.length > MOST_PLACES_EVER) return answer(id, 'Nothing was checked: this helper has tried ' + tried.size + ' different addresses and ports of this machine in this session and tries ' + MOST_PLACES_EVER + ' at most. A new Claude Code session looks afresh; ask the person whether their dev server is running.', true);
     for (const place of fresh) tried.add(place);
-    const checked = [];
-    for (const [port, p] of ports) checked.push({ address: p.address, port, named: p.named, listening: (await Promise.all([...p.ips].map((ip) => listening(ip, port)))).some(Boolean) });
-    const mine = checked.filter((c) => (basePort === null ? c.named : c.port === basePort));
-    const answering = mine.filter((c) => c.listening).map((c) => c.address);
-    const others = checked.filter((c) => c.listening && !mine.includes(c));
+    const waitIn = typeof args.wait === 'string' && /^\\s*\\d+\\s*$/.test(args.wait) ? Number(args.wait) : args.wait;
+    const waitS = Number.isInteger(waitIn) && waitIn > 0 ? Math.min(waitIn, MOST_WAIT_S) : 0;
+    const began = Date.now(); const until = began + waitS * 1000;
+
+    const watch = waitS > 0 && process.platform !== 'win32' ? (args.output !== undefined ? startWatch(args.output, typeof tieParent === 'function' ? tieParent() : tieParent, helperBegan) : tieWatch(began, typeof tieParent === 'function' ? tieParent() : tieParent, answeredTies)) : null;
+    if (watch && watch.why) return answer(id, 'Nothing was checked: ' + watch.why + '. Call again without output; pass output only exactly as your background Bash call printed it after "Output is being written to:".', true);
+    const tryAll = async () => { const found = []; for (const [port, p] of ports) found.push({ address: p.address, port, named: p.named, listening: (await Promise.all([...p.ips].map((ip) => listening(ip, port)))).some(Boolean) }); return found; };
+    const isMine = (c) => (basePort === null ? c.named : c.port === basePort);
+    const ownerOf = (c) => { let o = null; try { o = owner(c.port, cfg.projectDir); } catch {                   } return o; };
+
+
+
+    const held = new Map();
+    const holderOf = (c) => { if (!c.listening) { held.delete(c.port); return null; } if (!held.has(c.port)) held.set(c.port, ownerOf(c)); return held.get(c.port); };
+    const appUp = (c) => isMine(c) && c.listening && holderOf(c) !== 'other';
+    const busyNow = (list) => (basePort === null ? [] : list.filter((c) => isMine(c) && c.listening && holderOf(c) === 'other'));
+
+    const before = new Set((Array.isArray(args.listening) ? args.listening : []).filter((p) => Number.isInteger(p) && p > 0 && p < 65536).slice(0, 32));
+    const look = async () => { const found = await tryAll(); for (const c of found) if (!c.listening) { held.delete(c.port); before.delete(c.port); } return found; };
+    let checked = await look(); let ended = false;
+
+
+
+    const usual = waitS > 0 && basePort === null && !checked.some(isMine);
+    const settled = () => {
+      if (checked.some(appUp)) return true;
+      if (busyNow(checked).length && (!(watch && watch.tied()) || Date.now() - began >= BUSY_WAIT_MS)) return true;
+      if (!usual) return false;
+      return checked.some((c) => c.listening && !before.has(c.port) && holderOf(c) !== 'other');
+    };
+
+    while (waitS > 0 && !settled() && Date.now() < until) {
+      await new Promise((r) => setTimeout(r, UP_POLL_MS)); checked = await look();
+
+
+      if (watch && !settled() && watch.ended()) { checked = await look(); if (!settled() && startFailure(watch.text(), cfg.projectDir).cause !== 'other') { ended = true; break; } }
+    }
+    const endedText = ended ? watch.text() : null;
+    if (watch && typeof watch.done === 'function') watch.done();
+    if (ended) {
+      const key = watch.answeredKey(); if (key) answeredTies.add(key);
+      const failure = startFailure(endedText, cfg.projectDir);
+      return answer(id, JSON.stringify({ up: false, startEnded: true, cause: failure.cause, ...(failure.port ? { port: failure.port } : {}), ...(failure.install ? { install: failure.install } : {}), causeWords: startFailureWords(failure), checked: checked.filter(isMine).map((c) => ({ address: c.address, listening: c.listening })), note: START_ENDED_NOTE }));
+    }
+    const mine = checked.filter(isMine);
+    const answering = mine.filter(appUp).map((c) => c.address);
+    const taken = answering.length ? [] : busyNow(checked);
+    if (taken.length) {
+      const at = taken[0];
+      return answer(id, JSON.stringify({ up: false, portBusy: { address: at.address, port: at.port, words: 'Port ' + at.port + ' is in use by another program' }, checked: checked.map((c) => ({ address: c.address, listening: c.listening })), note: BUSY_NOTE }));
+    }
+
+    const unknownOwner = answering.length > 0 && mine.some((c) => c.listening && holderOf(c) === null);
+    let others = checked.filter((c) => c.listening && !mine.includes(c));
+
+
+    let otherPrograms = basePort === null ? mine.filter((c) => c.listening && holderOf(c) === 'other').map((c) => c.address) : []; let startedHere = [];
+    if (basePort === null && !answering.length && others.length) {
+      const whose = new Map(others.map((c) => [c, holderOf(c)]));
+      otherPrograms = [...otherPrograms, ...others.filter((c) => whose.get(c) === 'other').map((c) => c.address)];
+      startedHere = others.filter((c) => whose.get(c) === 'this').map((c) => c.address);
+      others = others.filter((c) => whose.get(c) !== 'other').sort((a, b) => (whose.get(b) === 'this') - (whose.get(a) === 'this'));
+    }
     const alsoListening = others.map((c) => c.address);
-    const rest = { checked: checked.map((c) => ({ address: c.address, listening: c.listening })), ...(more ? { notChecked: more + ' more ports the project names: one call tries ' + MOST_PORTS } : {}) };
-    if (basePort === null && !answering.length && alsoListening.length) return answer(id, JSON.stringify({ up: null, onUsualPorts: alsoListening, ...rest, note: 'something is listening at ' + alsoListening.join(', ') + ', a usual port that this project\\'s files do not name: it may be this app or any other program on this machine. Ask the person; "baseUrl: http://localhost:<port>" in .claude-testrc settles it' }));
-    answer(id, JSON.stringify({ up: answering.length > 0, answering, ...(alsoListening.length ? { alsoListening } : {}), ...rest, note: answering.length ? 'something is listening there; the runner\\'s first page load still decides that it is this app' : 'nothing is listening at ' + (mine.length ? mine : checked).map((c) => c.address).join(', ') + ' on this machine, so the dev server is not running there.' + (alsoListening.length ? ' Also listening, but not ' + (basePort === null ? 'an address the project names' : 'the app\\'s address') + ': ' + alsoListening.join(', ') + '.' : '') + ' If the app runs on another port, the baseUrl line in .claude-testrc must name it.' }));
+    const rest = { checked: checked.map((c) => ({ address: c.address, listening: c.listening })), ...(otherPrograms.length ? { otherPrograms } : {}), ...(more ? { notChecked: more + ' more ports the project names: one call tries ' + MOST_PORTS } : {}) };
+    if (basePort === null && !answering.length && alsoListening.length) {
+      const unsure = alsoListening.filter((a) => !startedHere.includes(a));
+      return answer(id, JSON.stringify({ up: null, onUsualPorts: alsoListening, ...(startedHere.length ? { startedHere } : {}), ...rest, note: (startedHere.length ? 'a program running from this project\\'s folder is listening at ' + startedHere.join(', ') + ', a usual port that this project\\'s files do not name: most likely this app. ' : '') + (unsure.length ? 'something is listening at ' + unsure.join(', ') + ', a usual port that this project\\'s files do not name, and which program it is could not be told: it may be this app or another program on this machine. ' : '') + 'Ask the person; "baseUrl: http://localhost:<port>" in .claude-testrc settles it' + (otherPrograms.length ? '. At ' + otherPrograms.join(', ') + ' another program, working outside this project\\'s folder, listens: it is not this app' : '') }));
+    }
+    const quiet = (mine.length ? mine : checked).filter((c) => !otherPrograms.includes(c.address)).map((c) => c.address);
+    answer(id, JSON.stringify({ up: answering.length > 0, answering, ...(unknownOwner ? { ownerUnknown: true } : {}), ...(alsoListening.length ? { alsoListening } : {}), ...rest, note: answering.length ? 'something is listening there; the runner\\'s first page load still decides that it is this app' + (unknownOwner ? ' (which program listens could not be told: the look\\'s first page shows whether it is this app, as the run skill says for up: true with ownerUnknown)' : '') : (quiet.length ? 'nothing is listening at ' + quiet.join(', ') + ' on this machine, so the dev server is not running there.' : 'no program of this project is listening at the ports checked on this machine, so the dev server is not running there.') + (alsoListening.length ? ' Also listening, but not ' + (basePort === null ? 'an address the project names' : 'the app\\'s address') + ': ' + alsoListening.join(', ') + '.' : '') + (otherPrograms.length ? ' Something listens at ' + otherPrograms.join(', ') + ', but its program works outside this project\\'s folder: it is taken for another program, not this app.' : '') + ' If the app runs on another port, the baseUrl line in .claude-testrc must name it.' }));
   }
 
 
@@ -321,5 +472,5 @@ export function makeAllowTool({ send, settings = launcherConfig, opening = {}, r
     let msg; try { msg = JSON.parse(line); } catch { return false; }
     return take(msg);
   }
-  return { tools: [PREVIEW ? PREVIEW_TOOL : TOOL, UP, SHOW, ...runTools.tools], take, takeLine, fenceBuilt() { built = true; }, scrubWith(scrub, stateOf) { runTools.scrubWith(scrub, stateOf); } };
+  return { tools: [PREVIEW ? PREVIEW_TOOL : TOOL, UP, SHOW, ...runTools.tools], take, takeLine, fenceBuilt() { built = true; }, scrubWith(scrub, stateOf) { runTools.scrubWith(scrub, stateOf); }, runValueWith(stateOf, forget) { runTools.runValueWith(stateOf, forget); }, runValues: () => runTools.runValues() };
 }

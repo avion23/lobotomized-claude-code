@@ -6,7 +6,7 @@ description: >-
   (browser_setup_needed, claude_test_install and its
   noLock/allowFallback/downloadHost schema), tools/call result texts and
   launcher refusal/warning notes are delivered to the model.
-ccVersion: 2.1.304
+ccVersion: 2.1.308
 -->
 #!/usr/bin/env node
 
@@ -33,14 +33,14 @@ import { spawn } from 'node:child_process';
 import dns from 'node:dns';
 import { fileURLToPath } from 'node:url';
 import { makeAllowTool, ALLOW_TOOL, UP_TOOL, SHOW_TOOL, LINE_COLUMNS, columns, PREVIEW_INSTRUCTIONS } from './lib/allow-tool.mjs';
-import { loadConfig, PLAYWRIGHT_PIN, shown, browserServerEnv, parseDotenv, isLocalHost, ensureRunsDir, assertRunsDirInsideProject, resolveProjectDir, sessionRoot, reallyInsideDir, runsPathProblem, envPathOutsideProject, originAllowed, projectsBelow, isMarked, rootConfiguresItself, sanitizeBrowserEnv, launcherConfig } from './lib/config.mjs';
+import { loadConfig, PLAYWRIGHT_PIN, shown, browserServerEnv, parseDotenv, isLocalHost, ensureRunsDir, assertRunsDirInsideProject, resolveProjectDir, sessionRoot, reallyInsideDir, runsPathProblem, envPathOutsideProject, originAllowed, projectsBelow, isMarked, rootConfiguresItself, sanitizeBrowserEnv, launcherConfig, makeRunValueWatch } from './lib/config.mjs';
 import { makeVet } from './lib/vet.mjs';
 import { runFolders, placeStagedFile } from './lib/runs.mjs';
 import { keepLivePage } from './lib/live-page.mjs';
 import { startFenceProxy, upstreamProxySetting, noProxyMatcher, isNonPublicAddress, plainAddress } from './lib/fence-proxy.mjs';
 import { makeReachableMatcher } from './lib/hosts.mjs';
 import { parseSnapLine, yamlScalar, makeHoldsValueOf, judgeProbe, bypassOf, UDP_FENCE_ARGS, resolverPins, guardScript, secretVariants, makeRedactor, toolTextOf, pageUrlFromToolText } from './lib/guard.mjs';
-import { mcpCliPath, findChrome, toolsDir, makeLaunchDir, installTools, downloadBrowser, npmRegistry, npmrcVariable, CHROME_INSTALL_HOW, writeStandInPackages, browserSelection, browserProblem, toolsProblem, toolsInstallInfo, browsersDir, expectedChromiumDirs, chromeSandboxProblem } from './lib/tools.mjs';
+import { mcpCliPath, findChrome, toolsDir, makeLaunchDir, installTools, downloadBrowser, npmRegistry, npmrcVariable, CHROME_INSTALL_HOW, writeStandInPackages, browserSelection, browserProblem, toolsProblem, toolsInstallInfo, browsersDir, expectedChromiumDirs, chromeSandboxProblem, wantsHeaded, browserBinaryOf } from './lib/tools.mjs';
 import { ensureAuthFile, tidySkillCreds } from './lib/signin.mjs';
 
 const log = (m) => process.stderr.write('[claude-test] ' + shown(m, 2000) + '\\n');
@@ -143,7 +143,7 @@ const serverArgs = ['--isolated', '--block-service-workers', '--output-dir', out
 
 
 
-const headed = process.env.CLAUDE_TEST_HEADED === '1' && (process.platform !== 'linux' || !!process.env.DISPLAY);
+const headed = wantsHeaded();
 if (!headed) serverArgs.push('--headless');
 if (process.env.CLAUDE_TEST_HEADED === '1') log(headed ? 'CLAUDE_TEST_HEADED=1: the test browser will open in a window' : 'CLAUDE_TEST_HEADED=1 is ignored: DISPLAY is not set, so the test browser runs without a window; to watch it, start Claude Code from a desktop session where DISPLAY is set');
 
@@ -276,8 +276,10 @@ const { exe, chromePath, browser } = browserSelection(cfg);
 
 
 
+
+
 if (chromePath) serverArgs.push('--executable-path', chromePath);
-if (browser) serverArgs.push('--browser', browser);
+else if (browser && browser !== 'chromium') serverArgs.push('--browser', browser);
 
 
 
@@ -300,12 +302,11 @@ if ((cfg.storageState.inUse || cfg.secretsFile.inUse) && !cfg.signInApplies) log
 
 
 
+const downloadedBinary = () => (!chromePath && browser === 'chromium' ? browserBinaryOf({ chromePath: null, browser: 'chromium', headed, expected: expectedChromiumDirs() }) : null);
 
 const browserAvailable = () => {
   if (exe || chromePath || browser !== 'chromium') return true;
-  const want = (expectedChromiumDirs() || []).filter((n) => /^chromium-\\d/.test(n));
-  const has = (dir) => { try { return want.length ? want.some((n) => fs.existsSync(path.join(dir, n, 'INSTALLATION_COMPLETE'))) : fs.readdirSync(dir).some((d) => /^chromium-\\d/.test(d) && fs.existsSync(path.join(dir, d, 'INSTALLATION_COMPLETE'))); } catch { return false; } };
-  return has(browsersDir());
+  return !!downloadedBinary();
 };
 { const why = toolsProblem(); const localCli = why ? null : mcpCliPath({ report: true });
   if (localCli) { try { writeStandInPackages(path.join(toolsDir(), 'node_modules')); } catch {                                                                      } }
@@ -326,7 +327,11 @@ function startRealServer(localCli, handoff) {
 
 
 
-{ const refused = chromeSandboxProblem(cfg, { chromePath, browser }); if (refused) { log('not starting the browser server: ' + refused); const e = Object.assign(new Error(refused), { sandboxRefusal: true }); if (handoff) { handoff.done(e); return; } throw e; } }
+
+const ownBin = downloadedBinary();
+if (!chromePath && browser === 'chromium' && !ownBin) { const e = new Error('there is no test browser to drive on this machine yet'); if (handoff) { handoff.done(e); return; } throw e; }
+{ const refused = chromeSandboxProblem(cfg, { chromePath: chromePath || ownBin, browser }); if (refused) { log('not starting the browser server: ' + refused); const e = Object.assign(new Error(refused), { sandboxRefusal: true }); if (handoff) { handoff.done(e); return; } throw e; } }
+if (ownBin) { const at = serverArgs.indexOf('--executable-path'); if (at < 0) serverArgs.push('--executable-path', ownBin); else serverArgs[at + 1] = ownBin; }
 if (writeLaunchOptions) {
 
 
@@ -336,7 +341,7 @@ if (writeLaunchOptions) {
   writeLaunchOptions = null;
 }
 const base = [process.execPath, localCli];
-log('project ' + cfg.projectDir + '; base URL ' + (cfg.baseUrl || '(none yet)') + '; browser ' + (exe || chromePath || browser) + '; origins ' + cfg.allowedOrigins.join(' ') + '; network: ' + networkFence);
+log('project ' + cfg.projectDir + '; base URL ' + (cfg.baseUrl || '(none yet)') + '; browser ' + (exe || chromePath || ownBin || browser) + '; origins ' + cfg.allowedOrigins.join(' ') + '; network: ' + networkFence);
 
 
 
@@ -558,7 +563,7 @@ function observeAnswer(line) {
   if (decidedLate.has(id)) { const d = decidedLate.get(id); decidedLate.delete(id); for (const [k, v] of decidedLate) if (Date.now() - v.at > 120000) decidedLate.delete(k); if (d.line !== null) { log('late answer to an already-decided secret call dropped (the client has the warning)'); return true; } }
   if (filesByCall.has(id)) { const e = filesByCall.get(id); filesByCall.delete(id); placed = placeFiles(e, id, line); }
   else if (lateFiles.has(id)) { const e = lateFiles.get(id); lateFiles.delete(id); dropStaged(e.files); if (e.reason === null) return true; placed = refusal(id, e.reason).trimEnd(); }
-  if (closeCalls.has(id)) { closeCalls.delete(id); try { const msg = JSON.parse(line); if (msg && msg.result && !msg.result.isError) { secretTyped = false; scripted = false; secretRefs.clear(); pageOffApp = null; frameContextReset(); } } catch {                           } }
+  if (closeCalls.has(id)) { closeCalls.delete(id); try { const msg = JSON.parse(line); if (msg && msg.result && !msg.result.isError) { secretTyped = false; scripted = false; secretRefs.clear(); pageOffApp = null; frameContextReset(); runValueWatch.forget(); } } catch {                           } }
   if (hold && hold.phase === 'verify' && id === hold.msg.id && hold.answerLine === null) { hold.answerLine = line; return true; }
   if (hold && hold.phase === 'sent' && id === hold.msg.id) {
     let untouched = false; try { const m = JSON.parse(line); const whole = m && m.result && m.result.isError && Array.isArray(m.result.content) ? m.result.content.map((c) => c && c.text || '').join('\\n') : '';
@@ -651,6 +656,9 @@ const FRAME_AFTER = new Set(['browser_navigate', 'browser_navigate_back', 'brows
 const framesOff = process.env.CLAUDE_TEST_FRAMES === '0' || (cfg.rc && cfg.rc.frames === false);
 const actionCalls = new Map();
 
+const runValueWatch = makeRunValueWatch();
+allowTool.runValueWith((stamp) => runValueWatch.stateOf(stamp), () => runValueWatch.forget());
+
 
 
 
@@ -730,6 +738,7 @@ function pump(from, to, rewrite, seed = '') {
 }
 pump(child.stdout, process.stdout, (line) => {
   const seen = observeAnswer(line); if (seen === true || handedOver !== true) return null;
+  if (runValueWatch.waits()) { const aid = answerId(line); if (aid !== undefined && runValueWatch.waitsFor(aid)) runValueWatch.answered(aid, !isErrorAnswer(line)); }
   let pictureAfter = null; if (actionCalls.size) { const aid = answerId(line); if (aid !== undefined && actionCalls.has(aid)) { const tool = actionCalls.get(aid); actionCalls.delete(aid); if (!line.includes('"isError":true')) pictureAfter = tool; } }
   if (typeof seen === 'string') line = seen;
   try { watchPageUrl(line); } catch {                         }
@@ -767,7 +776,7 @@ const fromClient = (line) => {
     ? (pageOffApp.web ? 'the page is on ' + shown(pageOffApp.host, 120) + ', which is outside the app under test (' + cfg.allowedOrigins.join(' ') + '). Pages may load from that host, but the runner does not act there' : 'the page is not on the app (' + shown(pageOffApp.host, 60) + ')') + '. Go back to the app with browser_navigate or browser_navigate_back and carry on'
     : null);
   if (!problem) {
-    if (msg && msg.method === 'tools/call' && msg.id !== undefined && !msg.__typesSecret) { inFlight.add(msg.id); if (inFlight.size > 256) { for (const old of inFlight) { if (!(typeof old === 'string' && old.startsWith(PROBE_ID))) { inFlight.delete(old); break; } } }                                                                                                                                                                        if (msg.params && FRAME_AFTER.has(msg.params.name)) { actionCalls.set(msg.id, msg.params.name); if (actionCalls.size > 256) actionCalls.delete(actionCalls.keys().next().value); } }
+    if (msg && msg.method === 'tools/call' && msg.id !== undefined && !msg.__typesSecret) { inFlight.add(msg.id); if (inFlight.size > 256) { for (const old of inFlight) { if (!(typeof old === 'string' && old.startsWith(PROBE_ID))) { inFlight.delete(old); break; } } }                                                                                                                                                                        if (msg.params && FRAME_AFTER.has(msg.params.name)) { actionCalls.set(msg.id, msg.params.name); if (actionCalls.size > 256) actionCalls.delete(actionCalls.keys().next().value); } if (msg.params) { try { runValueWatch.forwarded(msg.id, msg.params.name, msg.params.arguments, allowTool.runValues(), !!namesSecret(msg.params.name, msg.params.arguments)); } catch {                                                       } } }
     if (msg && msg.__files) { filesByCall.set(msg.id, { files: msg.__files, tool: msg.params && msg.params.name }); delete msg.__files; if (filesByCall.size > 256) { const [oldId, old] = filesByCall.entries().next().value; filesByCall.delete(oldId); giveUpOnFiles(oldId, old.files, 'too many calls that save a file were waiting at once, so this file was not saved; ask for it again'); } }
     if (msg && msg.method === 'tools/call' && msg.params && msg.params.name === 'browser_close' && msg.id !== undefined) { closeCalls.add(msg.id); if (closeCalls.size > 64) closeCalls.delete(closeCalls.values().next().value); }
     if (msg && msg.__scripts) { scripted = true; delete msg.__scripts; msg.__rewritten = true; }
@@ -821,9 +830,9 @@ function setupNeededServer(why, lazy = null) {
 
   const whyNow = () => {
     const bad = toolsProblem(); if (bad) return 'the browser tooling folder cannot be used: ' + bad + '.';
-    if (!mcpCliPath({ report: true }) || !toolsInstallInfo()) return 'the browser tooling is not installed on this machine. Fix: run  node ' + ct + ' install  in a terminal (it installs the pinned Playwright tooling into ' + toolsDir() + ' with your npm configuration' + (browserSelection(cfg).browser === 'chromium' ? ', and downloads a test browser because this machine has no Google Chrome' : '') + '), OR call the claude_test_install tool of this server, which does the same install from here.';
-    if (!browserAvailable()) return 'the Playwright packages are installed but there is no test browser to drive (no Google Chrome in use and no downloaded Chromium). Fix: run  node ' + ct + ' install chromium  in a terminal (it downloads the test browser into ' + browsersDir() + ').';
-    { const refused = chromeSandboxProblem(cfg, { chromePath, browser }); sandboxRefusal = refused; if (refused) { everRefused = true; return refused; } }
+    if (!mcpCliPath({ report: true }) || !toolsInstallInfo()) return 'the browser tooling is not installed on this machine. Fix: run  node ' + ct + ' install  in a terminal (it installs the pinned Playwright tooling into ' + toolsDir() + ' with your npm configuration' + (browserSelection(cfg).browser === 'chromium' ? ', and downloads a test browser, since no installed Google Chrome is used here' : '') + '), OR call the claude_test_install tool of this server, which does the same install from here.';
+    if (!browserAvailable()) return 'the Playwright packages are installed but there is no test browser to drive (no Google Chrome in use and no downloaded ' + (headed ? 'full Chromium build, which a run with a window needs' : 'Chromium headless shell') + '). Fix: run  node ' + ct + ' install chromium' + (headed ? ' --headed' : '') + '  in a terminal (it downloads ' + (headed ? 'the full test browser' : 'the headless test browser, the smaller download,') + ' into ' + browsersDir() + ').' + (headed && browserBinaryOf({ chromePath: null, browser: 'chromium', headed: false, expected: expectedChromiumDirs() }) ? ' Or, to run without a window, unset CLAUDE_TEST_HEADED (in the shell, or under "env" in a Claude Code settings file), then restart Claude Code.' : '');
+    { const refused = chromeSandboxProblem(cfg, { chromePath: chromePath || downloadedBinary(), browser }); sandboxRefusal = refused; if (refused) { everRefused = true; return refused; } }
     return null;
   };
 
@@ -968,7 +977,7 @@ function setupNeededServer(why, lazy = null) {
       if (!r.ok) { text('Nothing was downloaded: the install of the browser tools failed first (registry ' + shown(r.registry || 'unknown', 200) + '): ' + fullStop(shown(r.forPerson || r.remedy, 1000)) + ' Tell the person what failed and what this message says to do. Do not do it yourself unless the person asks you to. Do not install or download another way.\\n' + String(r.log || '').trim().split('\\n').slice(-12).map((l) => shown(l, 400)).join('\\n'), true); return; }
     }
     const bad = toolsProblem(); if (bad) { text('Nothing was downloaded: the folder of the browser tools cannot be used: ' + bad + '. Tell the person. Do not change, move or delete the folder unless the person asks you to.', true); return; }
-    downloadBrowser({ downloadHost: address, progress: false }).then((d) => {
+    downloadBrowser({ headed, downloadHost: address, progress: false }).then((d) => {
       if (!d.ok) { text('The test browser could not be downloaded from ' + address + ' (' + shown(d.error, 400) + '). Tell the person to check the address, or to install Google Chrome instead. Do not download another way, and do not install Google Chrome unless the person asks you to.', true); return; }
       finishInstall('Downloaded the test browser from ' + address + ' into ' + browsersDir(), text);
     });

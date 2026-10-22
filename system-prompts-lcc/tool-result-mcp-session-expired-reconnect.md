@@ -1,9 +1,9 @@
 <!--
-name: 'Tool result: MCP session expired — reconnect and retry'
+name: 'Tool Result: MCP session expired, reconnect'
 description: >-
-  Model-facing tool_result error text returned by an MCP tool call when the
-  session has expired, instructing the model to send mcp_reconnect and retry
-ccVersion: 2.1.251
+  Tells the model the MCP session expired/connection closed; send mcp_reconnect
+  and retry, with detail.
+ccVersion: 2.1.308
 variables:
   - TOOL_RESULT_MCP_SESSION_EXPIRED_RECONNECT_VAR_0
   - TOOL_RESULT_MCP_SESSION_EXPIRED_RECONNECT_VAR_1
@@ -11,4 +11,4 @@ variables:
   - TOOL_RESULT_MCP_SESSION_EXPIRED_RECONNECT_VAR_3
   - TOOL_RESULT_MCP_SESSION_EXPIRED_RECONNECT_VAR_4
 -->
-MCP session expired for ${TOOL_RESULT_MCP_SESSION_EXPIRED_RECONNECT_VAR_0(TOOL_RESULT_MCP_SESSION_EXPIRED_RECONNECT_VAR_1.serverName)} — send mcp_reconnect and retry: ${TOOL_RESULT_MCP_SESSION_EXPIRED_RECONNECT_VAR_0(TOOL_RESULT_MCP_SESSION_EXPIRED_RECONNECT_VAR_2 instanceof TOOL_RESULT_MCP_SESSION_EXPIRED_RECONNECT_VAR_3?TOOL_RESULT_MCP_SESSION_EXPIRED_RECONNECT_VAR_2.message:TOOL_RESULT_MCP_SESSION_EXPIRED_RECONNECT_VAR_4(TOOL_RESULT_MCP_SESSION_EXPIRED_RECONNECT_VAR_2))}
+${TOOL_RESULT_MCP_SESSION_EXPIRED_RECONNECT_VAR_0.mayHaveRun?`MCP connection to ${TOOL_RESULT_MCP_SESSION_EXPIRED_RECONNECT_VAR_1} closed during the call — send mcp_reconnect, and check whether the tool ran before retrying${TOOL_RESULT_MCP_SESSION_EXPIRED_RECONNECT_VAR_2}`:`MCP ${TOOL_RESULT_MCP_SESSION_EXPIRED_RECONNECT_VAR_0.expiryKind==="connection_closed_call_not_run"?"connection closed before the call ran on":"session expired for"} ${TOOL_RESULT_MCP_SESSION_EXPIRED_RECONNECT_VAR_1} — send mcp_reconnect and retry${TOOL_RESULT_MCP_SESSION_EXPIRED_RECONNECT_VAR_2}`}: ${TOOL_RESULT_MCP_SESSION_EXPIRED_RECONNECT_VAR_3(TOOL_RESULT_MCP_SESSION_EXPIRED_RECONNECT_VAR_4)}

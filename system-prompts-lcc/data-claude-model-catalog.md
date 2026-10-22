@@ -3,7 +3,7 @@ name: 'Data: Claude model catalog'
 description: >-
   claude-api skill reference file (Claude model catalog) inlined as <doc> or
   extracted for the model to Read when the skill's Reading Guide points to it.
-ccVersion: 2.1.296
+ccVersion: 2.1.308
 -->
 # Claude Model Catalog
 
@@ -41,7 +41,7 @@ Top-level fields (\`id\`, \`display_name\`, \`max_input_tokens\`, \`max_tokens\`
 \`\`\`bash
 curl https://api.anthropic.com/v1/models/claude-opus-4-8 \\
   -H "x-api-key: $ANTHROPIC_API_KEY" \\
-  -H "anthropic-version: 2023-06-01"
+  -H "anthropic-version: 2026-10-21"
 \`\`\`
 
 \`\`\`json

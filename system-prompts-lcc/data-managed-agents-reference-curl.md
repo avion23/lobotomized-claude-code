@@ -4,7 +4,7 @@ description: >-
   claude-api skill reference file (Managed Agents reference — cURL) inlined as
   <doc> or extracted for the model to Read when the skill's Reading Guide points
   to it.
-ccVersion: 2.1.299
+ccVersion: 2.1.308
 -->
 # Managed Agents - cURL / Raw HTTP
 
@@ -19,7 +19,7 @@ export ANTHROPIC_API_KEY="your-api-key"
 HEADERS=(
   -H "Content-Type: application/json"
   -H "x-api-key: $ANTHROPIC_API_KEY"
-  -H "anthropic-version: 2023-06-01"
+  -H "anthropic-version: 2026-10-21"
   -H "anthropic-beta: managed-agents-2026-04-01"
 )
 \`\`\`
@@ -328,7 +328,7 @@ curl -X DELETE https://api.anthropic.com/v1/sessions/$SESSION_ID \\
 \`\`\`bash
 curl -X POST https://api.anthropic.com/v1/files \\
   -H "x-api-key: $ANTHROPIC_API_KEY" \\
-  -H "anthropic-version: 2023-06-01" \\
+  -H "anthropic-version: 2026-10-21" \\
   -F "file=@path/to/file.txt"
 \`\`\`
 
@@ -342,13 +342,13 @@ List files the agent wrote to \`/mnt/session/outputs/\` during a session, then d
 # List files associated with a session
 curl "https://api.anthropic.com/v1/files?scope_id=$SESSION_ID" \\
   -H "x-api-key: $ANTHROPIC_API_KEY" \\
-  -H "anthropic-version: 2023-06-01" \\
+  -H "anthropic-version: 2026-10-21" \\
   -H "anthropic-beta: managed-agents-2026-04-01"
 
 # Download a specific file
 curl "https://api.anthropic.com/v1/files/$FILE_ID/content" \\
   -H "x-api-key: $ANTHROPIC_API_KEY" \\
-  -H "anthropic-version: 2023-06-01" \\
+  -H "anthropic-version: 2026-10-21" \\
   -o downloaded_file.txt
 \`\`\`
 

@@ -4,7 +4,7 @@ description: >-
   claude-api skill reference file (Live documentation sources) inlined as <doc>
   or extracted for the model to Read when the skill's Reading Guide points to
   it.
-ccVersion: 2.1.300
+ccVersion: 2.1.308
 -->
 # Live Documentation Sources
 
@@ -56,6 +56,7 @@ This file contains WebFetch URLs for fetching current information from platform.
 | Token Counting | \`https://platform.claude.com/docs/en/build-with-claude/token-counting.md\` | "Extract token counting API usage and examples" |
 | Rate Limits | \`https://platform.claude.com/docs/en/api/rate-limits.md\` | "Extract current rate limits by tier and model" |
 | Usage and Cost Admin API | \`https://platform.claude.com/docs/en/manage-claude/usage-cost-api.md\` | "Extract the usage_report and cost_report endpoints, Admin API key requirements, filter and group_by dimensions, token fields, and granularity limits" |
+| API versions | \`https://platform.claude.com/docs/en/api/versioning.md\` | "Extract each version's migration guide URL" |
 | Errors | \`https://platform.claude.com/docs/en/api/errors.md\` | "Extract HTTP error codes, meanings, and retry guidance" |
 | Amazon Bedrock | \`https://platform.claude.com/docs/en/build-with-claude/claude-on-amazon-bedrock.md\` | "Extract the AnthropicBedrockMantle client per language, \`anthropic.\`-prefixed model IDs, auth paths, feature availability, and regions" |
 | Claude Platform on AWS | \`https://platform.claude.com/docs/en/build-with-claude/claude-platform-on-aws.md\` | "Extract the AnthropicAWS client per language, SigV4 auth, credential precedence, short-term API keys, workspace_id, and region requirements" |

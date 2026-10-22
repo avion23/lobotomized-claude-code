@@ -6,7 +6,7 @@ description: >-
   texts (addressed to Claude: 'Tell the person this. Do not install another
   way.') reach the model through ct.mjs output and the claude_test_install tool
   results.
-ccVersion: 2.1.302
+ccVersion: 2.1.308
 -->
 
 
@@ -96,10 +96,11 @@ export function tightenToolsDir(root = toolsDir()) {
 export function browserSelection(cfg) {
   const exe = envPathOutsideProject('CLAUDE_TEST_BROWSER_EXECUTABLE');
   const named = process.env.CLAUDE_TEST_BROWSER || (cfg && cfg.browser) || null;
-  const chromePath = exe ? null : named ? null : findChrome();
+  const installed = exe || named ? null : findInstalledBrowser();
+  const chromePath = installed ? installed.path : null;
   const browser = named || (exe || chromePath ? null : 'chromium');
   const usesRegistry = !exe && !!browser && !/^(chrome|msedge)(-|$)/.test(browser);
-  return { exe, chromePath, browser, usesRegistry };
+  return { exe, chromePath, browser, usesRegistry, installedKind: installed ? installed.kind : null };
 }
 
 
@@ -110,6 +111,19 @@ export function browserProblem(cfg) {
   const asked = browser === 'firefox' || browser === 'webkit' ? '"' + browser + '"' : 'a value Claude Test does not support';
   return 'the test browser can only be chrome, msedge or chromium: no other browser can be held to the allowed addresses. CLAUDE_TEST_BROWSER asks for ' + asked + ': unset it (in the shell, or under "env" in a Claude Code settings file), then restart Claude Code once';
 }
+
+
+export function wantsHeaded() { return process.env.CLAUDE_TEST_HEADED === '1' && (process.platform !== 'linux' || !!process.env.DISPLAY); }
+
+
+
+export function testBrowserMissing(cfg, { headed = wantsHeaded() } = {}) {
+  const { exe, chromePath, browser } = browserSelection(cfg);
+  if (exe || chromePath || browser !== 'chromium') return false;
+  return !ownBuildBinary({ headed, expected: expectedIfUsable() });
+}
+
+function expectedIfUsable() { return mcpCliPath({ report: true }) && !toolsProblem() ? expectedChromiumDirs() : null; }
 const useOwn = () => { const v = process.env.PLAYWRIGHT_BROWSERS_PATH; return !!v && path.resolve(v) === path.join(toolsDir(), 'browsers'); };
 
 
@@ -340,12 +354,17 @@ export function expectedChromiumDirs() {
 
 
 
-export function downloadBrowser({ browser = 'chromium', downloadHost = null, progress = true } = {}) {
+export function downloadBrowser({ browser = 'chromium', headed = wantsHeaded(), downloadHost = null, progress = true } = {}) {
   return new Promise((resolve) => {
     const cli = mcpCliPath({ forInstall: true });
     if (!cli) { resolve({ ok: false, error: 'the browser tools are not installed', remedy: 'The browser tools are not installed. Tell the person this. You may run a normal install yourself: call claude_test_install with none of the three fields. Do not install or download another way.' }); return; }
+
+
+    const pwCli = path.join(toolsDir(), 'node_modules', 'playwright-core', 'cli.js');
+    const own = browser === 'chromium' || browser === 'chromium-headless-shell';
+    const argv = own ? [pwCli, 'install', browser === 'chromium' && headed ? '--no-shell' : '--only-shell', 'chromium'] : [cli, 'install-browser', browser];
     let child;
-    try { fs.mkdirSync(browsersDir(), { recursive: true, mode: 0o755 }); child = spawn(process.execPath, [cli, 'install-browser', browser], { stdio: ['ignore', progress ? 'inherit' : 'ignore', 'pipe'], env: { ...(downloadHost ? uncheckedEnv() : process.env), PLAYWRIGHT_BROWSERS_PATH: browsersDir(), ...(downloadHost ? { PLAYWRIGHT_DOWNLOAD_HOST: downloadHost } : {}) } }); } catch (e) { resolve({ ok: false, error: 'the download could not start (' + String((e && (e.code || e.message)) || e) + ')', remedy: 'installing Google Chrome avoids the download entirely' }); return; }
+    try { fs.mkdirSync(browsersDir(), { recursive: true, mode: 0o755 }); child = spawn(process.execPath, argv, { stdio: ['ignore', progress ? 'inherit' : 'ignore', 'pipe'], env: { ...(downloadHost ? uncheckedEnv() : process.env), PLAYWRIGHT_BROWSERS_PATH: browsersDir(), ...(downloadHost ? { PLAYWRIGHT_DOWNLOAD_HOST: downloadHost } : {}) } }); } catch (e) { resolve({ ok: false, error: 'the download could not start (' + String((e && (e.code || e.message)) || e) + ')', remedy: 'installing Google Chrome avoids the download entirely' }); return; }
     let errTail = ''; child.stderr.on('data', (b) => { errTail = (errTail + b.toString()).slice(-4000); });
     child.on('error', (e) => resolve({ ok: false, error: String((e && e.message) || e), remedy: 'installing Google Chrome avoids the download entirely' }));
     child.on('exit', (code) => {
@@ -416,6 +435,7 @@ export function trialEnv() {
   return kept;
 }
 
+
 export function findChrome() {
   const candidates = [];
   if (process.platform === 'darwin') {
@@ -426,26 +446,83 @@ export function findChrome() {
     for (const dir of (process.env.PATH || '').split(path.delimiter)) for (const name of ['google-chrome', 'google-chrome-stable']) if (dir && path.isAbsolute(dir)) candidates.push(path.join(dir, name));
     candidates.push('/opt/google/chrome/chrome');
   }
-  const inside = (p) => insideProjectReally(p) || insideOpenedFolder(p);
-  return candidates.find((c) => { try { return fs.statSync(c).isFile() && !inside(c) && !inside(path.dirname(c)); } catch { return false; } }) || null;
+  return candidates.find(installedHere) || null;
 }
 
 
-export function ownChromiumBinary() {
-  let dirs = []; try { dirs = fs.readdirSync(browsersDir()).filter((d) => /^chromium-\\d+$/.test(d)).sort((a, b) => Number(b.slice(9)) - Number(a.slice(9))); } catch { return null; }
+function installedHere(c) {
+  const inside = (p) => insideProjectReally(p) || insideOpenedFolder(p);
+  try { return fs.statSync(c).isFile() && !inside(c) && !inside(path.dirname(c)); } catch { return false; }
+}
+
+export const INSTALLED_BROWSER_NAMES = Object.freeze({ chrome: 'Google Chrome', msedge: 'Microsoft Edge', chromium: 'Chromium' });
+const VERSION_STARTS = new Map();
+
+
+function versionStart(bin) {
+  if (VERSION_STARTS.has(bin)) return VERSION_STARTS.get(bin);
+  let r; try { r = spawnSync(bin, ['--version'], { cwd: os.tmpdir(), encoding: 'utf8', timeout: 5000, env: trialEnv(), stdio: ['ignore', 'pipe', 'pipe'] }); } catch (e) { r = { error: e }; }
+  const libraries = r && !r.error ? librariesIn(r.stderr) : [];
+  const got = { ok: !!r && !r.error && r.status === 0 && !libraries.length, libraries };
+  VERSION_STARTS.set(bin, got);
+  return got;
+}
+
+
+
+export function findInstalledBrowser({ chrome = findChrome } = {}) {
+  const chromePath = chrome(); return chromePath ? { path: chromePath, kind: 'chrome' } : null;
+}
+export const installedBrowserPath = () => { const b = findInstalledBrowser(); return b ? b.path : null; };
+
+
+
+const BUILD_LAYOUTS = {
+  full: { prefix: 'chromium-', linux: [['chrome-linux64', 'chrome'], ['chrome-linux', 'chrome']], darwin: [['chrome-mac-arm64', 'Google Chrome for Testing.app', 'Contents', 'MacOS', 'Google Chrome for Testing'], ['chrome-mac-x64', 'Google Chrome for Testing.app', 'Contents', 'MacOS', 'Google Chrome for Testing']], win32: [['chrome-win64', 'chrome.exe']] },
+  shell: { prefix: 'chromium_headless_shell-', linux: [['chrome-headless-shell-linux64', 'chrome-headless-shell'], ['chrome-linux', 'headless_shell']], darwin: [['chrome-headless-shell-mac-arm64', 'chrome-headless-shell'], ['chrome-headless-shell-mac-x64', 'chrome-headless-shell']], win32: [['chrome-headless-shell-win64', 'chrome-headless-shell.exe']] },
+};
+
+
+
+export function ownBuildBinary({ headed = wantsHeaded(), expected = null } = {}) {
+  if (!headed) return ownBuildOf(BUILD_LAYOUTS.shell, expected) || ownBuildOf(BUILD_LAYOUTS.full, expected);
+  return ownBuildOf(BUILD_LAYOUTS.full, expected);
+}
+function ownBuildOf(layout, expected) {
+  const rev = (d) => Number(d.slice(layout.prefix.length));
+  const named = (expected || []).filter((n) => n.startsWith(layout.prefix)); const want = named.length ? new Set(named) : null;
+  let dirs = []; try { dirs = fs.readdirSync(browsersDir()).filter((d) => d.startsWith(layout.prefix) && /^\\d+$/.test(d.slice(layout.prefix.length)) && (!want || want.has(d))).sort((a, b) => rev(b) - rev(a)); } catch { return null; }
   for (const d of dirs) {
     let names = []; try { names = fs.readdirSync(path.join(browsersDir(), d)); } catch { continue; }
-    const sub = names.includes('INSTALLATION_COMPLETE') ? ['chrome-linux64', 'chrome-linux'].find((s) => names.includes(s)) : null;
-    if (sub) return path.join(browsersDir(), d, sub, 'chrome');
+    const sub = names.includes('INSTALLATION_COMPLETE') ? (layout[process.platform] || []).find((parts) => names.includes(parts[0])) : null;
+    if (sub) return path.join(browsersDir(), d, ...sub);
   }
   return null;
 }
 
 
 
-export function browserBinaryOf({ chromePath, browser }) { return chromePath || (browser === 'chromium' ? ownChromiumBinary() : null); }
 
-export function serverBrowserBinary(cfg) { const named = process.env.CLAUDE_TEST_BROWSER || (cfg && cfg.browser) || null; return browserBinaryOf({ chromePath: named ? null : findChrome(), browser: named || 'chromium' }); }
+export function browserBinaryOf({ chromePath, browser, headed = wantsHeaded(), expected = null }) { return chromePath || (browser === 'chromium' ? ownBuildBinary({ headed, expected }) : null); }
+
+export function serverBrowserBinary(cfg) { const named = process.env.CLAUDE_TEST_BROWSER || (cfg && cfg.browser) || null; const chromePath = named ? null : installedBrowserPath(); const browser = named || 'chromium'; return browserBinaryOf({ chromePath, browser, expected: !chromePath && browser === 'chromium' ? expectedIfUsable() : null }); }
+
+const librariesIn = (stderr) => [...new Set([...String(stderr || '').matchAll(/error while loading shared libraries: ([A-Za-z0-9._+-]+)/g)].map((m) => m[1]))];
+
+const TRIAL_LIBRARIES = new Map();
+
+
+
+
+export function browserMissingLibraries(cfg, { start = true } = {}) {
+  if (process.platform !== 'linux') return [];
+  const bin = serverBrowserBinary(cfg); if (!bin) return [];
+  if (TRIAL_LIBRARIES.has(bin)) return TRIAL_LIBRARIES.get(bin);
+  if (!start) return [];
+  if (insideProjectReally(bin) && !reallyInsideDir(bin, browsersDir())) return [];
+  if (reallyInsideDir(bin, toolsDir()) && toolsProblem()) return [];
+  return versionStart(bin).libraries;
+}
 
 const SANDBOX_TRIAL_MS = 10000;
 
@@ -500,9 +577,11 @@ export function chromeSandboxChoice(exePath) {
 
   if (reallyInsideDir(exePath, toolsDir()) && toolsProblem()) return { on: true, unknown: true, why: 'asked for untried: the tools folder cannot be used, so nothing in it is started' };
   let dir = null; let r;
-  try { dir = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-test-sandbox-trial-')); r = spawnSync(exePath, [...SANDBOX_TRIAL_ARGS, '--user-data-dir=' + dir, '--dump-dom', 'about:blank'], { cwd: dir, encoding: 'utf8', timeout: SANDBOX_TRIAL_MS, killSignal: 'SIGKILL', env: trialEnv(), stdio: ['ignore', 'pipe', 'pipe'] }); }
+  const trialArgs = /^(chrome-headless-shell|headless_shell)(\\.exe)?$/.test(path.basename(exePath)) ? ['--headless', ...SANDBOX_TRIAL_ARGS.slice(1)] : SANDBOX_TRIAL_ARGS;
+  try { dir = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-test-sandbox-trial-')); r = spawnSync(exePath, [...trialArgs, '--user-data-dir=' + dir, '--dump-dom', 'about:blank'], { cwd: dir, encoding: 'utf8', timeout: SANDBOX_TRIAL_MS, killSignal: 'SIGKILL', env: trialEnv(), stdio: ['ignore', 'pipe', 'pipe'] }); }
   catch (e) { r = { error: e }; }
   finally { if (dir) { try { fs.rmSync(dir, { recursive: true, force: true }); } catch {                                        } } }
+  if (r && !r.error) TRIAL_LIBRARIES.set(exePath, librariesIn(r.stderr));
 
   if (r.error) return { on: true, unknown: true, why: 'asked for untried: ' + (r.error.code === 'ETIMEDOUT' ? 'a trial start of the browser with its sandbox took longer than ' + SANDBOX_TRIAL_MS / 1000 + ' seconds' : 'a trial start of the browser could not be made (' + shown(String(r.error.code || r.error.message), 60) + ')') };
   if (r.status === 0) return { on: true, why: null };

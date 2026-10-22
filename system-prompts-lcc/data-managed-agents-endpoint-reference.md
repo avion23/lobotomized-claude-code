@@ -4,11 +4,11 @@ description: >-
   claude-api skill reference file (Managed Agents endpoint reference) inlined as
   <doc> or extracted for the model to Read when the skill's Reading Guide points
   to it.
-ccVersion: 2.1.300
+ccVersion: 2.1.308
 -->
 # Managed Agents - Endpoint Reference
 
-All endpoints require \`x-api-key\` and \`anthropic-version: 2023-06-01\` headers. Managed Agents endpoints additionally require the \`anthropic-beta\` header.
+All endpoints require an \`x-api-key\` header and an \`anthropic-version\` header (for example \`2026-10-21\`). Managed Agents endpoints additionally require the \`anthropic-beta\` header.
 
 > Most users should define agents and environments as version-controlled files synced with \`ant apply\` - see \`shared/anthropic-cli.md\`. The endpoints below are the underlying API that the CLI and SDKs drive.
 

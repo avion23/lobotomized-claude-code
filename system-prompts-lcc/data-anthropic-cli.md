@@ -3,7 +3,7 @@ name: 'Data: Anthropic CLI'
 description: >-
   claude-api skill reference file (Anthropic CLI) inlined as <doc> or extracted
   for the model to Read when the skill's Reading Guide points to it.
-ccVersion: 2.1.304
+ccVersion: 2.1.308
 -->
 # Anthropic CLI (\`ant\`)
 
@@ -65,7 +65,7 @@ To hand the active credential to a subprocess or raw-HTTP script:
 # Bare access token - for curl's Authorization header
 curl https://api.anthropic.com/v1/messages \\
   -H "Authorization: Bearer $(ant auth print-credentials --access-token)" \\
-  -H "anthropic-version: 2023-06-01" \\
+  -H "anthropic-version: 2026-10-21" \\
   -H "anthropic-beta: oauth-2025-04-20" \\
   -H "content-type: application/json" \\
   -d '{"model": "{{OPUS_ID}}", "max_tokens": 1024, "messages": [{"role": "user", "content": "Hello"}]}'

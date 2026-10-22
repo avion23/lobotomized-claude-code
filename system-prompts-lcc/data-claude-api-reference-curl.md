@@ -4,7 +4,7 @@ description: >-
   claude-api skill reference file (Claude API reference — cURL) inlined as <doc>
   or extracted for the model to Read when the skill's Reading Guide points to
   it.
-ccVersion: 2.1.296
+ccVersion: 2.1.308
 -->
 # Claude API - cURL / Raw HTTP
 
@@ -24,7 +24,7 @@ export ANTHROPIC_API_KEY="your-api-key"
 curl https://api.anthropic.com/v1/messages \\
   -H "Content-Type: application/json" \\
   -H "x-api-key: $ANTHROPIC_API_KEY" \\
-  -H "anthropic-version: 2023-06-01" \\
+  -H "anthropic-version: 2026-10-21" \\
   -d '{
     "model": "{{OPUS_ID}}",
     "max_tokens": 16000,
@@ -45,7 +45,7 @@ escapes, or multi-line content.
 response=$(curl -s https://api.anthropic.com/v1/messages \\
   -H "Content-Type: application/json" \\
   -H "x-api-key: $ANTHROPIC_API_KEY" \\
-  -H "anthropic-version: 2023-06-01" \\
+  -H "anthropic-version: 2026-10-21" \\
   -d '{"model":"{{OPUS_ID}}","max_tokens":16000,"messages":[{"role":"user","content":"Hello"}]}')
 
 # Print the first text block (-r strips the JSON quotes)
@@ -71,7 +71,7 @@ echo "$response" | jq -r '.content[] | select(.type == "text") | .text'
 curl https://api.anthropic.com/v1/messages \\
   -H "Content-Type: application/json" \\
   -H "x-api-key: $ANTHROPIC_API_KEY" \\
-  -H "anthropic-version: 2023-06-01" \\
+  -H "anthropic-version: 2026-10-21" \\
   -d '{
     "model": "{{OPUS_ID}}",
     "max_tokens": 64000,
@@ -110,7 +110,7 @@ data: {"type":"message_stop"}
 curl https://api.anthropic.com/v1/messages \\
   -H "Content-Type: application/json" \\
   -H "x-api-key: $ANTHROPIC_API_KEY" \\
-  -H "anthropic-version: 2023-06-01" \\
+  -H "anthropic-version: 2026-10-21" \\
   -d '{
     "model": "{{OPUS_ID}}",
     "max_tokens": 16000,
@@ -135,7 +135,7 @@ When Claude responds with a \`tool_use\` block, send the result back:
 curl https://api.anthropic.com/v1/messages \\
   -H "Content-Type: application/json" \\
   -H "x-api-key: $ANTHROPIC_API_KEY" \\
-  -H "anthropic-version: 2023-06-01" \\
+  -H "anthropic-version: 2026-10-21" \\
   -d '{
     "model": "{{OPUS_ID}}",
     "max_tokens": 16000,
@@ -173,7 +173,7 @@ Put \`cache_control\` on the last block of the stable prefix. See \`shared/promp
 curl https://api.anthropic.com/v1/messages \\
   -H "Content-Type: application/json" \\
   -H "x-api-key: $ANTHROPIC_API_KEY" \\
-  -H "anthropic-version: 2023-06-01" \\
+  -H "anthropic-version: 2026-10-21" \\
   -d '{
     "model": "{{OPUS_ID}}",
     "max_tokens": 16000,
@@ -200,7 +200,7 @@ For 1-hour TTL: \`"cache_control": {"type": "ephemeral", "ttl": "1h"}\`. Top-lev
 curl https://api.anthropic.com/v1/messages \\
   -H "Content-Type: application/json" \\
   -H "x-api-key: $ANTHROPIC_API_KEY" \\
-  -H "anthropic-version: 2023-06-01" \\
+  -H "anthropic-version: 2026-10-21" \\
   -d '{
     "model": "{{OPUS_ID}}",
     "max_tokens": 16000,
@@ -225,7 +225,7 @@ On \`{{FABLE_ID}}\`, safety classifiers may decline a request (HTTP 200 with \`s
 response=$(curl -s https://api.anthropic.com/v1/messages \\
   -H "Content-Type: application/json" \\
   -H "x-api-key: $ANTHROPIC_API_KEY" \\
-  -H "anthropic-version: 2023-06-01" \\
+  -H "anthropic-version: 2026-10-21" \\
   -H "anthropic-beta: server-side-fallback-2026-06-01" \\
   -d '{
     "model": "{{FABLE_ID}}",
@@ -261,5 +261,5 @@ The header must be exactly \`server-side-fallback-2026-06-01\` **for this array 
 | ------------------- | ------------------ | -------------------------- |
 | \`Content-Type\`      | \`application/json\` | Required                   |
 | \`x-api-key\`         | Your API key       | Authentication             |
-| \`anthropic-version\` | \`2023-06-01\`       | API version                |
+| \`anthropic-version\` | \`2026-10-21\`       | Required (API version)     |
 | \`anthropic-beta\`    | Beta feature IDs   | Required for beta features |
