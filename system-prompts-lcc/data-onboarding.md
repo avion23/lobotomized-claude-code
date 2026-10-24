@@ -3,7 +3,7 @@ name: 'Data: onboarding'
 description: >-
   claude-test run-skill reference onboarding.md that the run SKILL.md tells the
   model to Read for machine setup and first run.
-ccVersion: 2.1.305
+ccVersion: 2.1.308
 -->
 # Onboarding — the machine first, then the starter suite, with the person
 
@@ -17,14 +17,21 @@ to correct, put one question where a decision is truly theirs, and keep every qu
 From the \`status\` you already have, write ONE short report, most blocking first, each item with the one thing that fixes it:
 - \`needsInput\` (which app, which address, which start command): its question and numbered choices (SKILL.md §1 already
   covers this; it comes first because nothing else can be checked until the app folder is known).
-- Browser tooling missing (\`ready.reasons\`, \`tools.note\`): ask, with the AskUserQuestion tool when you have it, "Claude Test needs a test
+- No test browser (\`tools.browser.missing\`, with or without the tooling: no Google Chrome that Claude Test can use here, and none downloaded): \`claude_test_install\` downloads it only from a mirror the person names, so do not
+  offer that tool and do not ask the install question below. Write one line, then the command as a code block, as your message's text and never inside the question: "Claude Test needs a
+  test browser<when \`tools.browser.forWindow\`: ' that opens a window'> on this machine. Run this once in a terminal (not with ! here: Claude Code's sandbox can stop the download from being saved):" and \`tools.browser.command\`. Then ask, with the
+  AskUserQuestion tool when you have it, "Is the test browser installed?" Choices: "Yes, it's installed" ("Check again."); "No, not now"
+  ("Nothing is installed."). On yes, run \`status\` again and go on as after an install below; still missing → stop, in these words: "The test browser
+  is still not installed. If the command showed an error in your terminal, its last lines say what to fix. Run the command above again, then type
+  /claude-test:run." "No, not now" → stop, in these words:
+  "Claude Test can't run without the test browser. Run the command above in a terminal when you're ready, then type /claude-test:run."
+- Browser tooling missing (\`ready.reasons\`, \`tools.note\`) on a machine that has a test browser: ask, with the AskUserQuestion tool when you have it, "Claude Test needs a test
   browser. Would you like to install it?" Choices, each with its description: "Yes, install" ("Claude Code asks you to approve the install."); "No, not now" ("Nothing is installed."). "Yes, install" → call the \`claude_test_install\` tool of the plugin's browser server yourself (it is an MCP tool in this
   conversation; the running server loads the tooling by itself afterwards, no /mcp step), then run \`status\` again and carry on from
   SKILL.md §1 IN THIS TURN: their answer came back inside it, so nothing has to be typed again. The tool answers with an error, or the tooling is still missing
   afterwards → say its answer in one line with the terminal command, do not ask again, and close as for what is theirs to fix (below). "No, not now" → stop, in
   these words: "Claude Test can't run without the test browser. Type /claude-test:run when you want to install it." (the next \`/claude-test:run\` asks again:
-  the tooling is still missing). The question comes back with no answer of theirs (a reply that is not a choice the person made or words they typed, such as one that starts "No response after" or "The user did not answer", even when it lists something as selected) → run \`status\` once; tooling still missing → stop, with the closing sentence below. A machine
-  without Google Chrome also needs the terminal command once for the test browser; the tool's answer says so. Without AskUserQuestion the closing sentence below applies.
+  the tooling is still missing). The question comes back with no answer of theirs (a reply that is not a choice the person made or words they typed, such as one that starts "No response after" or "The user did not answer", even when it lists something as selected) → run \`status\` once; tooling still missing → stop, with the closing sentence below. Without AskUserQuestion the closing sentence below applies.
 - Everything in \`environment.problems\`, verbatim, one line each (dependencies declared but not installed, env files missing or
   empty, variables the code reads that are set nowhere), then \`environment.notes\` that matter (keys that are moot under the
   network fence need no real value).
@@ -32,7 +39,7 @@ From the \`status\` you already have, write ONE short report, most blocking firs
 - Any other \`ready.reasons\` line (a test browser Claude Test cannot use, a specs or runs folder it cannot use): quote it as written;
   it says what to change. Installing the browser tooling does not fix a browser or a folder reason. Where that line says how to install
   Google Chrome, the person does that: do not download or install a browser yourself, and do not run a command with sudo.
-End, ONLY when something is left that is theirs to fix (a secret, a dependency, a folder Claude Test cannot use), with: "The rest is yours to fix (your machine, your secrets); then type \`/claude-test:run\` again and I'll re-check" (for you: the typed command renews the check with no Claude Test approvals; a bare "again" would cost them one). When the install was the only thing missing and it has finished, there is no such sentence: you are already going on. On that
+End, ONLY when something is left that is theirs to fix (a secret, a dependency, a command they run themselves, a folder Claude Test cannot use), with: "When that's done, type \`/claude-test:run\` again and I'll check" (for you: the typed command renews the check with no Claude Test approvals; a bare "again" would cost them one). When the install was the only thing missing and it has finished, there is no such sentence: you are already going on. On that
 next run either repeat the shorter report or go on. While the RUNNER cannot start (tooling missing, which app unknown, the specs
 folder unusable) do not propose specs, read code or start anything. Findings that do not stop the runner (unset variables, a
 dependency not installed, an env file missing) do not hold a first run: they go right under the first line of the first-run message (F2), one line
@@ -49,7 +56,7 @@ ready, and every question you have is asked before the runner starts the suite.
 
 1. \`node \${CLAUDE_SKILL_DIR}/scripts/ct.mjs new-run\` → the run folder (\`absolute\`). Everything this run writes goes there. It, and the
    small files F2 reads, can go in the same message as SKILL.md §3 step 2's check that the app is up: one turn fewer before the look (a run
-   folder made while the app turns out not to be running is the one the look uses once it runs). (Rarely the answer carries \`note\`: this disk keeps neither hard links nor creation times, so the background helpers' tools will not serve the folder. Tell the person that in one line, with the advice it gives, and start no helper.)
+   folder made while the app turns out not to be running is the one the look uses once it runs). (Rarely the answer carries \`note\`: this disk keeps neither hard links nor creation times, so the background helpers' tools will not serve the folder. Tell the person that in one line, with the advice it gives, and start no helper. An answer with \`warning\` instead: say it to the person in one line and go on.)
 2. Start the FIRST LOOK: the Skill tool, skill \`claude-test:execute\`, arguments \`look <absolute run folder>\`. It loads at most three
    pages of the running app, in about a minute, in the fenced browser and comes back by itself with what they show (titles, headings, navigation,
    empty states, a sign-in wall). If the dev server is not up yet (SKILL.md §3 step 2: the browser helper's check says so), deal with
@@ -106,6 +113,7 @@ YOU checked in SKILL.md §3 step 2 (the helper's \`answering\` address, else \`d
 the look quoted. From the line under the look report's header (and the "Stopped early:" line above it):
 - "First page: <e> console errors; <f> requests did not load, …" → "✓ Your app loads at <address> (<e> console errors, <f> failed requests)."
 - "Empty first page: <e> console errors; <f> requests did not load, …" → "✗ Your app's first page at <address> stayed empty (<e> console errors, <f> failed requests)."
+- "Not the app: the first page is a directory listing." (under the first-page line) → "✗ <address> shows a list of files, not your app." as your whole message: stop what is still working for this first run (TaskStop), start no run and write no test, then ONE question with AskUserQuestion, "<address> shows a list of files, not your app. Where is your app?", choices "It's at another address" (a \`baseUrl:\` line, as SKILL.md §3 step 2 says) and "I'll start it" ("Stop the program serving that folder first, then type /claude-test:run.").
 - no page loaded → "✗ Nothing loaded at <address>." A BLOCKED or NEEDS INPUT look is not that: the app was never reached, so say no result line and give its one fix or question, as F3 says (a browser that could not start is the machine, not the app).
 Write "1 console error" and "1 failed request" for a count of one; a count that is 0, that is not a whole number, or that the report left out, you leave out (with both left out, no brackets: "✓ Your app loads at <address>.").
 This line is the first result the person reads after F2's message, in whichever turn the look's report arrives:
@@ -195,7 +203,9 @@ Then end your turn with one line, in these words: "Writing the <n> tests. When t
 not read source files for the specs yourself and you do not compose their text: that is the author's job, and it keeps this
 conversation light.
 
-When the author reports (\`## Claude Test · DRAFTS · …\`; its list of file names and its \`Suspected bug:\` lines are all you take from it), you do not show the
+If the author's report ends with a \`Stopped:\` line, the write tool refused that run folder: tell the person in one sentence what that line says.
+Only when the line says that only a new run folder takes new drafts, add that typing \`/claude-test:run\` again starts over with a new run folder.
+Start no runner, and end your turn. Otherwise, when the author reports (\`## Claude Test · DRAFTS · …\`; its list of file names and its \`Suspected bug:\` lines are all you take from it), you do not show the
 drafts, you do not ask again, and you file nothing yourself: in that same turn go on to F5 and start the runner with
 \`--key <the saveKey new-run printed for this run folder>\` (SKILL.md §3 step 5: the first look was never given it) and
 \`--save <every name the author listed, minus any the person dropped since the outline>\`. Its first step saves exactly those
@@ -203,14 +213,15 @@ drafts as specs (SKILL.md §4): each is REBUILT from its title, steps, Must line
 project and the front matter \`tags: [creates-data]\` / \`allow_navigation: true\`; anything else in a draft is left out; a draft
 whose title, steps or Must lines would carry an address on another host, a \`$VARIABLE\`, a credential-looking name, a \`<secret>\`
 reference, link syntax or raw HTML is held back and comes to the person with the results, quoted whole, with a question of its
-own. An edit they ask for ("in 2 use Tomato Soup") before the author has reported goes into the brief; after, Write the changed
-draft yourself before starting the runner. If they ask to SEE a draft or a spec at any point ("show 2", "show specs"), SKILL.md
+own. An edit they ask for ("in 2 use Tomato Soup") before the author has reported goes into the brief; after, write the changed
+draft yourself with \`claude_test_write\` (SKILL.md §2) and show it in the message that starts the runner, as SKILL.md §4 says. If they ask to SEE a draft or a spec at any point ("show 2", "show specs"), SKILL.md
 §5 says how: from the file, two or three lines each.
 
 ### F5. The briefing and the go — SKILL.md §3, steps 2–6
 
 The run folder exists already (F1; the newest one when you looked again). Setup and sign-in steps, the briefing (for a first run: about 30 seconds per spec, rounded up to whole minutes, as SKILL.md §3 step 4 works it out; its first-run words, "Running <n> tests, about <N> minutes.", its short data line and "Results will show up here."; then the live-page block and the one offer, and that is the whole message), the runner
-started with \`run <absolute run folder>\`, the one offer, then quiet. When the table arrives, SKILL.md §5, then SKILL.md §5's closing line.
+started with \`run <absolute run folder>\`, the one offer, then quiet. When the table arrives, SKILL.md §5, then SKILL.md §5's closing line. A first run never makes the offer to remember: it waits for the first
+later run that passes (SKILL.md §5, "The offer to remember").
 A starter spec that fails is, almost always, your own or the author's misreading of the app — the app as it runs today is the
 ground truth on a first run. Fix it (SKILL.md §5, the fix loop): correct the draft from what the browser observed, re-run that one
 spec with \`--replace <its name>\` (the re-run's first step saves the corrected draft over the old spec and keeps the previous text), and report in one line what you had assumed and what the app does, so the person
@@ -223,7 +234,7 @@ and the fix to offer is in the app's code (SKILL.md §5, "The app is wrong"). Ne
 **Journeys first.** At least two of the three specs must be journeys: two or more user actions through
 the app's main create / open / edit path (navigating by clicking counts as an action), ending on a
 screen whose content proves the actions took effect — "opened the seeded order, and its detail page
-lists the three line items"; "added a recipe named 'Claude Test demo recipe', and the recipe list
+lists the three line items"; "added a recipe named 'Claude Test demo {run}', and the recipe list
 now shows it" — not "the Add a recipe form opens with an empty name field". A spec that only confirms that a page, dialog,
 menu or label renders, asserting no seeded value and no outcome of an action, is periphery: useful
 as number three, wrong as number one, and at most one of those, at the end of your numbered list
@@ -233,7 +244,7 @@ creates data it is still tagged and still RUNS last: the numbered list is by imp
 order puts creating specs at the end. If you cannot find two journeys, say under "Not covered"
 which you looked for and which check below each one failed. Where a journey types free text, use
 an unmistakable sentinel value ("zzqx-test-note", "Claude Test demo recipe") so the end screen can be
-checked for exactly that string.
+checked for exactly that string, with \`{run}\` in it when the journey creates or edits that record.
 
 When a place is left over beside the journeys, take the first of these that the app has and that is not already on the list: the core
 visitor journey reaches its end screen; the most important list or detail page shows a named item;
@@ -261,17 +272,24 @@ the landing page and the spec tests nothing.
 **Creating data: one spec must, within rules.** When the app's central path creates something (it
 usually does: add the recipe, post the order, save the note), ONE spec must take that path — not
 optional — and a second may. If the app gives a new record a name of its own ("Recipe 14"), the
-journey is: create it → change that to the fixed "Claude Test demo …" name in the app's own name
-field or with its rename action (renaming what the spec just created is allowed; an app that asks
-for the name in one of the browser's own dialogs is fine — the run answers those) → then go back to
+journey is: create it → change that to a name that holds \`{run}\` ("Claude Test demo {run}") in the app's own name
+field or with its rename action (renaming what the spec just created is allowed; the value goes into a
+field of the page, since text typed into one of the browser's own dialogs is not counted) → then go back to
 the list of records and END there: "Passes when" names the entry in the list (that proves it was
 saved), not only the heading of the screen you were on.
-Only if no rename action or name field exists anywhere do you leave the create out, and then say
-under "Not covered" which files you searched for one. Tag them \`tags: [creates-data]\` in the front matter; give
-every record they make the fixed prefix "Claude Test demo" so later runs find and reuse it; make
-the first step conditional ("If no recipe named 'Claude Test demo recipe' exists, add one from …;
-otherwise open it"); prefer the creation path an ordinary user has; edit, rename or move only
-records the spec itself created (the "Claude Test demo …" ones) — never a seeded record another
+Only if no field of the page itself takes the new name (a rename that asks in one of the browser's own dialogs does not
+count) do you leave the create out, and then say
+under "Not covered" which files you searched for one. Tag them \`tags: [creates-data]\` in the front matter.
+The spec whose journey IS the create (or an edit) types a value unique to the run: \`{run}\` in the text it
+types (Add a note titled "Note from run {run}"; change the title to "Edited in run {run}"), and its
+Must line quotes that same value (\`Must: the notes list shows an entry titled "Note from run {run}"\`). Each run
+fills \`{run}\` with its own stamp, so a record an earlier run left can never satisfy the line; never make
+that spec's create conditional, and never let its Must line quote a fixed name a past run could have
+saved. Give each such spec's value words of its own, and never put a digit, or a dash and a digit, right after
+\`{run}\`. A record another journey only NEEDS (a recipe to search for) keeps the fixed prefix "Claude Test
+demo" so later runs find and reuse it, with a conditional first step ("If no recipe named 'Claude Test
+demo recipe' exists, add one from …; otherwise open it"). For every spec tagged creates-data: prefer the creation path an ordinary
+user has; edit, rename or move only records the spec itself created (those named "Claude Test demo …" or with a \`{run}\` value) — never a seeded record another
 spec reads; never delete; and leave out toggles and dismissals that stay with the account (a
 favourite mark, a welcome tip's "Dismiss", "never ask again" — not repeat-safe). On a local dev database such records are harmless
 evidence, and these specs run with the rest, last; the report marks them "creates data" so

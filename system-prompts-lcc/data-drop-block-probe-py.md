@@ -1,7 +1,7 @@
 <!--
 name: 'Data: drop_block_probe.py'
 description: Text asset drop_block_probe.py that Claude Code loads by path from its bundle.
-ccVersion: 2.1.301
+ccVersion: 2.1.308
 -->
 #!/usr/bin/env python3
 """drop_block_probe.py -- replay a captured conversation against the Messages API with the
@@ -439,6 +439,8 @@ def post(base_url, path, body, betas, api_key, timeout):
     req.add_header("content-type", "application/json")
     for name, value in (api_key if isinstance(api_key, dict) else {"x-api-key": api_key}).items():
         req.add_header(name, value)
+    # Stays on 2023-06-01: it accepts every request body 2026-10-21 accepts,
+    # plus captured bodies with fields 2026-10-21 rejects.
     req.add_header("anthropic-version", "2023-06-01")
     req.add_header("anthropic-beta", ",".join(betas))
     t0 = time.time()

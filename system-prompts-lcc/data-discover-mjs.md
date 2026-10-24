@@ -4,8 +4,9 @@ description: >-
   Claude Test discover.mjs: finds the dev server start command and ports from
   package.json, Makefiles, launch.json and config files, with the conflict and
   'unknown — ask' notes status prints.
-ccVersion: 2.1.305
+ccVersion: 2.1.308
 -->
+
 
 
 
@@ -13,12 +14,117 @@ ccVersion: 2.1.305
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { RC_FILE, reallyInsideDir, SECRET_FILE } from './config.mjs';
+import { execFileSync } from 'node:child_process';
+import { RC_FILE, reallyInsideDir, insideDir, SECRET_FILE, plainPath, checkoutRootOf } from './config.mjs';
 
 export function readJson(p) { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return null; } }
 
 
 export const COMMON_PORTS = [3000, 5173, 8080, 8000, 4200, 4321, 5000, 3001];
+
+
+const MOST_FD_LINKS = 200000;
+
+
+const FORWARDERS = new Set(['docker-proxy', 'rootlessport', 'rootlesskit', 'slirp4netns', 'gvproxy', 'vpnkit', 'vpnkit-bridge', 'com.docker.backend', 'com.docker.vpnkit', 'ssh', 'kubectl', 'socat', 'limactl']);
+
+const isForwarder = (name) => FORWARDERS.has(name) || (name.length === 15 && [...FORWARDERS].some((f) => f.slice(0, 15) === name));
+
+const MOST_TABLE_BYTES = 4 * 1024 * 1024; const MOST_CMDLINE_BYTES = 1024 * 1024;
+
+const LOOPBACK_HEX = (hex) => /^(?:[0-9A-F]{6}7F|0{8}|0{32}|0{24}01000000|0{16}FFFF0000(?:[0-9A-F]{6}7F|0{8}))$/i.test(hex);
+
+
+
+
+
+
+
+
+
+
+export function portOwner(port, projectDir, look = {}) {
+  const platform = look.platform || process.platform;
+  const real = look.real || ((p) => fs.realpathSync(p));
+  let project; try { project = real(projectDir); } catch { return null; }
+  if (!Number.isInteger(port) || port < 1 || port > 65535) return null;
+  const fold = platform === 'darwin' ? (p) => p.toLowerCase() : (p) => p;
+  const within = (p) => typeof p === 'string' && path.isAbsolute(p) && insideDir(fold(p), fold(project));
+  const holdsProject = (p) => typeof p === 'string' && path.isAbsolute(p) && p !== path.parse(p).root && insideDir(fold(project), fold(p));
+  let checkout = null; try { checkout = 'checkout' in look ? look.checkout : checkoutRootOf(project); } catch {                         }
+  const inCheckout = (p) => !!checkout && typeof p === 'string' && path.isAbsolute(p) && insideDir(fold(p), fold(checkout));
+  const verdict = (owners) => (!owners.length || owners.includes(null) ? null : owners.every((o) => o === 'this') ? 'this' : owners.every((o) => o === 'other') ? 'other' : null);
+  if (platform === 'linux') {
+
+    const read = look.read || ((p) => { const most = p.startsWith('/proc/net/') ? MOST_TABLE_BYTES : MOST_CMDLINE_BYTES; const fd = fs.openSync(p, 'r'); try { const buf = Buffer.allocUnsafe(most + 1); let n = 0; let r; while (n <= most && (r = fs.readSync(fd, buf, n, most + 1 - n, null)) > 0) n += r; if (n > most) throw Object.assign(new Error(p + ' is longer than ' + most + ' bytes'), { code: 'TOO_BIG' }); return buf.toString('utf8', 0, n); } finally { fs.closeSync(fd); } });
+    const list = look.list || ((p, most = Infinity) => { const dir = fs.opendirSync(p); try { const names = []; for (let e = dir.readSync(); e && names.length < most; e = dir.readSync()) names.push(e.name); return names; } finally { dir.closeSync(); } });
+    const mostLinks = look.mostLinks || MOST_FD_LINKS;
+    const link = look.link || ((p) => fs.readlinkSync(p));
+    const hexPort = port.toString(16).toUpperCase().padStart(4, '0');
+    const inodes = new Set();
+    for (const table of ['/proc/net/tcp', '/proc/net/tcp6']) {
+      let text; try { text = read(table); } catch (e) { if (e && e.code === 'TOO_BIG') return null; continue; }
+      for (const row of text.split('\\n').slice(1)) {
+        const cols = row.trim().split(/\\s+/); if (cols.length < 10) continue;
+        const [address, hex] = cols[1].split(':');
+        if (cols[3] === '0A' && hex && hex.toUpperCase() === hexPort && LOOPBACK_HEX(address) && /^[1-9]\\d*$/.test(cols[9])) inodes.add(cols[9]);
+      }
+    }
+    if (!inodes.size) return null;
+    const holders = new Map(); let links = 0;
+    let pids; try { pids = list('/proc').filter((d) => /^\\d+$/.test(d)); } catch { return null; }
+    for (const pid of pids) {
+      let fds; try { fds = list('/proc/' + pid + '/fd', mostLinks - links + 1); } catch { continue; }
+      for (const fd of fds) {
+        if (++links > mostLinks) return null;
+        let to; try { to = link('/proc/' + pid + '/fd/' + fd); } catch { continue; }
+        const m = /^socket:\\[(\\d+)\\]$/.exec(to); if (!m || !inodes.has(m[1])) continue;
+        if (!holders.has(m[1])) holders.set(m[1], new Set()); holders.get(m[1]).add(pid);
+      }
+    }
+    if ([...inodes].some((i) => !holders.has(i))) return null;
+    const mntOf = (p) => { try { return link(p); } catch { return null; } };
+    const rootOf = look.rootId || ((p) => { const s = fs.statSync(p); return s.dev + ':' + s.ino; });
+    const myMnt = mntOf('/proc/self/ns/mnt');
+    let myRoot = null; try { myRoot = rootOf('/'); } catch {                   }
+    const ownerOf = (pid) => {
+      let cwd; try { cwd = link('/proc/' + pid + '/cwd'); } catch { return null; }
+      if (within(cwd)) return 'this';
+      let argv = []; try { argv = read('/proc/' + pid + '/cmdline').split('\\0').filter(Boolean).slice(0, 64); } catch (e) { if (e && e.code === 'TOO_BIG') return null;                                            }
+      for (const arg of argv) {
+        if (arg.startsWith('-') || !arg.includes('/')) continue;
+        let p; try { p = real(path.resolve(cwd, arg)); } catch { continue; }
+        if (within(p)) return 'this';
+      }
+
+
+
+
+      const theirMnt = mntOf('/proc/' + pid + '/ns/mnt');
+      if (myMnt && theirMnt && theirMnt !== myMnt && myRoot) { let theirRoot = null; try { theirRoot = rootOf('/proc/' + pid + '/root'); } catch {                   } if (theirRoot && theirRoot !== myRoot) { let here = true; try { real(cwd); } catch { here = false; } if (!here) return null; } }
+      let name = ''; try { name = read('/proc/' + pid + '/comm').trim(); } catch {                                         }
+      return isForwarder(name) || holdsProject(cwd) || inCheckout(cwd) ? null : 'other';
+    };
+    return verdict([...new Set([...holders.values()].flatMap((s) => [...s]))].map(ownerOf));
+  }
+  if (platform === 'darwin') {
+    const run = look.run || ((cmd, args) => execFileSync(cmd, args, { encoding: 'utf8', timeout: 3000, stdio: ['ignore', 'pipe', 'ignore'] }));
+    let out; try { out = run('/usr/sbin/lsof', ['-nP', '-iTCP:' + port, '-sTCP:LISTEN', '-Fpn']); } catch { return null; }
+    const pids = [...new Set(String(out).split('\\n').filter((l) => /^p\\d+$/.test(l)).map((l) => l.slice(1)))];
+    return verdict(pids.map((pid) => {
+      let cwdOut; try { cwdOut = run('/usr/sbin/lsof', ['-a', '-p', pid, '-d', 'cwd', '+c', '0', '-Fcn']); } catch { return null; }
+      const lines = String(cwdOut).split('\\n');
+      const line = lines.find((l) => l.startsWith('n/'));
+      if (!line) return null;
+      let cwd; try { cwd = real(line.slice(1)); } catch { cwd = line.slice(1); }
+
+
+      const name = (lines.find((l) => l.startsWith('c')) || '').slice(1).trim();
+      return within(cwd) || isForwarder(name) || holdsProject(cwd) || inCheckout(cwd) ? null : 'other';
+    }));
+  }
+  return null;
+}
 
 
 
@@ -72,6 +178,53 @@ function commandLinePort(line, readPrefixed) {
   return Number((own || exported || prefixed || [])[1]);
 }
 
+
+const START_SHAPE = /^[A-Za-z0-9][A-Za-z0-9 :_./=@+-]{0,79}$/;
+
+const START_PROGRAM = /^(?:python3?|node|deno|bun|npm|pnpm|yarn|go|cargo|php|ruby|bin\\/rails|rails|bundle|flask|uvicorn|gunicorn|hypercorn|streamlit|dotnet|make|just|mix|hugo|jekyll)(?:\\s|$)/;
+
+
+const NOT_A_START = /(?:^|\\s|:|\\.)(?:install|uninstall|add|remove|rm|i|ci|update|upgrade|get|rebuild|test|build|lint|migrate|init|create|setup|clone|freeze|format|fmt|check|vet|publish|release|deploy|push|clean|drop|reset|delete|destroy|down|stop)(?:\\s|$|:)|^(?:npm|pnpm|yarn|bun)\\s(?:.*\\s)?up(?:\\s|$)|\\bpip3?\\b|\\bvenv\\b|^(?:yarn|bundle|pnpm|npm|bun)(?:\\s+-\\S*(?:\\s+[^-\\s]\\S*)?)*$/;
+
+const PY_MAIN = /^if\\s+__name__\\s*==\\s*['"]__main__['"]\\s*:/m;
+const PY_SERVES = /\\b(?:http\\.server|HTTPServer|serve_forever|socketserver|wsgiref|make_server\\(|app\\.run\\(|uvicorn\\.run\\(|web\\.run_app\\()/;
+
+
+const FETCHES = /:\\/\\/|[^\\s=]@\\S|^(?:npm|deno|bun)\\s(?:.*\\s)?(?:exec|x)(?:\\s|$)|^(?:pnpm|yarn)\\s(?:.*\\s)?dlx(?:\\s|$)|(?:^|\\s)(?:npm|jsr):\\S|-m\\s+(?:pipx|uv)(?:\\s|$)/;
+const isStartLine = (c) => START_SHAPE.test(c) && START_PROGRAM.test(c) && !NOT_A_START.test(c) && !FETCHES.test(c);
+
+
+
+export function fallbackStarts(dir) {
+
+  const inside = (f) => { try { const p = path.join(dir, f); return fs.lstatSync(p).isFile() && reallyInsideDir(fs.realpathSync(p), dir) ? p : null; } catch { return null; } };
+  const read = (f) => { const p = inside(f); if (!p) return null; let fd; try { fd = fs.openSync(p, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0) | (fs.constants.O_NONBLOCK || 0)); if (!fs.fstatSync(fd).isFile()) return null; const b = Buffer.alloc(65536); const n = fs.readSync(fd, b, 0, b.length, 0); return b.subarray(0, n).toString('utf8'); } catch { return null; } finally { if (fd !== undefined) try { fs.closeSync(fd); } catch {              } } };
+  const out = []; const add = (command, from) => { if (isStartLine(command) && !out.some((c) => c.command === command)) out.push({ command, from }); };
+  const proc = read('Procfile'); const web = proc && proc.match(/^web:[ \\t]*(.+?)[ \\t]*$/m); if (web) add(web[1], 'Procfile web');
+  for (const name of ['README.md', 'readme.md', 'README.markdown', 'README']) {
+    const text = read(name); if (text === null) continue;
+    const lines = text.split(/\\r?\\n/); let heading = ''; let before = [];
+    for (let i = 0; i < lines.length && out.length < 3; i++) {
+      const l = lines[i];
+      if (/^#{1,6}\\s/.test(l)) { heading = l; before = []; continue; }
+      const fenced = /^\\s{0,3}(\`\`\`|~~~)/.test(l); const indented = /^( {4}|\\t)\\S/.test(l) && (i === 0 || !lines[i - 1].trim());
+      if (!fenced && !indented) { if (l.trim()) before = [...before, l].slice(-2); continue; }
+      const block = [];
+      if (fenced) { const fence = l.trim().slice(0, 3); for (i++; i < lines.length && !lines[i].trim().startsWith(fence); i++) block.push(lines[i]); }
+      else { for (; i < lines.length && /^( {4}|\\t)/.test(lines[i]); i++) block.push(lines[i]); i--; }
+      const commands = block.map((x) => x.trim().replace(/^\\$\\s+/, '')).filter((x) => x && !x.startsWith('#'));
+      const context = (heading + ' ' + before.join(' ')).toLowerCase(); before = [];
+      if (commands.length !== 1) continue;
+      const command = commands[0]; const file = command.split(/\\s+/)[1];
+      const runsOwnFile = !!file && !file.startsWith('-') && !file.includes('..') && !path.isAbsolute(file) && !!inside(file);
+      if (/\\b(?:run|runs|running|start|starts|serve|serves|launch)\\b/.test(context) || runsOwnFile) add(command, name + ' (a code block of one command)');
+    }
+    break;
+  }
+  if (out.length) return out;
+  for (const f of ['app.py', 'main.py', 'server.py', 'run.py']) { const t = read(f); if (t !== null && PY_MAIN.test(t) && PY_SERVES.test(t)) add('python3 ' + f, f + ' (serves when run)'); }
+  return out;
+}
 
 export function discoverDevServer(cfg, { inSandbox = false } = {}) {
   const found = { startCommand: cfg.startCommandSource === RC_FILE ? cfg.startCommand : null, startCommandSource: cfg.startCommandSource === RC_FILE ? RC_FILE : null, startCommandCwd: null, startCommandNote: null, startCommandCandidates: [], conflicts: [], portHints: [], portHintsSource: null, portHintFrom: {}, recipes: [] };
@@ -165,6 +318,7 @@ export function discoverDevServer(cfg, { inSandbox = false } = {}) {
       }
     }
   }
+  if (!found.startCommand && !candidates.length) candidates.push(...fallbackStarts(dir));
   if (!found.startCommand) {
     const distinct = [...new Map(candidates.map((c) => [c.command + '\\u0000' + (c.cwd || ''), c])).values()];
     if (distinct.length === 1 && !found.conflicts.length) { found.startCommand = distinct[0].command; found.startCommandSource = candidates.filter((c) => c.command === distinct[0].command).map((c) => c.from).join(' = '); found.startCommandCwd = distinct[0].cwd || null; }
@@ -204,14 +358,38 @@ export function candidateList(cfg, dev) {
 }
 
 
+export const START_CAUSES = ['port', 'packages', 'command', 'other'];
+export const INSTALLERS = ['npm', 'pnpm', 'yarn', 'bun'];
+const PORT_TAKEN = [/EADDRINUSE[^\\n]{0,80}?:(\\d{2,5})(?!\\d)/, /address already in use[^\\n]{0,80}?:(\\d{2,5})(?!\\d)/i, /\\bport (\\d{2,5}) is (?:already )?(?:in use|taken|being used)/i, /EADDRINUSE|address already in use|port is (?:already )?in use/i];
+const PACKAGES_MISSING = /Cannot find (?:module|package)\\b|ERR_MODULE_NOT_FOUND|MODULE_NOT_FOUND|Module not found|could not resolve dependencies|Failed to resolve import/i;
+const NOT_FOUND = /command not found|: not found\\b|is not recognized as an internal or external command|spawn \\S{1,80} ENOENT|(?:^|\\n)(?:\\S*\\/)?(?:sh|bash|zsh|dash)(?:: line \\d+)?: [^\\n]{0,120}No such file or directory/i;
+
+
+
+
+export function startFailure(text, projectDir) {
+  const out = String(text || '');
+  for (const re of PORT_TAKEN) { const m = out.match(re); if (m) { const port = Number(m[1]); return { cause: 'port', ...(Number.isInteger(port) && port >= 1 && port <= 65535 ? { port } : {}) }; } }
+  const pkg = readJson(path.join(projectDir, 'package.json'));
+  let install = 'npm'; try { const pm = packageManagerSignals(projectDir, pkg).pm; if (INSTALLERS.includes(pm)) install = pm; } catch {                }
+  const packages = { cause: 'packages', ...(pkg ? { install } : {}) };
+  if (PACKAGES_MISSING.test(out)) return packages;
+  if (NOT_FOUND.test(out)) return pkg && !fs.existsSync(path.join(projectDir, 'node_modules')) ? packages : { cause: 'command' };
+  return { cause: 'other' };
+}
+
+export function startFailureWords(f) {
+  const cause = f && START_CAUSES.includes(f.cause) ? f.cause : 'other';
+  if (cause === 'port') return Number.isInteger(f.port) && f.port >= 1 && f.port <= 65535 ? 'Port ' + f.port + ' is in use by another program' : 'The app\\'s port is in use by another program';
+  if (cause === 'packages') return INSTALLERS.includes(f.install) ? 'The app\\'s dependencies aren\\'t installed: run ' + f.install + ' install' : 'The app\\'s dependencies aren\\'t installed';
+  if (cause === 'command') return 'The app\\'s start command wasn\\'t found';
+  return 'It stopped before it answered; its output is in Claude Code\\'s background tasks';
+}
+
 
 export const RECENT_COMMITS = 20;
 export const RECENT_FILES = 8;
 export const RECENT_BULK = 40;
-
-
-
-const RECENT_SAFE = /^[\\w@+$~()[\\]-]+(\\.[\\w@+$~()[\\]-]+)*(\\/[\\w@+$~()[\\]-]+(\\.[\\w@+$~()[\\]-]+)*)*$/;
 const RECENT_EXT = /\\.(tsx|jsx|ts|js|mjs|cjs|vue|svelte|astro|html?|css|scss|sass|less|erb|haml|slim|ejs|hbs|handlebars|njk|liquid|twig|php|py|rb|ex|exs|heex|eex|go|rs|cs|cshtml|razor|java|kt|json|ya?ml)$/i;
 const RECENT_DATA_DIR = /(^|\\/)(data|fixtures?|seeds?|content|locales?|i18n|messages|mocks?)\\//i;
 const RECENT_NOT_UI = /(^|\\/)(node_modules|vendor|dist|build|out|coverage|\\.next|\\.nuxt|\\.svelte-kit|\\.turbo|\\.cache|\\.claude|\\.claude-test|\\.github|\\.husky|\\.vscode|\\.idea|\\.storybook|__tests__|__mocks__|tests?|e2e|cypress|playwright|scripts|migrations|bin)\\/|(^|\\/)[^/]*\\.(test|spec|stories|story|d)\\.[a-z]+$|(^|\\/)(\\.[^/]*rc|[^/]*\\.config)\\.[a-z]+$|(^|\\/)(tsconfig[^/]*|package|composer|jsconfig|deno|turbo|nx|lerna|vercel|netlify|firebase|app|manifest|renovate|\\.[^/]*)\\.json$|(^|\\/)(pnpm-workspace|docker-compose|\\.[^/]*)\\.ya?ml$|(^|\\/)(manage|setup|conftest|wsgi|asgi)\\.py$/i;
@@ -222,8 +400,9 @@ const RECENT_NOT_UI = /(^|\\/)(node_modules|vendor|dist|build|out|coverage|\\.ne
 const RECENT_SECRET_NAME = /(^|\\/)[^/]*(secrets?|credentials?|creds|api[-_]?keys?|keystore|private[-_.]?keys?|service[-_]?account|tokens?|kubeconfig)[^/]*$|(^|\\/)keys([-_.][^/]*)?(\\/|$)|(^|\\/)(api[-_]?keys?|keystores?|service[-_]?accounts?)\\//i;
 
 
+
 export function userFacingPath(file) {
-  if (typeof file !== 'string' || file.length > 160 || !RECENT_SAFE.test(file) || file.includes('$(') || file.split('/').includes('..')) return false;
+  if (!plainPath(file)) return false;
   if (!RECENT_EXT.test(file) || RECENT_NOT_UI.test(file) || SECRET_FILE.test(file) || RECENT_SECRET_NAME.test(file)) return false;
   if (/\\.(json|ya?ml)$/i.test(file) && !RECENT_DATA_DIR.test(file)) return false;
   return true;

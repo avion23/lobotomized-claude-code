@@ -3,7 +3,7 @@ name: 'Data: SKILL (Claude Test runner — drive the app in a browser, judge eac
 description: >-
   Prompt body of the claude-test "execute" skill (runner that drives the app),
   loaded as skill text by we().
-ccVersion: 2.1.305
+ccVersion: 2.1.308
 -->
 ---
 description: Internal to Claude Test — runs the specs in a background browser. Started only by the claude-test run skill.
@@ -104,6 +104,7 @@ disallowed-tools:
   - mcp__plugin_claude-test_browser__claude_test_app_up
   - mcp__plugin_claude-test_browser__claude_test_show_run
   - mcp__plugin_claude-test_browser__claude_test_install
+  - mcp__plugin_claude-test_browser__claude_test_write
   - Edit(.claude-test/runs/**/proposed/**)
   - Edit(**/.claude-test/runs/**/proposed/**)
   - Edit(**/.claude-test/runs/**/Proposed/**)
@@ -291,7 +292,7 @@ snapshot in one message, its screenshot, its counts and \`claude_test_elapsed\` 
 
 Read every selected spec file yourself, with \`claude_test_read\` (\`run: <id>\`, \`key: <key>\`, \`spec: <the file's stem>\`: \`home\` for \`.claude-test/specs/home.md\` in the \`specs.files[].file\` of \`claude_test_status\`, the same stems that the \`order\` of the progress start gives; never the spec's \`# heading\`; an answer's first line is the tool's own and says whether a next part is to be fetched with \`from\`; a spec that the tool refuses is BLOCKED with the refusal): the
 \`# heading\` is its name, the prose under it is the steps, \`## Passes when\` lists
-\`Must:\` / \`Must not:\` lines. **Before the first spec**, call
+\`Must:\` / \`Must not:\` lines. When the read tool's first line says \`{run}\` in the file is shown as this run's value, type that value exactly as shown, into a field of the page (a browser dialog's text does not count) and never in the same call as a secret KEY, and look for it where the Must lines quote it. **Before the first spec**, call
 \`claude_test_progress\` with \`run: <id>\`, \`key: <key>\` and \`start: true\` once — when your arguments named spec stems (a run limited to
 some specs), pass those stems as \`stems\`, as you were given them: \`stems: ["two-dishes-add-up"]\`
 (a stem that the tool refuses is left OUT of this list: its refusal names the stem, you call again with the others, and
@@ -337,7 +338,10 @@ When a refusal of the start tells you which specs to run, or no start answered, 
    before and after. A Must-not holds only if you looked after the page settled, and its
    evidence still names what you saw where the text would have been:
    \`checked: results list after searching "zzqx" → saw: nothing ("No results" absent; list shows 3 dishes)\` —
-   never an empty right-hand side.
+   never an empty right-hand side. "Reads" and "contains" are judged apart: a Must line that says an element reads "X" holds
+   only when that element's whole visible text is X; one that says it contains "X" holds when X stands inside that element's
+   visible text, whatever is beside it (a count, a name, a date), so \`Must: the heading contains "My notes"\` holds on a
+   heading that shows "My notes (2 notes)".
 4. **Screenshot the verdict screen**: \`browser_take_screenshot\` with
    \`filename: "<absolute run folder>/<spec-file-stem>.png"\` (the run folder you were given), \`fullPage: true\`.
    On FAIL also save the snapshot: \`browser_snapshot\` with \`filename\` \`<absolute run folder>/<stem>.snapshot.md\`.
@@ -347,7 +351,11 @@ When a refusal of the start tells you which specs to run, or no start answered, 
    in the notes; they fail a spec only when a Must line depends on them.
 6. **Verdict:**
    - **PASS** — every Must observed where it should be, no Must-not observed, and the steps
-     had their visible effect. Positive evidence only.
+     had their visible effect. Positive evidence only. A pass means the steps ran: every action the steps name (the typing,
+     the submit, the click that saves) was done by you in this spec's own fresh browser. When a Must line holds only because
+     the data was already there (a record an earlier run left, a value the field already held), the spec is not PASS: it is
+     FAIL, naming the step that did not run ("the form was never submitted"), or BLOCKED with the reason when something
+     outside the app stopped you. Never record PASS and explain in a note, under Notes or after the table, that a step did not run.
    - **FAIL** — a Must missing, a Must-not present, a step impossible (the control is not
      there, the page errored), or the budget ran out. Record the step reached, expected
      (quote the spec) and observed (quote the page).
@@ -398,11 +406,11 @@ removed the empty state it describes, report it as FAIL "spec describes the empt
 creates data — rewrite or drop" rather than as an app regression.
 
 **After each verdict, record it at once**: \`claude_test_progress\` with \`run: <id>\`, \`key: <key>\`, \`stem: <spec-file-stem>\` and
-\`verdict: PASS | FAIL | BLOCKED\` — exactly those three, and \`retried: true\` as a fourth only for a verdict of a second try (step 7), nothing else (a stem that the tool refuses is not recorded at all: say so under Notes, and leave its Screenshot cell empty; the reasons go in log.md). Every answer of that tool may carry \`drop\`: the stems of specs the person withdrew while you were
+\`verdict: PASS | FAIL | BLOCKED\` — exactly those three, and \`retried: true\` as a fourth only for a verdict of a second try (step 7), nothing else (a stem that the tool refuses is not recorded at all: say so under Notes, and leave its Screenshot cell empty; the reasons go in log.md). A PASS refused with "This PASS was not recorded. …" is neither a refused stem nor a PASS. For a spec that holds \`{run}\` whose value this spec's browser did not type and then act on the page again, record it at once as FAIL with the reason the answer names, or as BLOCKED with your reason when something outside the app stopped you; for a spec file it could not read, record BLOCKED; for a stem it did not find, call again with the spec's stem. Put the reason in its Why cell and copy the whole answer into its log. Every answer of that tool may carry \`drop\`: the stems of specs the person withdrew while you were
 working. A spec listed there that you have not run yet is not run — skip it, do not record it, leave it out of the table and its
 counts, and list it under Notes as "withdrawn during the run".
 
-After the LAST spec, \`browser_close\` once more, so no browser of yours is left running while the user reads the
+After the LAST spec's verdict is recorded, \`browser_close\` once more, so no browser of yours is left running while the user reads the
 report. If the server stops answering mid-run (a \`browser_navigate\` to the base URL is refused — a page load decides it, nothing else), mark the remaining specs
 BLOCKED rather than failing them one by one.
 
@@ -473,8 +481,8 @@ re-judge a spec or plan the report first.
 Order: first write \`.claude-test/runs/<id>/log.md\` next to the screenshots, with \`claude_test_write_log\` (\`run: <id>\`, \`key: <key>\`, \`text\`: the whole file) — the header line and
 verdict table below on top, then the per-spec log — so the evidence outlives the conversation.
 Then call \`claude_test_finish\` with \`run: <id>\` and \`key: <key>\` once, in the same message as the log (calls in one message run in order): it writes \`results.json\` beside log.md (the same verdicts,
-machine-readable, for scripts and CI) from what you wrote; when its answer carries \`leftOutLine\`, put that line under Notes as it stands; if it answers with an \`error\` about the table's shape, fix that row, write the whole log again (when the text you wrote is no longer before you, \`claude_test_read\` with \`run\`, \`key\` and \`log: true\` gives it back, a part at a time) and call it
-again — never change an outcome to satisfy it. Once it has written \`results.json\` the run is closed: \`claude_test_progress\`, \`claude_test_write_log\` and \`claude_test_finish\` add nothing more to it. When the whole run, or any spec in it, ended BLOCKED, add \`why: <word>\` to that call, and again each
+machine-readable, for scripts and CI) from what you wrote; when its answer carries \`leftOutLine\`, put that line under Notes as it stands; if it answers with an \`error\` about the table's shape, fix that row's form; if it answers that "the table says PASS for specs whose PASS was not recorded", change each row it names to the verdict you recorded (where none was recorded: FAIL naming a step that did not run, or else BLOCKED "its PASS could not be recorded"; never PASS) and correct the header line's counts. Then write the whole log again (when the text you wrote is no longer before you, \`claude_test_read\` with \`run\`, \`key\` and \`log: true\` gives it back, a part at a time) and call it
+again. Apart from that, never change an outcome to satisfy it. Once it has written \`results.json\` the run is closed: \`claude_test_progress\`, \`claude_test_write_log\` and \`claude_test_finish\` add nothing more to it. When the whole run, or any spec in it, ended BLOCKED, add \`why: <word>\` to that call, and again each
 time you call finish for this run: the one word of this list that names the main cause — \`server_unreachable\` (no page loaded at the app's address),
 \`restart_needed\` (an address was allowed after the browser started, §2.4), \`signin_needed\` (a sign-in wall), \`upload_unsupported\` (a step
 needs a file upload or download, or the person's own browser), \`blank_page\` (the page loaded and showed nothing), \`assets_blocked\` (the page
@@ -601,6 +609,7 @@ browser server may have saved on its own; use \`browser_snapshot\` and \`browser
 ## Claude Test · LOOK · <baseUrl> · <n> pages
 <under the header, only when it applies: "Stopped early: <the first page was still empty after 20 s | a minute had passed> (<n> of at most 3 pages loaded)">
 <under that line, always when the first page loaded: after a first page that showed content, "First page: <e> console errors; <f> requests did not load, <o> of them to other hosts."; after a first page that stayed empty, "Empty first page: <e> console errors; <f> requests did not load, <o> of them to other hosts; page is <not cross-origin isolated | cross-origin isolated>." Those words and your counts, nothing else>
+<right under the first-page line, only when the FIRST page is clearly not an app: its title begins "Directory listing for" or "Index of /", or the page is nothing but a list of links to files and folders (a file server's listing): "Not the app: the first page is a directory listing." Those words only; load no other page and end the report there>
 <one line if it applies: "Address was auto-detected (<source>)" · "a sign-in wall is the first thing a visitor sees">
 1. <path or "landing"> — title "<…>"; headings: "<…>", "<…>"; main navigation: <labels>; <"has content: …" | "empty state: '<text>'">
 2. …

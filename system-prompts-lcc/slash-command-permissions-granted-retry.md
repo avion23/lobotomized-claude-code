@@ -1,10 +1,14 @@
 <!--
-name: 'Slash Command: /permissions — permission granted, retry allowed'
-description: >-
-  Same string as 19642856 on the approve path; one prompt id must cover both
-  byte occurrences or an override would patch only half of them.
-ccVersion: 2.1.233
+name: 'Slash Command: permissions granted retry'
+description: Meta message listing granted permissions; the model may retry those commands.
+ccVersion: 2.1.308
 variables:
   - SLASH_COMMAND_PERMISSIONS_GRANTED_RETRY_VAR_0
+  - SLASH_COMMAND_PERMISSIONS_GRANTED_RETRY_VAR_1
+  - SLASH_COMMAND_PERMISSIONS_GRANTED_RETRY_VAR_2
+  - SLASH_COMMAND_PERMISSIONS_GRANTED_RETRY_VAR_6
+  - SLASH_COMMAND_PERMISSIONS_GRANTED_RETRY_VAR_3
+  - SLASH_COMMAND_PERMISSIONS_GRANTED_RETRY_VAR_4
+  - SLASH_COMMAND_PERMISSIONS_GRANTED_RETRY_VAR_5
 -->
-Permission granted for: ${SLASH_COMMAND_PERMISSIONS_GRANTED_RETRY_VAR_0.join(", ")}. You may now retry ${SLASH_COMMAND_PERMISSIONS_GRANTED_RETRY_VAR_0.length===1?"this command":"these commands"} if you would like.
+Permission granted for: ${SLASH_COMMAND_PERMISSIONS_GRANTED_RETRY_VAR_0.map((SLASH_COMMAND_PERMISSIONS_GRANTED_RETRY_VAR_1)=>{if(SLASH_COMMAND_PERMISSIONS_GRANTED_RETRY_VAR_1.command===void 0)return SLASH_COMMAND_PERMISSIONS_GRANTED_RETRY_VAR_2[SLASH_COMMAND_PERMISSIONS_GRANTED_RETRY_VAR_6.indexOf(SLASH_COMMAND_PERMISSIONS_GRANTED_RETRY_VAR_1)]?.SLASH_COMMAND_PERMISSIONS_GRANTED_RETRY_VAR_3;let SLASH_COMMAND_PERMISSIONS_GRANTED_RETRY_VAR_4=SLASH_COMMAND_PERMISSIONS_GRANTED_RETRY_VAR_5(SLASH_COMMAND_PERMISSIONS_GRANTED_RETRY_VAR_1.command);return SLASH_COMMAND_PERMISSIONS_GRANTED_RETRY_VAR_4.cutChars>0?SLASH_COMMAND_PERMISSIONS_GRANTED_RETRY_VAR_1.command:SLASH_COMMAND_PERMISSIONS_GRANTED_RETRY_VAR_4.text}).join(", ")}. You may now retry ${SLASH_COMMAND_PERMISSIONS_GRANTED_RETRY_VAR_0.length===1?"this command":"these commands"} if you would like.

@@ -3,7 +3,7 @@ name: 'Data: admin-api'
 description: >-
   claude-api skill reference file (admin-api) inlined as <doc> or extracted for
   the model to Read when the skill's Reading Guide points to it.
-ccVersion: 2.1.301
+ccVersion: 2.1.308
 -->
 # Admin API (Organization Management)
 
@@ -43,7 +43,7 @@ export ANTHROPIC_SERVICE_ACCOUNT_ID=svac_...       # the rule's target service a
 export ANTHROPIC_IDENTITY_TOKEN_FILE=/path/to/jwt  # or ANTHROPIC_IDENTITY_TOKEN
 \`\`\`
 
-**curl** also needs \`anthropic-version: 2023-06-01\` on every request.
+**curl** also needs an \`anthropic-version\` header on every request (for example \`2026-10-21\`).
 
 ## Endpoint Coverage
 
