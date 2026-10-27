@@ -6,7 +6,7 @@ description: >-
   (browser_setup_needed, claude_test_install and its
   noLock/allowFallback/downloadHost schema), tools/call result texts and
   launcher refusal/warning notes are delivered to the model.
-ccVersion: 2.1.308
+ccVersion: 2.1.310
 -->
 #!/usr/bin/env node
 
@@ -32,15 +32,15 @@ import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
 import dns from 'node:dns';
 import { fileURLToPath } from 'node:url';
-import { makeAllowTool, ALLOW_TOOL, UP_TOOL, SHOW_TOOL, LINE_COLUMNS, columns, PREVIEW_INSTRUCTIONS } from './lib/allow-tool.mjs';
-import { loadConfig, PLAYWRIGHT_PIN, shown, browserServerEnv, parseDotenv, isLocalHost, ensureRunsDir, assertRunsDirInsideProject, resolveProjectDir, sessionRoot, reallyInsideDir, runsPathProblem, envPathOutsideProject, originAllowed, projectsBelow, isMarked, rootConfiguresItself, sanitizeBrowserEnv, launcherConfig, makeRunValueWatch } from './lib/config.mjs';
+import { makeAllowTool, ALLOW_TOOL, OWN_TOOLS, LINE_COLUMNS, columns, PREVIEW_INSTRUCTIONS, PREVIEW } from './lib/allow-tool.mjs';
+import { loadConfig, PLAYWRIGHT_PIN, shown, browserServerEnv, parseDotenv, isLocalHost, ensureRunsDir, assertRunsDirInsideProject, resolveProjectDir, sessionRoot, reallyInsideDir, runsPathProblem, envPathOutsideProject, originAllowed, projectsBelow, isMarked, rootConfiguresItself, sanitizeBrowserEnv, launcherConfig, makeRunValueWatch, consentDir, CONSENT_FILE, consentKey } from './lib/config.mjs';
 import { makeVet } from './lib/vet.mjs';
 import { runFolders, placeStagedFile } from './lib/runs.mjs';
 import { keepLivePage } from './lib/live-page.mjs';
 import { startFenceProxy, upstreamProxySetting, noProxyMatcher, isNonPublicAddress, plainAddress } from './lib/fence-proxy.mjs';
 import { makeReachableMatcher } from './lib/hosts.mjs';
 import { parseSnapLine, yamlScalar, makeHoldsValueOf, judgeProbe, bypassOf, UDP_FENCE_ARGS, resolverPins, guardScript, secretVariants, makeRedactor, toolTextOf, pageUrlFromToolText } from './lib/guard.mjs';
-import { mcpCliPath, findChrome, toolsDir, makeLaunchDir, installTools, downloadBrowser, npmRegistry, npmrcVariable, CHROME_INSTALL_HOW, writeStandInPackages, browserSelection, browserProblem, toolsProblem, toolsInstallInfo, browsersDir, expectedChromiumDirs, chromeSandboxProblem, wantsHeaded, browserBinaryOf } from './lib/tools.mjs';
+import { forgetInstallProgress, mcpCliPath, findChrome, toolsDir, makeLaunchDir, installTools, downloadBrowser, npmRegistry, npmrcVariable, CHROME_INSTALL_HOW, writeStandInPackages, browserSelection, browserProblem, toolsProblem, toolsInstallInfo, browsersDir, expectedChromiumDirs, chromeSandboxProblem, wantsHeaded, browserBinaryOf, essentialTrafficOnly } from './lib/tools.mjs';
 import { ensureAuthFile, tidySkillCreds } from './lib/signin.mjs';
 
 const log = (m) => process.stderr.write('[claude-test] ' + shown(m, 2000) + '\\n');
@@ -48,6 +48,7 @@ if (process.env.CLAUDE_TEST_DISABLE_MCP === '1') { log('disabled by CLAUDE_TEST_
 
 
 
+forgetInstallProgress();
 const allowTool = makeAllowTool({ send: (obj) => process.stdout.write(JSON.stringify(obj) + '\\n') });
 
 
@@ -158,6 +159,7 @@ let pinArgs = []; let pinnedNames = [];
 let udpArgs = [];
 let guardSockets = true;
 let notePageLeftApp = () => {};
+let fenceCtl = null;
 {
   { const why = browserProblem(cfg); if (why) { log('refusing to start: ' + why); process.exit(1); } }
 
@@ -174,15 +176,20 @@ let notePageLeftApp = () => {};
 
   const proxySetting = upstreamProxySetting(process.env); const upstream = proxySetting.proxy;
   const lookup2s = (host) => Promise.race([dns.promises.lookup(host, { all: true, verbatim: true }), new Promise((_, rej) => setTimeout(() => rej(new Error('slow')), 2000).unref())]);
-  const bypass = ['<-loopback>']; const ownEntries = []; const ownHostPorts = new Set(); const viaProxy = []; const appHostPorts = new Set(); const pins = [];
-  for (const o of cfg.allowedOrigins) {
-    let host; try { host = new URL(/^https?:\\/\\//.test(o) ? o : 'http://' + o).hostname.toLowerCase().replace(/^\\[|\\]$/g, ''); } catch { continue; }
+
+
+  const planned = new Map(); const plannedHosts = new Map();
+
+
+  const planOne = async (o) => {
+    let host; try { host = new URL(/^https?:\\/\\//.test(o) ? o : 'http://' + o).hostname.toLowerCase().replace(/^\\[|\\]$/g, ''); } catch { return null; }
     const rules = bypassOf(o);
-    if (!rules.length) { log('NOTE ' + shown(o, 120) + ' is allowed but cannot be reached: the test browser takes no address with port 0. In .claude-testrc, replace port 0 with the port that the app listens on'); continue; }
-    const hostPorts = rules.map((rule) => host + ':' + rule.slice(rule.lastIndexOf(':') + 1)); for (const hostPort of hostPorts) appHostPorts.add(hostPort);
+    if (!rules.length) { log('NOTE ' + shown(o, 120) + ' is allowed but cannot be reached: the test browser takes no address with port 0. In .claude-testrc, replace port 0 with the port that the app listens on'); return null; }
+    const hostPorts = rules.map((rule) => host + ':' + rule.slice(rule.lastIndexOf(':') + 1));
+    if (plannedHosts.has(host)) return { rules, hostPorts, ...plannedHosts.get(host) };
     const literal = isLocalHost(host) || net.isIP(host) !== 0;
     const localName = !literal && (!host.includes('.') || /\\.(localhost|local|internal|test|lan|home|corp|private|intranet|localdomain|home\\.arpa)$/.test(host));
-    let own = literal || localName;
+    let own = literal || localName; let pin = null;
     if (!literal) {
 
 
@@ -193,13 +200,45 @@ let notePageLeftApp = () => {};
         if (!localName) own = pub.length === 0;
         if (own && priv.length) {
           const plain = priv.map((x) => plainAddress(x.address)).filter(Boolean); const pick = plain.find((x) => x.family === 4) || plain[0];
-          if (pick && resolverPins([{ name: host, address: pick.address }])) pins.push({ name: host, address: pick.address });
+          if (pick && resolverPins([{ name: host, address: pick.address }])) pin = { name: host, address: pick.address };
           else if (!localName) { own = false; log('NOTE ' + shown(host, 120) + ' resolves to private space but cannot be held to one address (an unusual name or address form): it stays behind the fence\\'s proxy'); }
         }
       }
     }
-    (own ? ownEntries : viaProxy).push(o); if (own) { bypass.push(...rules); for (const hostPort of hostPorts) ownHostPorts.add(hostPort); }
-  }
+    plannedHosts.set(host, { own, pin });
+    return { rules, hostPorts, own, pin };
+  };
+
+
+
+  const planFence = async (origins) => {
+    const bypass = ['<-loopback>']; const ownEntries = []; const ownHostPorts = new Set(); const viaProxy = []; const appHostPorts = new Set(); const pins = [];
+    for (const o of origins) {
+      if (!planned.has(o)) planned.set(o, await planOne(o));
+      const p = planned.get(o); if (!p) continue;
+      for (const hostPort of p.hostPorts) appHostPorts.add(hostPort);
+      if (p.pin && !pins.some((x) => x.name === p.pin.name)) pins.push(p.pin);
+      (p.own ? ownEntries : viaProxy).push(o); if (p.own) { bypass.push(...p.rules); for (const hostPort of p.hostPorts) ownHostPorts.add(hostPort); }
+    }
+    return { bypass, viaProxy, ownEntries, hostPorts: appHostPorts, ownHostPorts, pins };
+  };
+  let servedSeen = null;
+
+  const servedNow = () => { if (!servedSeen || Date.now() - servedSeen.at > 5000) { let now = []; try { now = launcherConfig().served || []; } catch { now = []; } servedSeen = { at: Date.now(), apps: now }; } return [...new Map([...(served || [cfg]), ...servedSeen.apps].map((c) => [c.projectDir, c])).values()]; };
+  const fileStamp = (f) => { try { const st = fs.statSync(f); return st.mtimeMs + ':' + st.size + ':' + st.ino; } catch { return '-'; } };
+  const rcFilesOf = (apps) => [...new Set(apps.flatMap((c) => [c.rcPath, path.join(c.projectDir, '.claude-testrc')]).concat([cfg.rcPath, path.join(cfg.projectDir, '.claude-testrc')]).filter(Boolean))];
+  const fenceStampNow = () => { const apps = servedNow(); return [...rcFilesOf(apps), ...apps.map((c) => path.join(consentDir(c.projectDir), CONSENT_FILE))].map(fileStamp).join('|'); };
+  const stampAtPlan = PREVIEW ? fenceStampNow() : null;
+
+
+
+  const bootConsent = new Map((served || [cfg]).map((c) => [c.projectDir, new Set((c.allowedOrigins || []).map((o) => consentKey(o)))]));
+  const firstPlan = await planFence(cfg.allowedOrigins); const { bypass, viaProxy, ownEntries } = firstPlan;
+
+
+  const appHostPorts = new Set(); const ownHostPorts = new Set();
+  const fillHostPorts = (plan) => { appHostPorts.clear(); for (const hp of plan.hostPorts) appHostPorts.add(hp); ownHostPorts.clear(); for (const hp of plan.ownHostPorts) ownHostPorts.add(hp); };
+  fillHostPorts(firstPlan);
   let reach = { runId: undefined, entries: cfg.reachableHosts || [], match: makeReachableMatcher(cfg.reachableHosts || []) };
   let tally = new Map(); let leftFor = new Map(); let tallyDirty = false; let lastLook = 0; let ranId = null;
 
@@ -224,10 +263,20 @@ let notePageLeftApp = () => {};
   const rcFiles = [...new Set([cfg.rcPath, path.join(cfg.projectDir, '.claude-testrc')].filter(Boolean))];
   const rcStamp = () => rcFiles.map((f) => { try { const st = fs.statSync(f); return st.mtimeMs + ':' + st.size; } catch { return '-'; } }).join('|');
   let lastState = null; let lastRc = rcStamp();
+
+  const newestRunOf = (c) => {
+    const id = runFolders(c).pop() || null;
+    if (!id) return { id, running: false };
+    try { const d = path.join(c.runsDir, id); return { id, running: fs.existsSync(path.join(d, 'progress.ndjson')) && !fs.existsSync(path.join(d, 'results.json')) }; } catch { return { id, running: null }; }
+  };
+  const newestRun = () => newestRunOf(cfg);
+
+
+
+  const runGoing = (c) => { try { const ids = runFolders(c).slice(-5); let newerFinished = false; for (let i = ids.length - 1; i >= 0; i--) { const d = path.join(c.runsDir, ids[i]); const finished = fs.existsSync(path.join(d, 'results.json')); let p = null; try { p = fs.statSync(path.join(d, 'progress.ndjson')); } catch { p = null; } if (p && !finished && (!newerFinished || Date.now() - p.mtimeMs < 30 * 60000)) return true; if (finished) newerFinished = true; } return false; } catch { return true; } };
   const lookForNewRun = () => {
     const now = Date.now(); if (now - lastLook < 2000) return; lastLook = now;
-    const id = runFolders(cfg).pop() || null; let running = false;
-    if (id) { try { const d = path.join(cfg.runsDir, id); running = fs.existsSync(path.join(d, 'progress.ndjson')) && !fs.existsSync(path.join(d, 'results.json')); } catch { running = false; } }
+    const { id, running: seen } = newestRun(); const running = seen === true;
     const state = (id || '') + (running ? '|running' : '|idle');
     if (id !== reach.runId) { flushTally(); tally = new Map(); leftFor = new Map(); reach.runId = id; ranId = null; }
     if (running && ranId !== id) { ranId = id; if (tally.size || leftFor.size) { tally = new Map(); leftFor = new Map(); tallyDirty = true; } }
@@ -252,10 +301,30 @@ let notePageLeftApp = () => {};
   const flushTimer = setInterval(flushTally, 1500); flushTimer.unref(); process.prependListener('exit', flushTally);
   serverArgs.push('--proxy-server', 'http://127.0.0.1:' + proxy.port, '--proxy-bypass', bypass.join(','));
   udpArgs = UDP_FENCE_ARGS;
-  const pinRule = resolverPins(pins); if (pinRule) { pinArgs = ['--host-resolver-rules=' + pinRule]; pinnedNames = pins.map((p) => p.name); log('fence: held to the address they have now, for this session — ' + pins.map((p) => shown(p.name, 80) + ' → ' + p.address).join(', ')); }
-  log('fence: reached directly, as the app\\'s own — ' + (ownEntries.length ? ownEntries.join(' ') : '(nothing)') + (viaProxy.length ? '; through the proxy as trusted origins — ' + viaProxy.join(' ') : '') + '; through the proxy for loading only — ' + (reach.entries.length ? reach.entries.join(' ') : '(nothing yet: reachableHosts is empty)') + '; everything else is refused' + (upstream ? '; tunnels go via this machine\\'s proxy ' + upstream.host + ':' + upstream.port : ''));
+  const pinsOf = (plan) => { const rule = resolverPins(plan.pins); pinArgs = rule ? ['--host-resolver-rules=' + rule] : []; pinnedNames = rule ? plan.pins.map((p) => p.name) : []; if (rule) log('fence: these names are held to the address they have now, for this session: ' + plan.pins.map((p) => shown(p.name, 80) + ' \\u2192 ' + p.address).join(', ')); };
+
+  const describe = (plan, origins) => {
+    log('fence: reached directly, as the app\\'s own \\u2014 ' + (plan.ownEntries.length ? plan.ownEntries.join(' ') : '(nothing)') + (plan.viaProxy.length ? '; through the proxy as trusted origins \\u2014 ' + plan.viaProxy.join(' ') : '') + '; through the proxy for loading only \\u2014 ' + (reach.entries.length ? reach.entries.join(' ') : '(nothing yet: reachableHosts is empty)') + '; everything else is refused' + (upstream ? '; tunnels go via this machine\\'s proxy ' + upstream.host + ':' + upstream.port : ''));
+    networkFence = 'navigation only to ' + origins.join(' ') + '; pages may also load from ' + (reach.entries.length ? reach.entries.join(' ') : 'no other host') + ' (reachableHosts, read again at each new run); a filtering proxy refuses everything else, WebSockets included' + (upstream ? ', tunnelling through this machine\\'s proxy ' + upstream.host + ':' + upstream.port : '') + '; WebRTC off in pages';
+  };
+  pinsOf(firstPlan);
   guardSockets = false;
-  networkFence = 'navigation only to ' + cfg.allowedOrigins.join(' ') + '; pages may also load from ' + (reach.entries.length ? reach.entries.join(' ') : 'no other host') + ' (reachableHosts, read again at each new run); a filtering proxy refuses everything else, WebSockets included' + (upstream ? ', tunnelling through this machine\\'s proxy ' + upstream.host + ':' + upstream.port : '') + '; WebRTC off in pages';
+  describe(firstPlan, cfg.allowedOrigins);
+
+  fenceCtl = {
+    plan: planFence, stamp: fenceStampNow, stampAtPlan,
+
+    running: () => { try { return servedNow().some((c) => runGoing(c)); } catch { return true; } },
+
+
+    wanted: (recordedHere) => {
+      const { cfg: now, served: apps } = launcherConfig();
+      if (now.projectDir !== cfg.projectDir) throw new Error('Claude Test now serves ' + now.projectDir + ' instead of ' + cfg.projectDir);
+      return [...new Set(apps.flatMap((a) => (a.allowedOrigins || []).filter((o) => { const k = consentKey(o); return (bootConsent.get(a.projectDir) || new Set()).has(k) || recordedHere(a.projectDir).has(k); })))];
+    },
+
+    apply: (plan, origins) => { fillHostPorts(plan); cfg.allowedOrigins = origins; pinsOf(plan); describe(plan, origins); },
+  };
 }
 
 
@@ -270,7 +339,19 @@ let writeLaunchOptions = null;
   const refuse = (e) => { log('refusing to start: could not write the page guard script and the browser\\'s launch options into ' + launchDir + ' (' + e.message + '); without them WebRTC and QUIC' + (pinArgs.length ? ' and the address pins for ' + pinnedNames.map((n) => shown(n, 60)).join(', ') : '') + ' would not be fenced. Check that this folder is writable, then reconnect this server (/mcp)'); process.exit(1); };
   try { serverArgs.push('--init-script', writeNew('ws-guard.js', guard)); } catch (e) { refuse(e); }
 
-  writeLaunchOptions = (more) => { const launchOptions = { args: [...udpArgs, ...pinArgs], ...more }; if (!launchOptions.args.length && !Object.keys(more).length) return; try { serverArgs.push('--config', writeNew('launch-options.json', JSON.stringify({ browser: { launchOptions } }) + '\\n')); } catch (e) { refuse(e); } };
+  let launchMore = {};
+  writeLaunchOptions = (more) => { launchMore = more; const launchOptions = { args: [...udpArgs, ...pinArgs], ...more }; if (!launchOptions.args.length && !Object.keys(more).length) return; try { serverArgs.push('--config', writeNew('launch-options.json', JSON.stringify({ browser: { launchOptions } }) + '\\n')); } catch (e) { refuse(e); } };
+
+
+  if (fenceCtl) fenceCtl.argsFor = (args, plan, origins, n) => {
+    const out = [...args];
+    const put = (flag, value) => { const i = out.indexOf(flag); if (i < 0 || i + 1 >= out.length) throw new Error('the browser server was started without ' + flag); out[i + 1] = value; };
+    const rule = resolverPins(plan.pins);
+    put('--proxy-bypass', plan.bypass.join(','));
+    put('--init-script', writeNew('ws-guard.' + n + '.js', guardScript({ ...cfg, allowedOrigins: origins }, { sockets: guardSockets })));
+    put('--config', writeNew('launch-options.' + n + '.json', JSON.stringify({ browser: { launchOptions: { args: [...udpArgs, ...(rule ? ['--host-resolver-rules=' + rule] : [])], ...launchMore } } }) + '\\n'));
+    return out;
+  };
 }
 const { exe, chromePath, browser } = browserSelection(cfg);
 
@@ -357,15 +438,27 @@ log('project ' + cfg.projectDir + '; base URL ' + (cfg.baseUrl || '(none yet)') 
 const childEnv = browserServerEnv();
 childEnv.WS_NO_BUFFER_UTIL = '1'; childEnv.WS_NO_UTF_8_VALIDATE = '1';
 const childCwd = fs.existsSync(os.homedir()) ? os.homedir() : os.tmpdir();
-const child = spawn(base[0], [...base.slice(1), ...serverArgs], { cwd: childCwd, stdio: ['pipe', 'pipe', 'inherit'], env: childEnv, detached: process.platform !== 'win32' });
+let swapping = null;
+const spawnServer = (args) => spawn(base[0], [...base.slice(1), ...args], { cwd: childCwd, stdio: ['pipe', 'pipe', 'inherit'], env: childEnv, detached: process.platform !== 'win32' });
+let child = spawnServer(serverArgs);
 let handedOver = !handoff;
 let giveUp = null;
 const failedStart = (err) => { if (handedOver !== false) return; handedOver = null; clearTimeout(giveUp); disarm(); handoff.done(err); };
-child.on('error', (e) => { log('could not start ' + base.join(' ') + ': ' + e.message); if (!handedOver) { failedStart(e); return; } process.exit(1); });
-child.on('close', (code, signal) => { if (!handedOver) { failedStart(new Error('the browser server exited while starting (exit ' + (code ?? signal) + ')')); return; } process.exit(code ?? (signal ? 1 : 0)); });
+
+const watchServer = (c) => {
+  c.on('error', (e) => { if (c !== child) return; log('could not start ' + base.join(' ') + ': ' + e.message); if (!handedOver) { failedStart(e); return; } process.exit(1); });
+  c.on('close', (code, signal) => { if (c !== child) return; if (!handedOver) { failedStart(new Error('the browser server exited while starting (exit ' + (code ?? signal) + ')')); return; } process.exit(code ?? (signal ? 1 : 0)); });
+};
+watchServer(child);
+
+const signalServer = (c, sig) => { try { process.kill(-c.pid, sig); } catch { try { c.kill(sig); } catch {            } } };
+
+const stopping = new Set();
+const stopServer = (c) => { stopping.add(c); c.once('exit', () => stopping.delete(c)); try { c.stdin.end(); } catch {            } signalServer(c, 'SIGTERM'); const t = setTimeout(() => { signalServer(c, 'SIGKILL'); stopping.delete(c); }, 3000); if (t.unref) t.unref(); };
 
 
-const reap = () => { setTimeout(() => { try { process.kill(-child.pid, 'SIGTERM'); } catch { try { child.kill('SIGTERM'); } catch {            } } setTimeout(() => { try { process.kill(-child.pid, 'SIGKILL'); } catch {            } process.exit(0); }, 2000).unref(); }, 3000).unref(); };
+let reaping = false;
+const reap = () => { reaping = true; for (const c of stopping) signalServer(c, 'SIGKILL'); if (swapping && swapping.child) signalServer(swapping.child, 'SIGKILL'); setTimeout(() => { try { process.kill(-child.pid, 'SIGTERM'); } catch { try { child.kill('SIGTERM'); } catch {            } } setTimeout(() => { try { process.kill(-child.pid, 'SIGKILL'); } catch {            } process.exit(0); }, 2000).unref(); }, 3000).unref(); };
 const onSignal = Object.fromEntries(['SIGINT', 'SIGTERM', 'SIGHUP'].map((sig) => [sig, () => { child.kill(sig); reap(); }]));
 for (const [sig, fn] of Object.entries(onSignal)) process.on(sig, fn);
 process.stdin.on('end', reap);
@@ -409,6 +502,13 @@ const secretKeySet = new Set(secrets.map(([k]) => k));
 const redactor = makeRedactor(secrets);
 const redactSecrets = (line) => redactor.redact(line, { splits: secretTyped });
 const holdsValueOf = makeHoldsValueOf(secrets);
+
+
+const secretsPrint = () => { const i = serverArgs.indexOf('--secrets'); if (i < 0 || i + 1 >= serverArgs.length) return 'none'; try { return crypto.createHash('sha256').update(fs.readFileSync(serverArgs[i + 1])).digest('hex'); } catch { return 'unreadable'; } };
+const secretsAtStart = secretsPrint();
+
+const signInOf = (c) => JSON.stringify({ baseUrl: c.baseUrl || null, secretOrigins: c.secretOrigins || [], signInApplies: !!c.signInApplies, storage: (c.storageState && (c.storageState.defaultPath || c.storageState.path)) || null, secrets: (c.secretsFile && (c.secretsFile.defaultPath || c.secretsFile.path)) || null });
+const signInAtStart = signInOf(cfg);
 const secretOriginSet = new Set(cfg.secretOrigins);
 let secretTyped = false;
 let secretEver = false;
@@ -736,7 +836,8 @@ function pump(from, to, rewrite, seed = '') {
   from.on('end', () => { if (parts.length) pass(parts.join('')); if (to !== process.stdout) to.end(); });
   if (seed) from.emit('data', seed);
 }
-pump(child.stdout, process.stdout, (line) => {
+
+const fromServer = (line) => {
   const seen = observeAnswer(line); if (seen === true || handedOver !== true) return null;
   if (runValueWatch.waits()) { const aid = answerId(line); if (aid !== undefined && runValueWatch.waitsFor(aid)) runValueWatch.answered(aid, !isErrorAnswer(line)); }
   let pictureAfter = null; if (actionCalls.size) { const aid = answerId(line); if (aid !== undefined && actionCalls.has(aid)) { const tool = actionCalls.get(aid); actionCalls.delete(aid); if (!line.includes('"isError":true')) pictureAfter = tool; } }
@@ -747,13 +848,28 @@ pump(child.stdout, process.stdout, (line) => {
   if (pictureAfter) { try { maybeFrame(pictureAfter); } catch {                                      } }
   if (!line.includes('"tools"')) return line;
   let msg; try { msg = JSON.parse(line); } catch { return line; }
-  if (msg && msg.result && Array.isArray(msg.result.tools)) { msg.result.tools = msg.result.tools.filter((t) => !(t && (REFUSED_TOOLS.has(t.name) || t.name === ALLOW_TOOL || t.name === UP_TOOL || t.name === SHOW_TOOL))); msg.result.tools.push(...allowTool.tools); return JSON.stringify(msg); }
+  if (msg && msg.result && Array.isArray(msg.result.tools)) { msg.result.tools = msg.result.tools.filter((t) => !(t && (REFUSED_TOOLS.has(t.name) || OWN_TOOLS.includes(t.name)))); msg.result.tools.push(...allowTool.tools); return JSON.stringify(msg); }
   return line;
-});
+};
+
+const pumpServer = (c) => pump(c.stdout, process.stdout, (line) => { if (c === child) return fromServer(line); if (swapping && swapping.child === c && swapping.onLine) swapping.onLine(line); return null; });
+pumpServer(child);
+
+const toServer = { write: (text) => child.stdin.write(text), end: () => { try { child.stdin.end(); } catch {            } } };
 
 keepLivePage(served);
 const fromClient = (line) => {
   if (allowTool.takeLine(line)) return null;
+  if (swapping) {
+    let peek = null; try { peek = JSON.parse(line); } catch { peek = null; }
+    if (swapping.queue.length < 256 || !(peek && peek.id !== undefined && typeof peek.method === 'string')) swapping.queue.push(line);
+    else process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: peek.id, error: { code: -32603, message: 'claude-test launcher: the test browser is being replaced and 256 messages already wait for it; call again in a moment' } }) + '\\n');
+    return null;
+  }
+  if (PREVIEW && !hold && fenceCtl && line.includes('"tools/call"') && (line.includes('"browser_navigate"') || line.includes('"browser_close"')) && fenceMayHaveChanged()) {
+    let name = null; try { const m = JSON.parse(line); name = m && m.method === 'tools/call' && m.params && typeof m.params === 'object' ? m.params.name : null; } catch { name = null; }
+    if (name === 'browser_navigate' || name === 'browser_close') { refreshFence().catch(() => null); if (swapping) { swapping.queue.push(line); return null; } }
+  }
   if (line.includes('"tools/call"')) keepLivePage([]);
   if (hold) {
     let peek; try { peek = JSON.parse(line); } catch { peek = null; }
@@ -762,6 +878,7 @@ const fromClient = (line) => {
     if (peek === null || Array.isArray(peek)) { queuedLines.push(line); return null; }
   }
   let msg; try { msg = JSON.parse(line); } catch { return line; }
+  if (msg && typeof msg === 'object' && !Array.isArray(msg) && msg.method === 'initialize' && msg.params && typeof msg.params === 'object') clientInit = msg.params;
   if (msg && typeof msg === 'object') for (const k of Object.keys(msg)) if (k.startsWith('__')) { delete msg[k]; msg.__rewritten = true; }
   if (msg && typeof msg.id === 'string' && msg.id.startsWith(PROBE_ID)) { process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id: msg.id, error: { code: -32600, message: 'claude-test launcher: request ids starting with ' + PROBE_ID + ' are reserved' } }) + '\\n'); return null; }
   if (msg && msg.method === 'notifications/cancelled' && msg.params && msg.params.requestId !== undefined) {
@@ -798,7 +915,75 @@ const fromClient = (line) => {
 
 const INIT_ID = PROBE_ID + 'init';
 let onChildInitialized = () => {};
-if (!handoff) pump(process.stdin, child.stdin, fromClient);
+
+
+
+let clientInit = handoff ? handoff.initializeParams : null;
+let fenceStamp = fenceCtl ? fenceCtl.stampAtPlan : null;
+let busyLook = 0; let rebuilds = 0;
+const toolsAtStart = JSON.stringify(toolsInstallInfo() || null);
+
+
+function drifted() { const badTools = toolsProblem(); if (badTools) return 'the browser tools folder cannot be used (' + shown(badTools, 300) + ')'; if (JSON.stringify(toolsInstallInfo() || null) !== toolsAtStart) return 'the browser tools were installed again after the test browser started'; if (secretsPrint() !== secretsAtStart) return 'the secrets file changed after the test browser started, and Claude Test reads that file only once'; let nowCfg = null; try { nowCfg = launcherConfig().cfg || null; } catch { nowCfg = null; }                                                            if (!nowCfg) return 'the project\\'s settings could not be read again, so Claude Test cannot tell whether the app\\'s address or sign-in settings moved'; if (signInOf(nowCfg) !== signInAtStart) return 'the app\\'s address or its sign-in settings changed after the test browser started, and it keeps the ones it started with'; return null; }
+
+function offerRefresh() { if (PREVIEW && fenceCtl) allowTool.fenceRebuilds(() => { try { return drifted(); } catch (e) { return shown(e && e.message ? e.message : e, 200); } }); }
+
+function fenceMayHaveChanged() { if (!fenceCtl || swapping || Date.now() - busyLook < 2000) return false; return fenceCtl.stamp() !== fenceStamp; }
+
+
+
+
+async function refreshFence() {
+  if (swapping) return swapping.done.then(() => refreshFence());
+  if (!PREVIEW || !fenceCtl || !fenceCtl.argsFor || handedOver !== true || !clientInit || reaping) return null;
+  if (inFlight.size || hold || framePending || queuedLines.length || fenceCtl.running()) { if (!busyLook || Date.now() - busyLook > 60000) log('the test browser takes the newly allowed addresses once no run or call is going on (a run that was stopped counts until a later run has finished)'); busyLook = Date.now(); return 'busy'; }
+  const stamp = fenceCtl.stamp();
+  const keep = (why) => { fenceStamp = stamp; log('no new test browser was started: ' + why + '. The test browser keeps the addresses it had; restart Claude Code for it to take the changed addresses'); return null; };
+  let origins; try { origins = fenceCtl.wanted(allowTool.recordedHere); } catch (e) { return keep('the allowed addresses could not be checked again (' + shown(e && e.message ? e.message : e, 300) + ')'); }
+  if (origins.length === cfg.allowedOrigins.length && origins.every((o) => cfg.allowedOrigins.includes(o))) { fenceStamp = stamp; return 'same'; }
+  const before = drifted(); if (before) return keep(before);
+  if (!origins.length) { fenceStamp = stamp; log('no new test browser was started: none of the addresses allowed now is one that this session may open. The test browser keeps the addresses it had'); return null; }
+  const s = swapping = { queue: [], child: null, onLine: null, done: null };
+  s.done = (async () => {
+    let ok = false; let retry = false;
+    try {
+      const n = ++rebuilds; const plan = await fenceCtl.plan(origins); const args = fenceCtl.argsFor(serverArgs, plan, origins, n);
+      if (reaping) throw new Error('the session is ending');
+      const c = s.child = spawnServer(args); watchServer(c); pumpServer(c);
+      const id = INIT_ID + '-' + n;
+      ok = await new Promise((resolve) => {
+        let over = false; let t = null;
+        const end = (yes, why) => { if (over) return; over = true; clearTimeout(t); s.onLine = null; if (!yes && !reaping) keep('its browser server did not come up (' + shown(why, 200) + ')'); resolve(yes); };
+        t = setTimeout(() => end(false, 'no answer to initialize within 30 s'), 30000); if (t.unref) t.unref();
+        c.on('error', (e) => end(false, e && e.message ? e.message : String(e))); c.on('close', (code, signal) => end(false, code !== null ? 'it exited with code ' + code : 'it was stopped by ' + signal));
+        s.onLine = (line) => { if (!line.includes(id)) return; let m = null; try { m = JSON.parse(line); } catch { return; } if (m && m.id === id) end(!!(m.result && m.result.capabilities), 'it refused initialize'); };
+        c.stdin.write(JSON.stringify({ jsonrpc: '2.0', id, method: 'initialize', params: clientInit }) + '\\n');
+      });
+      const after = ok ? drifted() : null;
+      const runNow = ok && !reaping && !after && fenceCtl.running();
+      if (ok && (reaping || after || runNow)) { ok = false; stopServer(c); if (after) keep(after); else if (runNow) { retry = true; busyLook = Date.now(); log('no new test browser was started: a run began while it was being prepared; it is tried again after the run'); } }
+      else if (ok) {
+        fenceCtl.apply(plan, origins); serverArgs.splice(0, serverArgs.length, ...args);
+        const old = child; child = c; stopServer(old);
+        child.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\\n');
+        log('started a new test browser; it is allowed to open: ' + origins.join(' '));
+      } else stopServer(c);
+    } catch (e) { ok = false; if (!reaping) keep(shown(e && e.message ? e.message : e, 300)); if (s.child && s.child !== child) stopServer(s.child); }
+    if (!retry) fenceStamp = stamp; swapping = null;
+
+    const cancelled = new Set(); for (const line of s.queue) { try { const m = JSON.parse(line); if (m && m.method === 'notifications/cancelled' && m.params && m.params.requestId !== undefined) cancelled.add(m.params.requestId); } catch {                         } }
+    for (const line of s.queue) {
+      try {
+        let m = null; try { m = JSON.parse(line); } catch { m = null; }
+        if (m && m.id !== undefined && m.method && cancelled.has(m.id)) continue;
+        const out = fromClient(line); if (out !== null) child.stdin.write(out + '\\n');
+      } catch (e) { log('a message from Claude Code that waited while the test browser was replaced could not be passed on (' + shown(e && e.message ? e.message : e, 200) + '); Claude Code gets no answer to it and may have to make that call again'); }
+    }
+    return ok ? 'now' : null;
+  })();
+  return s.done;
+}
+if (!handoff) { pump(process.stdin, toServer, fromClient); offerRefresh(); }
 else {
   giveUp = setTimeout(() => { if (handedOver !== false) return; log('the browser server did not answer initialize within 30 s after the install; keeping the setup stub'); try { process.kill(-child.pid, 'SIGKILL'); } catch { try { child.kill('SIGKILL'); } catch {            } } failedStart(new Error('the browser server did not answer within 30 s')); }, 30000);
   onChildInitialized = (line) => {
@@ -806,7 +991,8 @@ else {
     let ok = false; try { const m = JSON.parse(line); ok = !!(m && m.result && m.result.capabilities); } catch { ok = false; }
     if (!ok) { clearTimeout(giveUp); log('the browser server refused initialize after the install; keeping the setup stub'); try { child.kill('SIGTERM'); } catch {       } failedStart(new Error('the browser server refused initialize')); return; }
     handedOver = true; clearTimeout(giveUp);
-    pump(process.stdin, child.stdin, fromClient, handoff.takeStdin());
+    offerRefresh();
+    pump(process.stdin, toServer, fromClient, handoff.takeStdin());
     child.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\\n');
     process.stdout.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/tools/list_changed' }) + '\\n');
     log('browser tooling loaded into the running server; the client was told the tool list changed');
@@ -821,6 +1007,7 @@ else {
 
 
 function setupNeededServer(why, lazy = null) {
+  if (PREVIEW && fenceCtl) allowTool.fenceRebuilds();
   const ct = fileURLToPath(new URL('./ct.mjs', import.meta.url));
   const gesture = 'in Claude Code type /mcp, select this server (claude-test "browser") and choose Reconnect — "connected" there only means the old copy is still running, not that it reloaded; if Reconnect is not offered, choose Disable and then Enable, or restart Claude Code';
 
@@ -830,7 +1017,7 @@ function setupNeededServer(why, lazy = null) {
 
   const whyNow = () => {
     const bad = toolsProblem(); if (bad) return 'the browser tooling folder cannot be used: ' + bad + '.';
-    if (!mcpCliPath({ report: true }) || !toolsInstallInfo()) return 'the browser tooling is not installed on this machine. Fix: run  node ' + ct + ' install  in a terminal (it installs the pinned Playwright tooling into ' + toolsDir() + ' with your npm configuration' + (browserSelection(cfg).browser === 'chromium' ? ', and downloads a test browser, since no installed Google Chrome is used here' : '') + '), OR call the claude_test_install tool of this server, which does the same install from here.';
+    if (!mcpCliPath({ report: true }) || !toolsInstallInfo()) return 'the browser tooling is not installed on this machine. Fix: run  node ' + ct + ' install  in a terminal (it installs the pinned Playwright tooling into ' + toolsDir() + ' with your npm configuration' + (browserSelection(cfg).browser === 'chromium' ? ', and downloads a test browser, since no installed Google Chrome is used here' : '') + ')' + (essentialTrafficOnly() ? '.' : ', OR call the claude_test_install tool of this server, which does the same install from here.');
     if (!browserAvailable()) return 'the Playwright packages are installed but there is no test browser to drive (no Google Chrome in use and no downloaded ' + (headed ? 'full Chromium build, which a run with a window needs' : 'Chromium headless shell') + '). Fix: run  node ' + ct + ' install chromium' + (headed ? ' --headed' : '') + '  in a terminal (it downloads ' + (headed ? 'the full test browser' : 'the headless test browser, the smaller download,') + ' into ' + browsersDir() + ').' + (headed && browserBinaryOf({ chromePath: null, browser: 'chromium', headed: false, expected: expectedChromiumDirs() }) ? ' Or, to run without a window, unset CLAUDE_TEST_HEADED (in the shell, or under "env" in a Claude Code settings file), then restart Claude Code.' : '');
     { const refused = chromeSandboxProblem(cfg, { chromePath: chromePath || downloadedBinary(), browser }); sandboxRefusal = refused; if (refused) { everRefused = true; return refused; } }
     return null;
@@ -848,7 +1035,7 @@ function setupNeededServer(why, lazy = null) {
   const tool = () => ({ name: 'browser_setup_needed', description: remedy(), inputSchema: { type: 'object', properties: {}, additionalProperties: false } });
 
 
-  const installTool = { name: 'claude_test_install', description: 'Install the Claude Test browser tooling now (the same as running  node ' + ct + ' install  in a terminal, minus the browser download, unless downloadHost is set): an npm ci of the pinned Playwright packages (versions and checksums from the lockfile shipped with the plugin) into ' + toolsDir() + ' using your npm configuration; prints the registry it used. Takes up to a minute. On success this server loads the tooling at once: end the current run and run Claude Test again (no /mcp step). A machine without Google Chrome also needs the terminal command once, for the test browser. Three fields of this tool start an install that the install command in a terminal does not offer: noLock, allowFallback and downloadHost. Set a field only when the person has asked for that kind of install in their own words. A plain yes to your own offer is not asking. Never set a field by your own choice. You may run a normal install yourself, with none of the three fields. Do not install another way.', inputSchema: { type: 'object', properties: {
+  const installTool = { name: 'claude_test_install', description: 'Install the Claude Test browser tooling now (the same as running  node ' + ct + ' install  in a terminal, minus the browser download, unless downloadHost is set): an npm ci of the pinned Playwright packages (versions and checksums from the lockfile shipped with the plugin) into ' + toolsDir() + ' using your npm configuration; prints the registry it used. Takes up to a minute. On success this server loads the tooling at once: end the current run and run Claude Test again (no /mcp step). A machine without Google Chrome also needs the terminal command once, for the test browser. Three fields of this tool start an install that the install command in a terminal does not offer: noLock, allowFallback and downloadHost. Set a field only when the person has asked for that kind of install in their own words. A plain yes to your own offer is not asking. Never set a field by your own choice. You may run a normal install yourself, with none of the three fields. Do not install another way. While Claude Code is set to essential network traffic only, it installs and downloads nothing.', inputSchema: { type: 'object', properties: {
     noLock: { type: 'boolean', description: 'Only when the person asks for it: install from the version pins without the checksums in the plugin\\'s lockfile, taking what their npm registry serves. This server first puts the question to them in a Claude Code dialog, and installs only if the dialog comes back with its box ticked. Never set this field by your own choice.' },
     allowFallback: { type: 'boolean', description: 'Only when the person asks for it, after an install said their npm registry lacks the pinned Playwright: install the newest version of the same major that the registry has, which the plugin has no checksums for. This server first puts the question to them in a Claude Code dialog that names the version, and installs only if the dialog comes back with its box ticked. Never set this field by your own choice.' },
     downloadHost: { type: 'string', description: 'Only when the person names a Playwright download mirror that their network allows, after the test browser could not be downloaded from Playwright\\'s own host: the https:// address of that mirror. This server first puts the question to them in a Claude Code dialog that shows the address, and downloads the test browser from it only if the dialog comes back with its box ticked. This server installs the browser tools first when they are missing. Never set this field by your own choice. Pass an address only when the person has typed it to you.' },
@@ -880,6 +1067,8 @@ function setupNeededServer(why, lazy = null) {
 
   const readyCli = () => { const cli = mcpCliPath({ report: true }); return cli && toolsInstallInfo() && !toolsProblem() && browserAvailable() && !sandboxRefusal ? cli : null; };
   const watch = setInterval(() => { if (loaded || upgrading || failures >= 3 || !initializeParams) return; const cli = readyCli(); if (!cli) return; log('browser tooling found in ' + toolsDir() + '; loading it into this running server'); upgrade(cli); }, 3000); watch.unref();
+
+  allowTool.afterInstall(() => { if (loaded) return Promise.resolve(null); if (upgrading) return upgrading; const cli = readyCli(); return cli && initializeParams ? upgrade(cli) : Promise.resolve(null); });
   const send = (obj) => process.stdout.write(JSON.stringify(obj) + '\\n');
 
 
@@ -948,6 +1137,7 @@ function setupNeededServer(why, lazy = null) {
     if (!upgrading && !loaded && initializeParams) { const cli = readyCli(); if (cli) upgrade(cli); }
     if (upgrading) { answerLoading(text); return; }
     if (!download && toolsAwaitBrowser()) { nothingToInstall(text); return; }
+    if (allowTool.isInstalling()) { text('Nothing was installed: the test browser is being installed now, after the person\\'s Accept in the install question. Wait for that call\\'s answer.', true); return; }
     go();
   };
   const loadedText = (what) => what + ' The browser tools are now available to new work in this session with no /mcp step: a conversation can go straight on; a background run that started without them cannot gain them — it ends here ("browser tooling was just installed — run /claude-test:run again") and the next run has them.';
@@ -999,6 +1189,8 @@ function setupNeededServer(why, lazy = null) {
       else if (msg.method === 'tools/list') reply({ tools: [tool(), installTool, ...allowTool.tools] });
       else if (msg.method === 'tools/call' && msg.params && msg.params.name === 'claude_test_install') {
         if (upgrading) { answerLoading(text); continue; }
+        if (essentialTrafficOnly()) { text('Nothing was installed: Claude Code is set to essential network traffic only (CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC), so Claude Test does not install its browser tools or download its test browser itself. The person can install them with this command in their own terminal: \`node ' + ct + ' install' + (browser === 'chromium' ? ' chromium' + (headed ? ' --headed' : '') : '') + '\`.', true); continue; }
+        if (allowTool.isInstalling()) { text('Nothing was installed: the test browser is being installed now, after the person\\'s Accept in the install question. Wait for that call\\'s answer.', true); continue; }
         const a = msg.params.arguments && typeof msg.params.arguments === 'object' && !Array.isArray(msg.params.arguments) ? msg.params.arguments : {};
         if ((a.noLock !== undefined && typeof a.noLock !== 'boolean') || (a.allowFallback !== undefined && typeof a.allowFallback !== 'boolean') || (a.downloadHost !== undefined && typeof a.downloadHost !== 'string') || [a.noLock, a.allowFallback, a.downloadHost !== undefined].filter(Boolean).length > 1) { text('Pass at most one of noLock, allowFallback (true or false) and downloadHost (an https:// address). Do not choose one yourself. You may call this tool with none of them.', true); continue; }
         if (a.downloadHost !== undefined) { const address = mirrorAddress(a.downloadHost); if (!address) { text('Nothing was asked: downloadHost takes the https:// address of a Playwright download mirror, with no user name, password, query or fragment, for example https://mirror.example.com/playwright. Tell the person that you need such an address, typed by them. Do not change the address yourself.', true); continue; } if (columns(mirrorQuestion(address).lines[0]) > LINE_COLUMNS) { text('Nothing was asked: the mirror\\'s address has more than ' + (LINE_COLUMNS - columns('Claude Test: ')) + ' characters, too many to show whole in the dialog. Tell the person this, and that they can give a shorter address of the same mirror or install Google Chrome instead. If they install Google Chrome and the browser tools are not installed yet, a normal install must follow. You may run that normal install yourself: call claude_test_install with none of the three fields. Set downloadHost again only when the person has typed a shorter address to you. Do not change the address yourself, and do not install Google Chrome unless the person asks you to.', true); continue; } askToInstall(mirrorQuestion(address), id).then(onAnswer(text, true, () => downloadNow(address, text))); continue; }

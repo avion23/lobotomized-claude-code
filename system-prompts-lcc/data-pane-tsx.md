@@ -3,7 +3,7 @@ name: 'Data: pane.tsx'
 description: >-
   Example hooks-module file (pane.tsx) extracted as examples/ with the
   plugin-authoring skill, which points the model at it per ask.
-ccVersion: 2.1.296
+ccVersion: 2.1.310
 -->
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
@@ -11,7 +11,11 @@ import type { Register } from 'claude-code'
 import type { ToolCall } from '../types'
 
 const PANE = 'tool-calls'
-const calls = atom({ plugin: 'tool-calls', key: 'calls' } as const, [])
+// Change the tag when a call's fields change: it declines what an earlier
+// version stored, which outlives a reload.
+const calls = atom({ plugin: 'tool-calls', key: 'calls' } as const, [], {
+  shape: 'calls-1',
+})
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {

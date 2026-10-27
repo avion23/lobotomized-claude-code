@@ -1,0 +1,10 @@
+<!--
+name: Artifact updated root clause
+description: Clause naming the root the served path is relative to
+ccVersion: 2.1.310
+variables:
+  - TOOL_RESULT_ARTIFACT_UPDATED_UPDATE_ROOT_CLAUSE_VAR_0
+  - TOOL_RESULT_ARTIFACT_UPDATED_UPDATE_ROOT_CLAUSE_VAR_1
+  - TOOL_RESULT_ARTIFACT_UPDATED_UPDATE_ROOT_CLAUSE_VAR_2
+-->
+ with \`root\`: ${TOOL_RESULT_ARTIFACT_UPDATED_UPDATE_ROOT_CLAUSE_VAR_0(TOOL_RESULT_ARTIFACT_UPDATED_UPDATE_ROOT_CLAUSE_VAR_1(TOOL_RESULT_ARTIFACT_UPDATED_UPDATE_ROOT_CLAUSE_VAR_2.served_root))}, the folder its served path is relative to

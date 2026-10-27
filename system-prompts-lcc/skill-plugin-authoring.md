@@ -5,7 +5,7 @@ description: >-
   interface or behaviour, such as a live pane or panel, a band above the prompt,
   a status line, a toast, a slash command, or a hook on tool calls or prompts.
   Use to make, change or debug a mod or its hooks module.
-ccVersion: 2.1.308
+ccVersion: 2.1.310
 -->
 ---
 name: plugin-authoring
@@ -24,7 +24,7 @@ WHERE THE TYPES ARE. The engine writes them; there is no command to run. Before 
 
 WHAT HAPPENS WHEN THE TURN ENDS. Loading this skill through the Skill tool or its slash command starts the engine's watch on the folder that holds the mod folders. The first file written under it makes the engine ask the person, once, right then, while the turn goes on: "Turn on the mods Claude writes in this session?", with \`How does this work?\` first, then \`Turn them on\` and \`Not now\`. That question is the switch, and the person alone answers it: no permission mode, rule or hook does. On \`Turn them on\` the folder joins the session's plugin folders and the mod loads when the turn ends, whole, and each later edit reloads it when the turn that made the edit ends. The question stays up until answered. The answer reaches you as a notice at your next turn, which the engine may start for an enabling: enabled, with what the load came to; declined (the mods are written and load the next time this session starts; the person can ask for the question again); still open (dismissed or closed; asked again); or off, with the reason (nobody could be asked, as under \`claude -p\`; the question got no pick three times; an organization's policy; an untrusted workspace). A process that restarted loads an enabled folder again by itself; otherwise its watch starts the next time this skill loads, and a manifest already in the folder raises the question when that turn ends.
 
-A reload runs \`register\` and \`session.start\` again. \`$.state\` (the session's) and \`$.store\` (across sessions) stay; the module's own variables start over.
+A reload runs \`register\` and \`session.start\` again. \`$.state\` (the session's) and \`$.store\` (across sessions) stay; the module's own variables start over. New code meets old values: \`shape\`, in \`reference.md\`.
 
 \${CLAUDE_SESSION_SURFACE}
 
@@ -54,8 +54,8 @@ Each example, in \`\${CLAUDE_SKILL_DIR}/examples/\`, is one complete hooks modul
 
 ## Checking it and reading what the engine refused
 
-\`claude plugin validate <mod folder>\` reads the manifest and the module's source the way the engine will, and reports what the module hooks and calls and all the engine would refuse. Type-check the mod: with its types laid, \`tsc -p <mod folder>\`; else (the first write, \`claude -p\`, an SDK host), with the \`tsconfig.json\` from the types file's header, kept outside the mod folder, its \`include\` naming that file and the mod's \`hooks\`. Test what was asked in a \`*.test.ts\` like the example \`pane.test.tsx\`: run \`claude plugin test <mod folder>\`. A finished mod is at its full path, loaded or not by the hot-reloading answer: enabled, it is loaded when the turn ends, with nothing to run; any other answer, it is not loaded.
+\`claude plugin validate <mod folder>\` reads the manifest and the module's source the way the engine will, and reports what the module hooks and calls and all the engine would refuse. Type-check the mod: with its types laid, \`tsc -p <mod folder>\`; else (the first write, \`claude -p\`, an SDK host), with the \`tsconfig.json\` from the types file's header, kept outside the mod folder, its \`include\` naming that file and the mod's \`hooks\`. Test what was asked in a \`*.test.ts\` like the example \`pane.test.tsx\`, seeding what an earlier version stored: run \`claude plugin test <mod folder>\`. A finished mod is at its full path, loaded or not by the hot-reloading answer: enabled, it is loaded when the turn ends, with nothing to run; any other answer, it is not loaded.
 
-While the session hot-reloads a plugin folder the transcript carries one dim line naming the plugin, the event and the reason when a hook fails or a module does not load, and a hook whose tree does not validate is such a hook, skipped alone: \`<plugin>: ui.render hook skipped: returned the wrong shape (a tree <Component> refuses: <reason>)\`. In any other session those lines go to the debug log alone, as \`<plugin>: <line>\`. The debug log (\`claude --debug\`) carries a line for every occurrence and every result the engine refused.
+While the session hot-reloads a plugin folder the transcript carries one dim line naming the plugin, the event and the reason when a hook fails or a module does not load, and a hook whose tree does not validate is such a hook, skipped alone: \`<plugin>: ui.render hook skipped: returned the wrong shape (a tree <Component> refuses: <reason>)\`. A failed hook of a mod you wrote comes back to you as a notice at your next turn. In any other session those lines go to the debug log alone, as \`<plugin>: <line>\`. The debug log (\`claude --debug\`) carries a line for every occurrence and every result the engine refused.
 
 \`\${CLAUDE_SKILL_DIR}/reference.md\` is the long form: the full event list, streaming events, \`ui.render\` in depth, \`$.state\` contracts, \`--plugin-dir\` and \`CLAUDE_CODE_PLUGIN_DIRS\` while developing, \`userConfig\` options, what a test holds, and Sharing a mod, the GitHub road, done when the person asks, or says yes where this skill offers it: \`.claude-plugin/marketplace.json\` in its repository and, in the README, \`/plugin install <mod> --marketplace <owner>/<repo>\`.

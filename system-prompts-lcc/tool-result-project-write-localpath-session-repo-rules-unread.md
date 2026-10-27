@@ -1,0 +1,6 @@
+<!--
+name: Project write repo rules unread
+description: Error that the repo permission rules could not be read so nothing was written
+ccVersion: 2.1.310
+-->
+project_write: this session's cloud environment could not read the repository's permission rules, so the file at local_path was not read and nothing was written. Retrying won't help: tell the user that .claude/settings.json or .claude/settings.local.json may have to be fixed or removed, or pass the text as content if it is fit to share.

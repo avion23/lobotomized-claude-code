@@ -3,7 +3,7 @@ name: 'Data: onboarding'
 description: >-
   claude-test run-skill reference onboarding.md that the run SKILL.md tells the
   model to Read for machine setup and first run.
-ccVersion: 2.1.308
+ccVersion: 2.1.310
 -->
 # Onboarding — the machine first, then the starter suite, with the person
 
@@ -17,7 +17,16 @@ to correct, put one question where a decision is truly theirs, and keep every qu
 From the \`status\` you already have, write ONE short report, most blocking first, each item with the one thing that fixes it:
 - \`needsInput\` (which app, which address, which start command): its question and numbered choices (SKILL.md §1 already
   covers this; it comes first because nothing else can be checked until the app folder is known).
-- No test browser (\`tools.browser.missing\`, with or without the tooling: no Google Chrome that Claude Test can use here, and none downloaded): \`claude_test_install\` downloads it only from a mirror the person names, so do not
+- No test browser (\`tools.browser.missing\`, with or without the tooling: no Google Chrome that Claude Test can use here, and none downloaded). Where the browser helper offers \`mcp__plugin_claude-test_browser__claude_test_browser_installed\`
+  (not among your tools → look it up by that exact name with ToolSearch; not found → as below), call it with
+  \`{ project: status.projectDir }\` and write nothing before it: its dialog says what it downloads, from where, and how big it is, and its Accept (one Enter) installs the test
+  browser, and the browser tools too when they are missing. Where the panel is open it shows how far the install got. The call answers when the install has ended. A long install can outlast Claude Code's wait for a tool call: if the call comes back "still running" and moved to the background, the install goes on; wait for that background task's notification and act on its answer as below, and meanwhile say nothing about the install, never give the terminal command, and do not call the tool again. Its \`answer\`: \`installed\` → run \`status\` again and
+  carry on from SKILL.md §1 IN THIS TURN, as after an install below, saying nothing about the install (never "type /claude-test:run again"); \`install-failed\` →
+  say its \`line\` exactly as it is, as your one line, and stop (do not install, download or run the command another way); \`stop\` (Decline) → stop, in these
+  words: "Claude Test can't run without the test browser. To install it later, run this in a terminal:", then \`tools.browser.command\` as a code block (the
+  dialog is not asked again in this session); \`null\` (closed or timed out) → the same words,
+  and stop. An error, having asked nothing → do what it says; where it says nothing more, go on as below.
+  Without that tool: \`claude_test_install\` downloads it only from a mirror the person names, so do not
   offer that tool and do not ask the install question below. Write one line, then the command as a code block, as your message's text and never inside the question: "Claude Test needs a
   test browser<when \`tools.browser.forWindow\`: ' that opens a window'> on this machine. Run this once in a terminal (not with ! here: Claude Code's sandbox can stop the download from being saved):" and \`tools.browser.command\`. Then ask, with the
   AskUserQuestion tool when you have it, "Is the test browser installed?" Choices: "Yes, it's installed" ("Check again."); "No, not now"
@@ -55,9 +64,9 @@ ready, and every question you have is asked before the runner starts the suite.
 ### F1. Start looking at once — two helpers in the background, side by side
 
 1. \`node \${CLAUDE_SKILL_DIR}/scripts/ct.mjs new-run\` → the run folder (\`absolute\`). Everything this run writes goes there. It, and the
-   small files F2 reads, can go in the same message as SKILL.md §3 step 2's check that the app is up: one turn fewer before the look (a run
-   folder made while the app turns out not to be running is the one the look uses once it runs). (Rarely the answer carries \`note\`: this disk keeps neither hard links nor creation times, so the background helpers' tools will not serve the folder. Tell the person that in one line, with the advice it gives, and start no helper. An answer with \`warning\` instead: say it to the person in one line and go on.)
-2. Start the FIRST LOOK: the Skill tool, skill \`claude-test:execute\`, arguments \`look <absolute run folder>\`. It loads at most three
+   small files F2 reads, need not wait for the app: for the first look, SKILL.md §1 has already made the check that §3 step 2 goes by (a run
+   folder made while the app turns out not to be running is the one the look uses once it runs); if it has not, make that check now, as that step says. (Rarely the answer carries \`note\`: this disk keeps neither hard links nor creation times, so the background helpers' tools will not serve the folder. Tell the person that in one line, with the advice it gives, and start no helper. An answer with \`warning\` instead: say it to the person in one line and go on.)
+2. Start the FIRST LOOK: the Skill tool, skill \`claude-test:execute\`, arguments \`look <absolute run folder>\` (and \`--window\` when SKILL.md's panel rule says so). It loads at most three
    pages of the running app, in about a minute, in the fenced browser and comes back by itself with what they show (titles, headings, navigation,
    empty states, a sign-in wall). If the dev server is not up yet (SKILL.md §3 step 2: the browser helper's check says so), deal with
    that first — the look needs a page to load.
@@ -159,6 +168,15 @@ outline, and you ask the same question again with the changed outline. An answer
 yes is F4, anything else a change, except a "go on" (the word the "Still looking" line offers, F2b) that arrives while the outline's question
 is still open: it is neither, so ask the same question again. The question comes back with no answer of theirs (closed, timed out, or answered by anything but them: a reply that is not a choice the person made or words they typed, such as one that starts "No response after" or "The user did not answer", even when it lists something as selected) → nothing is drafted, saved or run now; stop a dev server you started in this run (TaskStop), and stop with one line: "Nothing ran. Type /claude-test:run when you want to go on." Without AskUserQuestion: post the outline as text, end it with "Would you like to run these <n> tests?
 Reply 'yes', or tell me what to change.", and end your turn.
+Where the browser helper offers \`mcp__plugin_claude-test_browser__claude_test_confirm_run\` (not among your tools → look it up by that exact name with ToolSearch;
+not found → as above) and nothing else is due in the same call (below), the outline's question is that tool's dialog, not AskUserQuestion. The dialog has no
+place for a line that goes above "I suggest these <n> tests:" (F2b), so, as the one exception to F2b's rule, write that line as your message's text; then call it with \`{ project: status.projectDir,
+count: <n>, tests: [<each numbered line, without its number>], notCovered: [<each "Not covered:" line>] }\`. The dialog shows them as your proposal, under
+"Run these <n> tests? Claude wrote this list:", ending in "Accept: run them. Decline: say what to change." and those two buttons (one Enter accepts). Its \`answer\`: \`run\`
+(Accept) → as "Yes, run them" (F4); \`change\` (Decline) → as "No, change them" (ask again with the same tool once the outline has changed); \`null\` (closed or
+timed out) → as no answer of theirs, above. An error, having asked nothing (an outline that does not fit whole, for
+one) → do what it says; where it says nothing more, ask with AskUserQuestion as above. When something else is due in the same call, ask it all with
+AskUserQuestion, as above.
 Anything else the person must answer before the run — a BLOCKED or NEEDS INPUT look's one fix or question, the empty-pages question and
 the sign-in wall's way in (both under "Sign-in walls and empty apps") — goes in the SAME AskUserQuestion call as a question of its own,
 before the outline's question (four questions at most in one call), with any command in it in plain text, no backticks.
@@ -185,7 +203,7 @@ there. Only then bring it up, as one likely cause and in plain words: "this app 
 started.
 
 **Looking again.** When a look has to be repeated (it came back blocked or empty, and what stopped it is settled: an address or a host allowed, the server started another way), do F1's steps 1 and 2
-again: \`new-run\` FIRST, then \`look <that new folder>\`. Every look gets a run folder of its own: the runner's save step takes drafts only from the newest run folder, refuses a folder that holds anything
+again: \`new-run\` FIRST, then \`look <that new folder>\` (with \`--window\` as in F1). Every look gets a run folder of its own: the runner's save step takes drafts only from the newest run folder, refuses a folder that holds anything
 it does not expect there, and says so only when the run starts, long after the outline; a new folder with one look in it is what every first run starts from. What this \`new-run\` printed replaces all that the earlier one printed: the author (F4) and the runner get
 the new \`absolute\`, and the \`saveKey\`, the \`livePage\` and the call that opens it are the new ones; the earlier folder is left as it is. Do not look again while the author is running (F4): its drafts
 go into the earlier folder. Wait for its report, then \`new-run\`, the look, and the author once more with the new folder. For you to know, not to say to the person: in a later turn
@@ -210,7 +228,7 @@ drafts, you do not ask again, and you file nothing yourself: in that same turn g
 \`--key <the saveKey new-run printed for this run folder>\` (SKILL.md §3 step 5: the first look was never given it) and
 \`--save <every name the author listed, minus any the person dropped since the outline>\`. Its first step saves exactly those
 drafts as specs (SKILL.md §4): each is REBUILT from its title, steps, Must lines, a from-comment naming files of this
-project and the front matter \`tags: [creates-data]\` / \`allow_navigation: true\`; anything else in a draft is left out; a draft
+project and the front matter \`tags: [creates-data]\` / \`allow_navigation: true\` / \`area: <word>\`; anything else in a draft is left out; a draft
 whose title, steps or Must lines would carry an address on another host, a \`$VARIABLE\`, a credential-looking name, a \`<secret>\`
 reference, link syntax or raw HTML is held back and comes to the person with the results, quoted whole, with a question of its
 own. An edit they ask for ("in 2 use Tomato Soup") before the author has reported goes into the brief; after, write the changed
@@ -353,8 +371,8 @@ spec for the sign-in page itself and a note that the rest needs a saved sign-in 
 
 If the app has accounts at all, open each spec's steps with the vantage it was written from: "As a visitor, …" when the look saw
 the app signed out, or "Signed in (as the dev account the app starts with), …" when the running app was already inside an
-account — a later run that meets a sign-in wall uses exactly these words to tell a regression from a missing session. Leave
-front matter off unless a journey starts deep in the app; then \`allow_navigation: true\` and the starting path in the steps. End
+account — a later run that meets a sign-in wall uses exactly these words to tell a regression from a missing session. Give
+each file its \`area:\` front matter; add \`allow_navigation: true\` only when a journey starts deep in the app, with the starting path in the steps. End
 each file with \`<!-- from: <files> -->\` naming the source files it was built from (the crawl gave you the paths).
 
 ## Sign-in walls and empty apps — what to say, and what still gets written

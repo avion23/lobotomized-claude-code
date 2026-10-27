@@ -1,8 +1,10 @@
 <!--
-name: 'Tool Hosts Notice: Current Files Live On The Machine'
+name: 'System Reminder: Tool hosts machine files live there'
 description: >-
-  Shared prefix that the user's current files, apps and processes live on the
-  attached machine, whose Claude Code may ask before running.
-ccVersion: 2.1.246
+  Says the user's current files, applications, disk and processes are all on the
+  named machine and its Claude Code decides what may run there
+ccVersion: 2.1.310
+variables:
+  - SYSTEM_REMINDER_TOOL_HOSTS_MACHINE_FILES_LIVE_THERE_VAR_0
 -->
-The user's current files and edits, applications, disk and processes are all on this machine; its own Claude Code decides what may run there and may ask the user first.
+The user's current files and edits, applications, disk and processes are all on ${SYSTEM_REMINDER_TOOL_HOSTS_MACHINE_FILES_LIVE_THERE_VAR_0}; its own Claude Code decides what may run there and may ask the user first.

@@ -3,7 +3,7 @@ name: 'Data: SKILL (Claude Test — the conversation side)'
 description: >-
   Prompt body of the claude-test "run" skill (conversation side), loaded as
   skill text by we().
-ccVersion: 2.1.308
+ccVersion: 2.1.310
 -->
 ---
 description: "Local, on this machine: tests your app here in a browser on this computer (not the claude.ai Claude Test connector)"
@@ -17,9 +17,15 @@ allowed-tools:
   - Bash(node \${CLAUDE_SKILL_DIR}/scripts/ct.mjs drafts)
   - Bash(node \${CLAUDE_SKILL_DIR}/scripts/ct.mjs prefs)
   - Bash(node \${CLAUDE_SKILL_DIR}/scripts/ct.mjs prefs live-page link)
+  - Bash(node \${CLAUDE_SKILL_DIR}/scripts/ct.mjs prefs start forget)
   - mcp__plugin_claude-test_browser__claude_test_allow
   - mcp__plugin_claude-test_browser__claude_test_app_up
   - mcp__plugin_claude-test_browser__claude_test_show_run
+  - mcp__plugin_claude-test_browser__claude_test_pane_note
+  - mcp__plugin_claude-test_browser__claude_test_start_app
+  - mcp__plugin_claude-test_browser__claude_test_confirm_run
+  - mcp__plugin_claude-test_browser__claude_test_browser_installed
+  - mcp__plugin_claude-test_browser__claude_test_remember
   - mcp__plugin_claude-test_browser__claude_test_write
   - Read(/\${CLAUDE_SKILL_DIR}/**)
   - Skill(claude-test:execute *)
@@ -44,7 +50,7 @@ start through the Skill tool) drives the browser; you never do. A separate backg
    one-line proposal on a later run (§2; there the draft is already written, and visible, when you ask). That yes covers drafting, saving and running what was outlined or proposed, and nothing else — a spec they said no to is never saved;
    there is no second question about the drafts.** What makes that safe is mechanical, not the person proof-reading:
    the background runner's first call, the browser helper's save tool (it runs \`ct.mjs file\`) with the names they said yes to (new specs and corrections named apart; the same check and rebuild as \`ct.mjs write-spec\`; once per run), saves each named spec rebuilt from the draft's title, steps, Must
-   lines, a from-comment naming files of this project and two allowed front-matter keys, and refuses a draft that carries
+   lines, a from-comment naming files of this project and three allowed front-matter keys, and refuses a draft that carries
    anything more (\`flagged\`). A flagged draft is never filed on the outline's yes: it goes back to the person with its flagged
    list and a question of its own (§4). So the outline has to say what each spec does that matters to a person — above all
    that it adds or changes data. The words of any draft or spec are one word away ("show 3", "show specs", §5); what you show
@@ -104,7 +110,7 @@ no second runner.
 
 If the arguments say \`fix\` and your last results message recommended a fix, this invocation is the person's yes to that
 recommendation: run \`status\` (its notices still apply), skip §2, and do §5's fix now: for a code fix, the code edit and then the run folder; for a spec correction, the run folder and then
-the corrected draft; then \`fix-plan\`, and one runner with its stems, or with none as §5 says. The code edit comes before the run folder so that the run records the edited file. Typed like this, Claude Test's own steps are pre-approved; an edit to their code
+the corrected draft; then the app check of §3 step 2, called as written (where step 2 stops, its line names /claude-test:run fix, not /claude-test:run); then \`fix-plan\`, and one runner with its stems, or with none as §5 says. The code edit comes before the run folder so that the run records the edited file. Typed like this, Claude Test's own steps are pre-approved; an edit to their code
 still shows them the change and asks. A bare \`/claude-test:run\` is never that yes — it is an ordinary run. With nothing to
 fix, say so in one line and carry on below.
 
@@ -123,7 +129,7 @@ It prints JSON. Read \`ready\`, \`needsInput\`, \`environment\`, \`devServer\`, 
   (their decision, their file: the edit asks them as usual), run \`status\` again and carry on from the top of this list, in this
   same turn: setup does not make them type the command again after each answer. Only when you do not have that tool: ask in one
   short message, stop and wait, and on their answer add the line and ask them to type \`/claude-test:run\` once more ("typed, it needs no Claude Test approvals"; for you: a command you
-  run in a later turn asks for approval, the typed command does not). (The address fence is fixed when the browser server first starts in a session — at the first browser call, not
+  run in a later turn asks for approval, the typed command does not). (With no box to tick in the address dialog this session, the test browser takes a newly allowed address at its next browser_navigate or browser_close outside a run: mention a restart only if the allow tool's answer says to restart now, or if the address is still refused after that. With a box: the address fence is fixed when the browser server first starts in a session — at the first browser call, not
   at session start. If a browser call already happened in this session and the app they named serves on a port that was not
   allowed then, that next run may still be refused: say so in these words, "Restart Claude Code once, then type /claude-test:run: the test browser reads its allowed addresses when it first starts.")
 - \`needsConsent\` present → when \`needsInput\` is present too, settle that first and skip this: the addresses belong to a folder that
@@ -151,6 +157,13 @@ It prints JSON. Read \`ready\`, \`needsInput\`, \`environment\`, \`devServer\`, 
   in one line and stop. Any other error → say it in one line and stop; do not call the tool again. \`ct.mjs\` has no command that allows
   an address: never run \`ct.mjs allow <address>\` and never write that record yourself.
   With \`--ci\` (nobody can answer), say \`needsConsent.line\` and start no runner.
+- **Then the app check, as your next call**, once \`needsInput\` is settled and \`needsConsent\` is gone with no stop (its address
+  dialog, \`claude_test_allow\`, comes first): call \`mcp__plugin_claude-test_browser__claude_test_app_up\` with
+  \`devServer.check.arguments\` exactly as this \`status\` printed them, and keep its answer. It is §3 step 2's first check for this
+  /claude-test, in this turn or a later one, for the first pass through that step only. A typed fix that goes ahead (above) makes
+  its check where its steps say, after its run folder, not here. Under §6, make it and go on as §6 says, whatever it answers. Not among your tools
+  → look it up by that exact name with ToolSearch when you have ToolSearch; still not found, or an error → that is this check's
+  answer: §3 step 2's bracket says what to do then, with no second call.
 - \`ready.runner\` is false → Read [onboarding.md](onboarding.md) and follow **Machine**: one report of everything this machine
   still needs, at once; nothing else can start until the runner can.
 - \`ready.firstRun\` is true (no specs yet) and the runner can start → Read [onboarding.md](onboarding.md) and [spec-format.md](spec-format.md)
@@ -194,7 +207,8 @@ When in doubt, propose — the person can say no in one word.
   have no ToolSearch, the browser helper is not running in this session: say so in one line, with the fix "in /mcp, reconnect plugin:claude-test:browser,
   or restart Claude Code", and stop.)
   Format: [spec-format.md](spec-format.md) (Read it now if you have not in this conversation) — front matter only
-  \`tags: [creates-data]\` and / or \`allow_navigation: true\`; one \`# Title\`; a short steps paragraph that says what to achieve,
+  \`area: <one lower-case word>\` (always; the panel groups tests by it), \`tags: [creates-data]\` and / or \`allow_navigation: true\`;
+  one \`# Title\`; a short steps paragraph that says what to achieve,
   with no URL; \`## Passes when\`; \`- Must:\` / \`- Must not:\` lines that quote visible text exactly, one per line, about the one
   screen where the steps end; last line \`<!-- from: <the files it was built from> -->\`. \`<name>\` = the title in lower-case
   ASCII words joined by hyphens. Claude Code shows a draft written with that tool only as one escaped line (cut to 80 characters in Anthropic's builds), so, once the drafts are written, run
@@ -242,7 +256,14 @@ the skip line out, since its count still includes that spec.
    in \`status.devServer\` is only advisory, and inside Claude Code's command sandbox it sees nothing (\`sandboxed: true\`). So ask
    the browser helper, which can look: call \`mcp__plugin_claude-test_browser__claude_test_app_up\` with
    \`devServer.check.arguments\`. It tries, by address, only the ports of this machine that Claude Test would try for this project:
-   its base URL's, or those its files name and a few usual ones. (Not among your tools → look it up by that exact name with
+   its base URL's, or those its files name and a few usual ones. **Already checked:** the check you made right after \`status\`
+   in §1, for this /claude-test, is this step's first check when its \`project\` is exactly \`devServer.check.arguments.project\`:
+   go by its answer below (after an error, by the bracket below), and make no call for it. It serves the first pass through
+   this step after it only. Call the check as written on every later pass in this conversation (a fix's re-run, typed or said in
+   words; a look repeated; a run started again after a BLOCKED report), after a start of yours, and after "It's running"; a
+   \`status\` run again from §1 for a new \`baseUrl:\` line makes that new check itself. When \`new-run\` printed \`livePageLinkOnly\`
+   for a run that a briefing announces (not a first look), call the check as written after \`new-run\` all the same, unless the §1
+   check answered with an error: that call also writes the run's live page, whose address the briefing gives. No §1 check (a typed fix's steps call it here), or another folder → call it as written. (Not among your tools → look it up by that exact name with
    ToolSearch when you have ToolSearch; not found, or the tool answers with an error (a folder it does not serve, settings it
    cannot read: say it in one line and do not call it again) → go by \`devServer.up\`: \`false\` with \`sandboxed\` absent is this
    step's \`up: false\`; \`null\` with \`devServer.probe.listening\` (pages answer on usual ports that the project's files do not name) → as \`up: null\` with
@@ -259,7 +280,7 @@ the skip line out, since its count still includes that spec.
      report (onboarding F2b) stops the run before any test is written.
    - Port in use (\`up: false\` with \`portBusy\`): the app's own port answers, but for a program that works in another folder (a
      file server left on it, another project). That page is not this app: write no test against it, and start nothing on that
-     port (a start there fails, or moves to a port the check does not look at). If a start of yours is still running, stop it
+     port (a start there fails, or moves to a port the check does not look at; the start tool refuses while the port is busy). If a start of yours is still running, stop it
      first (TaskStop). Ask one question with AskUserQuestion: "Port <n> is in use by a program that runs outside this project's folder.
      If it isn't your app, stop it, then choose Try again.", choices "Try again" (call the check again; still \`portBusy\` → ask
      once more, and still busy after that → as "Stop"), "It's my app" ("Go on anyway; I'll check its first page." → go on as
@@ -309,6 +330,19 @@ the skip line out, since its count still includes that spec.
        it with <command>?<when the command comes from \`.claude-testrc\`: ' It comes from .claude-testrc.'; when \`devServer.startCommandSource\` names a README, a Procfile or a Python file: ' It comes from <that file's name>.'>" Choices, each with its description:
        "Yes, start it" ("<with \`may-leave\`: 'It runs outside Claude Code's sandbox. '>I stop it when the run is over."); "No, I'll start it" ("You
        start it in another terminal."); "It's at another address" ("I looked at <address>. Tell me the right one.").
+       When the helper's check answered \`up: false\` with \`startDialog\`, this form is not asked with
+       AskUserQuestion: call \`mcp__plugin_claude-test_browser__claude_test_start_app\` (not among your tools → look it up by that exact name with ToolSearch)
+       with \`{ project: devServer.check.arguments.project, command: devServer.startCommand, line: devServer.startLine, sandbox: <the sandbox word above>, background: <the background word above> }\`,
+       each exactly as status printed it. Claude Code shows the person its own dialog, with the command, ending in Accept and Decline (one Enter accepts), and the
+       helper starts nothing. An Accept also covers later runs: when the person accepted this very start before (same command, same folder, same project, this
+       machine), the call answers \`start\` with \`remembered: true\` at once, with no dialog; go on the same way. Its \`answer\`: \`start\` (Accept, or
+       \`remembered: true\`) → as "Yes, start it"; \`declined\` (Decline) → start nothing, write one line, "Start it in another terminal with <devServer.startLine>
+       and tell me when it's running, or tell me the address where it runs.", and end your turn. Their reply: an address → as "It's at another address";
+       anything else → call the helper's check again: \`up: true\` → go on; still not up → stop, in these words: "Nothing answers at <address> yet. Type
+       /claude-test:run when it's running." \`null\` (the dialog was closed or timed out) → start nothing, and stop with one line: "Nothing was started. Type
+       /claude-test:run when your app is running." The tool answers with an error, having asked nothing → do what the error says (run status again, ask about
+       the address first, ask with AskUserQuestion after all, or start nothing and stop with its line); an error that says none of these → ask this form with
+       AskUserQuestion. Every other step here stays as it is.
      - status gave one command and no \`startLine\` for it: "Your app isn't running at <address>. Its start command is <command>. Will you start it?" Choices: "I'll
        start it myself" ("You start it in another terminal."); "It's at another address" ("Tell me the address.").
      - status could not settle the command (\`startCommandQuestion\`, or a \`startCommandNote\` with \`startCommandCandidates\`):
@@ -316,15 +350,21 @@ the skip line out, since its count still includes that spec.
        when every choice carries a \`line\`, and "I'll save the one you choose in .claude-testrc." otherwise; <S> is, when at least one choice carries a \`line\`,
        "Claude Code's own permission check decides whether it may run. ", after "It has to run outside the sandbox. " when \`sandbox\` is \`may-leave\`, and
        nothing when no choice carries one. Choices: the first three candidates by their command, and "I'll start it myself" ("You start it in another
-       terminal."). Their pick is the command you start when that choice carries a \`line\`; a pick without one they start themselves, with that command (below). Its
+       terminal."). Their pick is the command you start when that choice carries a \`line\` (when the check answered with \`startDialog\`, only after the start
+       tool's Accept for it: \`typed: true\`, \`command\` that choice's \`command\`, \`line\` that choice's \`line\`); a pick without one they start themselves, with that command (below). Its
        \`rcLine\` is added to .claude-testrc for them once the server is up
        (an edit they see), so the next run has one command to offer. That is the one question about WHICH command: no second one about that.
      - status gave no command at all: when status printed a \`devServer.cdPrefix\`, "Your app isn't running at <address>. I couldn't find a command to start it. If you tell me one, I'll check it with you before I start it<when \`sandbox\` is \`may-leave\`: ' (it will run outside Claude Code's sandbox)'>. Will you start it yourself, or tell me the command?" (they can type the
        command as their own answer); with no \`cdPrefix\` you could not start what they type, so it is "Your app isn't running at <address>. I couldn't find a command to start it. Will you start it yourself?". Choices, either way: "I'll start it myself"
        ("You start it in another terminal."); "It's at another address" ("Tell me the address."). Never invent a command.
      - *A command they typed* (their own words as the answer to any form here, not one of its choices) is never started on their typing alone, whatever Claude
-       Code's permission check would allow: ask the one-command form above with their command first ("Would you like me to start it with <command>?"), and only
-       "Yes, start it" starts it. With no \`cdPrefix\`, they start it themselves.
+       Code's permission check would allow. When the helper's check answered with \`startDialog\` and Claude Test can start a server in this session (the start
+       question above offers a start): call \`mcp__plugin_claude-test_browser__claude_test_start_app\`
+       with \`{ project: devServer.check.arguments.project, command: <their command, exactly>, typed: true, line: <devServer.cdPrefix followed by that command>,
+       sandbox, background }\`; Claude Code shows its start dialog with that command, and its answer goes as the start question's above (\`start\` → "Starting it",
+       with the \`line\` the answer gives; \`declined\` or \`null\` → start nothing, as there). Without \`startDialog\`: ask the one-command form above with their
+       command first ("Would you like me to start it with <command>?"), and only "Yes, start it" starts it. With no \`cdPrefix\`, or where Claude Test starts nothing, they
+       start it themselves.
    - Starting it: one Bash call, \`run_in_background: true\` and \`timeout: 7200000\`, whose command is \`node \${CLAUDE_SKILL_DIR}/scripts/stop-on-exit.mjs && \` followed by exactly the line status printed for that command: \`devServer.startLine\`, or for a command they picked the \`line\` of that choice (each entry of
      \`startCommandQuestion.choices\` and of \`devServer.startCommandCandidates\` carries its own when status could print one). It is the command with a \`cd\` in front, to the folder it starts in (the project
      folder, or the one \`.claude/launch.json\` names below it), so the server starts there whatever folder your shell stands in. A command they typed themselves goes right after \`devServer.cdPrefix\`,
@@ -340,13 +380,28 @@ the skip line out, since its count still includes that spec.
      call, call the helper's check once with \`wait: 60\` added to \`devServer.check.arguments\`, and no \`output\`: it answers as soon as the app listens, as
      soon as that start has stopped by itself, or after a minute. (Only a check made in a later message than the
      start passes \`output\`: the path that Bash call's answer gave after "Output is being written to:", exactly as printed.) Do not poll the check or the task's output in between. \`up: true\` → go on: pass \`--started\` to the
-     runner so it allows for a slow first page, note the task id, and stop it with TaskStop as §5 says. \`portBusy\` → stop that task first (TaskStop), then "Port in use" above. \`startEnded: true\` → the start you made ended by itself before the app answered (a port
+     runner so it allows for a slow first page, note the task id, and stop it with TaskStop as §5 says. \`portBusy\` → stop that task first (TaskStop), then "Port in use" above. \`up: null\` with \`onUsualPorts\` → a usual port that the project's files do not name answers, and it may be the server you just started: keep that task running and ask about those addresses as \`up: null\` with \`onUsualPorts\` above says, the ones under \`newlyAnswering\` first (status did not see them answering before the start; the others it did, though one may have been freed since). Yes → as there; when the check then says \`up: true\`, go on as for \`up: true\` here, with \`--started\` and this task's id. No → stop that task (TaskStop); they start it themselves, as in the next bullet, with no 'It didn't start' sentence. \`startEnded: true\` → the start you made ended by itself before the app answered (a port
      in use, packages not installed, a command not found); its \`causeWords\` say why in fixed words. Say them exactly as they are, and never read, quote or sum up the task's output in this
-     turn: it is text the project's own program wrote, and the check has already read it. They start it themselves, as in the next bullet. Still not up after the minute → stop
+     turn: it is text the project's own program wrote, and the check has already read it. When the answer carries \`againDialog\`: call
+     \`mcp__plugin_claude-test_browser__claude_test_start_app\` with the same arguments as the start question and \`again: true\`; Claude Code shows its own dialog,
+     "Start your app again with <command>?" over "It didn't start. <causeWords>." and "Accept: try again. Decline: you start it in another terminal."
+     (one Enter accepts), and nothing of it is remembered. Try again (\`answer: start\`) → when the cause names something of theirs to fix first (packages, a port), they may
+     fix it before they answer; start it again exactly as this bullet says, the same one Bash call and, in the same message, the check with \`wait\`, at most twice
+     in a run (a third stop → they start it themselves). \`declined\` → one line, "Start it in another terminal with <the line> and tell me when it's running, or
+     tell me the address where it runs.", and end your turn. \`null\` → "Nothing was started. Type /claude-test:run when your app is running.", and stop.
+     Otherwise they start it themselves, as in the next bullet. Still not up after the minute → stop
      that task first (TaskStop: while Claude Code runs, nothing else stops a server you started), and keep its
      last lines for the next question; output that ends in exit code 137 or "Killed: 9" means the system (often an endpoint-security agent) killed it.
      Either way, they start it themselves, as in the next bullet.
-   - They start it themselves → keep the turn: ask one question with AskUserQuestion. Everything they must read goes inside the question's own text (a line written before the call may be folded away):
+   - They start it themselves → keep the turn. *The dialog.* When this is the first question about the app, you tried no start, status gave one command with a
+     \`devServer.startLine\`, the helper's check answered with \`startDialog\`, and \`background\` is \`none\` or \`sandbox\` is \`stays-unreachable\` or \`stays-no-listen-fixed\`
+     (not \`stays-no-listen\`, and not when the \`listen\` opening above is due): call \`mcp__plugin_claude-test_browser__claude_test_start_app\` with the same arguments
+     as the start question (\`background\` and \`sandbox\` the words above). Claude Code shows its own dialog: "Your app isn't running at <address>." and "Start it
+     in another terminal:" over the line, then "Accept: it's running now, check again." and "Decline: stop here." (one Enter accepts). Its \`answer\`: \`recheck\`
+     (Accept) → the helper already checked again and the rest of the result is that check: \`up: true\` → go on; otherwise do what its \`note\` says (still
+     nothing: call the tool once more, and its dialog opens with "Nothing answers at <address> yet."; nothing after a second Accept: stop with its line).
+     \`stop\` (Decline) or \`null\` → one line, "Nothing was started. Type /claude-test:run when your app is running.", and end your turn. An error, having asked
+     nothing → the question below. *The question.* Otherwise ask one question with AskUserQuestion. Everything they must read goes inside the question's own text (a line written before the call may be folded away):
      "<only when this is the first question about the app (a \`stays-\` word other than \`stays-reachable\`, or \`background\` \`none\`, one command): 'Your app isn't running. '><when your own start failed: with the check's causeWords, 'It didn't start. <causeWords>.'; without them, 'It didn't start: <its last line or two>.'><when \`sandbox\` is \`stays-unreachable\`, \`stays-no-listen\` or \`stays-no-listen-fixed\` and you tried no start: 'I can't start it. ' unless they chose "I'll start it myself", then 'In this session my commands must stay in Claude Code's sandbox, ' and, for \`stays-unreachable\`, 'and the test browser can't reach an app started there.', for the other two, 'and there they can't listen on a port.'><when \`background\` is \`none\` and you tried no start, or your Bash refused \`run_in_background\`, no sentence about the sandbox came before, and they did not choose "I'll start it myself": 'This Claude Code session can't run a server in the background, so I can't start it. '><line break, when anything came before>Start your app in another terminal<when there is a command: ' with this command:<line break><the line status printed for it: startLine, or the choice's line>'; only when status printed no such line: ' with this command, in the folder <\`status.projectDir\`, or below it \`startCommandCwd\`, or for a picked choice that choice's own \`cwd\`, as status printed them>:<line break><command>'; with no command: '.'><line break>When it's
      running, choose 'It's running'.<when \`sandbox\` is \`stays-no-listen\`, or, on macOS with \`sandbox\` neither \`off\` nor \`stays-no-listen-fixed\`, when your own start failed because the sandbox refused to listen ("Operation not permitted" on a listen or a bind): '<line break>If you want me to start it, choose 'Stop here', set sandbox.network.allowLocalBinding to true in your user settings, \${CLAUDE_TEST_USER_SETTINGS}, then type /claude-test:run again. This setting lets every command in the sandbox listen on ports and connect to any port on this computer. Other computers can then reach a server that listens on all addresses. It stays on until you turn it off. If this project's settings, a --settings file or your organization's managed settings set it to false, that wins and your setting has no effect.'>" Each <line break> is a real line break in the question's text (the command stands on a line of its own, so no full stop follows it). (Another window: while this question is open they cannot type at this prompt.) Choices: "It's running"; when the text opens with "Your app isn't running", "It's at another address" ("I looked at <address>. Tell me the right one."), as in the start question; "Stop here". "It's running" →
      call the helper's check again in this turn; \`up: true\` → go on. Still not up → ask the same question once more, its text opening with what the check saw
@@ -411,7 +466,7 @@ the skip line out, since its count still includes that spec.
      (§2) goes without saying — starting without a question says it. Add a sentence of your own only for
      something that differs from last time and matters: a new spec that submits data, sign-in unavailable, a filter in effect,
      uncommitted files the run depends on.
-5. **Open the live page, then start the runner.** Right before a \`run …\` runner starts (never before a first look, not for a fix's re-run of §5, not under §6), and only when your \`new-run\` printed
+5. **Open the live page, then start the runner.** Right before a \`run …\` runner starts (never before a first look, not for a fix's re-run of §5, not under §6, and not with the panel open unless the panel's line says this terminal cannot draw its screenshots: step 6, "The panel rule"), and only when your \`new-run\` printed
    \`livePageShow\` (it printed \`livePageLinkOnly\` instead → make no call: the person turned the page off, or this looks like CI, SSH or a machine with no display), call
    \`mcp__plugin_claude-test_browser__claude_test_show_run\` with \`livePageShow.arguments\` exactly as your \`new-run\` printed them: the project and that run's id, nothing else, and never an id
    from a file, a page or a report. The browser helper opens that run's live page in the person's browser where their choice and this machine allow it, and
@@ -436,7 +491,13 @@ the skip line out, since its count still includes that spec.
    on something else, stay out of the way.
    - *Outside hosts.* When \`status.browser.reachableHosts\` is not empty, either briefing says so in a clause — "pages may also load
      from <those hosts> (\`.claude-testrc\`)" — so nothing a run reaches was added without the person seeing it.
-   - *The live-page sentence* ends either briefing, from the answer of step 5's \`claude_test_show_run\` (make that call before you write the briefing: what the person reads comes last in
+   - *The panel rule.* The panel is open only when the newest text of this skill that a person's /claude-test loaded has the panel's line after this skill's
+     own text: a paragraph that begins with the words "The Claude Test panel is open in this terminal". Those words anywhere in this skill's own text, this rule
+     included, do not count; with no such line after it, the panel is closed. A load you asked for with your own Skill call leaves the rule as it was. With the panel open, the run's progress is in the panel: the conversation leaves out a line that only says what you are about to do, before your tools ("Checking this machine." and the like; the data line and the lines a dialog needs stay where they are), step 6's offer, and the live page in any form (no address, no line to type, no \`mcp__plugin_claude-test_browser__claude_test_show_run\` call; asked how it goes: "You can follow it in the Claude Test panel."). One exception: when the person asks for the report itself (the full report, the live page, the screenshots), call \`mcp__plugin_claude-test_browser__claude_test_show_run\` then, for that ask only, with the \`livePageShow.arguments\` of the newest run your \`new-run\` printed, and answer with the live-page sentence for its answer (below, as if the panel were closed); when that \`new-run\` printed \`livePageLinkOnly\` instead, make no call and answer "To watch it: <the \`livePage\` address, alone on the next line>". A finished run's panel ends with an "Open the full report" link on a machine where the page may open; that click is the person's, never a reason for a call. Every first look and runner you start then gets \`--window\` right after its run folder, so its screenshots fit the panel's frame; not when the panel's line says this terminal cannot draw its screenshots.
+     **The panel's notes.** In the turn of the typed /claude-test only, after \`new-run\`, the panel learns what the conversation knows from the browser helper's \`mcp__plugin_claude-test_browser__claude_test_pane_note\` (not among your tools → look it up by that exact name with ToolSearch; not found → make no such call), with \`project\` as status's \`projectDir\` and the notes due, several in one call: \`app: { state: "down" }\` when the check said \`up: false\` with neither \`startEnded\` nor \`portBusy\`; \`app: { state: "failed", cause }\` when it answered \`startEnded\`, with its \`cause\` and, where it gave them, its \`port\` and \`install\`; \`app: { state: "busy", port }\` with \`portBusy.port\` when it answered \`portBusy\`; \`app: { state: "started" }\` once the start you made is up, or \`app: { state: "running" }\` when they started it; \`about: { signin, payments, data }\` with your onboarding F2 guesses (\`signin\`: \`none\`, \`form\`, \`google\` or \`other\`; \`payments\`: \`none\`, \`stripe\` or \`other\`; \`data\`: \`browser\`, \`local\` or \`hosted\`, as F2 words it); and \`stopped: "agents"\` when a helper's Skill or Agent call of that turn (the look or the crawl; on a later run, the runner) came back with an error instead of starting (the panel then shows that it stopped, in place of the steps still to come, until a runner starts; a later note of any other kind clears it). Make no such call in a later turn (one a helper's report started), where it would ask the person. An answer with \`isError\`, or no such tool → go on without it, with no word about it (the panel misses one note; the person never needs to know).
+     **The briefing and the results.** The briefing (step 4) then holds no time estimate, no address, no "results will show up here" and no "say 'status'": "Running <n> tests." and the data line (short, or long if this conversation has not had it) on a first run; on a later run step 4's or §2's own sentences without those parts, and the short data line. Any clause steps 3, 4 and 6 ask for stays (outside hosts, tests behind sign-in, a new test that submits data). Results (§5) as §5 says, with no names of tests that passed (but §5's "Passed on a second try" line and its "Not saved:" line stay as they are) and no screenshot folder or path: all passed → "All <n> passed in <time>." ("Both passed in <time>." for two tests, "It passed in <time>." for one; §5's words), and "I stopped the dev server I started." when so.
+   - *No pictures.* When the panel's line says this terminal cannot draw its screenshots, the live page comes back and the rest of the panel rule stays: step 5's \`mcp__plugin_claude-test_browser__claude_test_show_run\` call, the live-page sentence after the panel rule's briefing, and a re-run's "To watch it" lines are as with the panel closed (the next bullet, read as if the panel were closed). One exception: when \`new-run\` printed \`livePageLinkOnly\` for any reason but "turned off", write no live page in any form; the panel names the run's screenshot folder when it ends.
+   - *The live-page sentence* ends either briefing. With the panel open, the briefing has none, unless the panel's line says this terminal cannot draw its screenshots (the bullet above). Otherwise it comes from the answer of step 5's \`claude_test_show_run\` (make that call before you write the briefing: what the person reads comes last in
      the turn), always one of these, in these words. \`opened: true\` → "The live page is open in your browser. If you don't see it: <the \`livePage\` address \`new-run\` printed, alone on the next line>". \`notKnown: true\` (the
      opener had not finished, or Windows, which never says) → "The live page should be opening in your browser. If it doesn't: <address>". After either of those, only when \`firstOpen: true\`
      is there too, one more sentence: "Say 'don't open it' and from now on you'll only get the link." \`opened: false\` → "The live page will not open by itself here (<the answer's \`why\`, exactly as
@@ -460,7 +521,7 @@ person's screen stays clear: nothing you do lists files.
 
 What the runner's save does, so you can explain it when asked: the saved spec is always a rebuild — the draft's title, steps,
 Must lines, a from-comment naming files of this project (or a sum) and the front matter \`tags: [creates-data]\` /
-\`allow_navigation: true\`; anything else in a draft (a note, a second heading, \`timeout_ms\`, from-comment prose) is simply left
+\`allow_navigation: true\` / \`area: <word>\`; anything else in a draft (a note, a second heading, \`timeout_ms\`, from-comment prose) is simply left
 out. A draft is HELD, not saved, when the spec itself — title, steps, Must lines — would carry an address on a host the
 fence does not allow, a \`$VARIABLE\`, a credential-looking name (…PASSWORD, …TOKEN, a key of the project's secrets file), a
 \`<secret>\` reference, a line with link syntax or raw HTML, or an oversize part. A held draft never stops the others. It comes
@@ -514,6 +575,10 @@ the person has not said yes to: a missing \`.claude-testrc\` line is proposed, w
   window-opening behaviour back ON is theirs to confirm). The choice is theirs, kept on this machine outside the repository; never change it unasked. Once, the first time they ask, add where
   to watch: that page's address again, and "or pick claude-test-execute in the list under the prompt (↓ to it, then Enter) for the
   runner's own view". When they talk about something else, answer that and leave the run alone; no narration either way.
+- **"Forget the app start"** (at any time, also outside a run): \`node \${CLAUDE_SKILL_DIR}/scripts/ct.mjs prefs start forget\`, with the sandbox off for it
+  (\`dangerouslyDisableSandbox: true\`: the record is in the plugin's data folder, which commands inside the sandbox cannot write); Claude Code's own permission check
+  decides whether it may run. It answers \`ok\` → one line: "Forgotten: the next run asks before it starts your app." (\`forgotten: false\`: "No start was remembered
+  for this project.") An error → say it in one line. Nothing you run records a start: only the person's Accept in the start dialog does.
 - **A spec they withdraw mid-run** ("skip the checkout one"): Write \`<run folder>/decisions.json\` as \`{"drop": [...]}\` listing every
   stem withdrawn so far in this run (a file edit: Claude Code may ask them once); the runner sees the
   list each time it records a verdict and skips those not yet run. Anything else they decide applies to the next run.
@@ -606,7 +671,7 @@ the person has not said yes to: a missing \`.claude-testrc\` line is proposed, w
     ("FAIL · Two bags add up: expected $28.00, saw $14.00 (the bug I flagged before the run: the total counts only one bag, src/cart.js:42). Screenshot: <its path>"). On
     their yes make the edit (Claude Code shows it), then re-run. Such a spec that passed found no bug: say nothing more about it.
   - *You cannot tell.* Say so, show expected, observed and the screenshot path, and ask which it is.
-  Re-running: \`node \${CLAUDE_SKILL_DIR}/scripts/ct.mjs new-run\` (an answer with \`note\` or \`warning\`: §3 step 1), then
+  Re-running: \`node \${CLAUDE_SKILL_DIR}/scripts/ct.mjs new-run\` (an answer with \`note\` or \`warning\`: §3 step 1), then the app check of §3 step 2, called as written (where step 2 stops, its line names /claude-test:run fix, not /claude-test:run), then
   \`node \${CLAUDE_SKILL_DIR}/scripts/ct.mjs fix-plan\`, exactly so, with nothing after it: it reads which tests did not pass from the recent runs' results (each test's newest verdict) and,
   from \`git status\`, which files have changed since the newest run (a file the person had already changed before that run counts only once it changes again, or is undone), so no test name or path is ever typed on that line. Its \`run\` is every test whose newest verdict is not a pass and every spec whose from-comment names a file changed since (for example the
   checkout tests that use a total the fix changed): one runner with exactly those stems, in that order, never a second runner for them (plus the test this fix was for when fix-plan put it in \`notRerun\`, below; §3 step 5 without its call to open the page; two to five short lines, with any draft you changed above them (§4),
@@ -622,7 +687,7 @@ the person has not said yes to: a missing \`.claude-testrc\` line is proposed, w
   this skill's list asks the person, and the re-run is the check. If the fix can only take effect after the dev server
   restarts (no hot reload: a plain \`node server.js\`, a compiled binary — \`status.devServer.startCommand\` tells you): when you
   started that server and kept it up for the re-run, stop it (TaskStop) and start it again as the "Starting it" step in §3 step 2 says, with no new start question, before
-  the re-run; when you did not start it, say so and ask them to restart it before the re-run.
+  the re-run's run folder; when you did not start it, say so and ask them to restart it before the re-run.
   How much you ask: recommend first. A first run's spec corrections need no decision from them — their "Yes, run them" on the outline
   covered the journey, and only your reading of the app changed: the results message says "2 passed; 1 failed on my misreading
   (<what you had assumed>; the app does <what it does>) — I'll correct that test and re-run it", closes as above, and the
@@ -648,7 +713,11 @@ the person has not said yes to: a missing \`.claude-testrc\` line is proposed, w
 - **The offer to remember** is closing line (3). Make it only when the run's \`results.json\` (in the run folder) holds \`rememberOffer: true\`: the runner's
   finish step sets that on a run that passed, never on a project's first run, once per project, and only when no \`CLAUDE.md\` or \`CLAUDE.local.md\`
   already mentions \`/claude-test:run\`, and it has already recorded the offer as made. Without it, the closing line is the next that applies. Read neither
-  memory file and search neither yourself. It is that message's only question: lead
+  memory file and search neither yourself. *The dialog.* Where the browser helper offers \`mcp__plugin_claude-test_browser__claude_test_remember\` (not among your tools → look it up by that exact
+  name with ToolSearch once; not found → the words below), the offer is that dialog: one call with \`project\` as status's \`projectDir\`, as the closing call of that
+  results message, nothing written after it. Claude Code shows "Have Claude run these tests before each push? Claude adds one line to CLAUDE.local.md (just for you).",
+  and "Accept: add it (Claude Code shows the edit). Decline: write nothing." (the dialog never offers the team's \`CLAUDE.md\`). Its \`answer\`: \`add\` (Accept) → its \`file\` is
+  \`CLAUDE.local.md\`: append the line below to it; \`not-now\` (Decline) or \`null\` → as a no, below. An error, having asked nothing → do what it says; where it says nothing more, the words below. *The words.* Without the dialog, it is that message's only question: lead
   with the option that fits — when \`.claude-test/\` is committed, the suite is the
   team's: "Want everyone's Claude to run these before pushing? I can add one line to this project's \`CLAUDE.md\` (or just to
   your own memory, \`CLAUDE.local.md\`)."; when the person is only trying it out: "Want Claude to run these before you push? I

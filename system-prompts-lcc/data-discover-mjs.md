@@ -4,7 +4,7 @@ description: >-
   Claude Test discover.mjs: finds the dev server start command and ports from
   package.json, Makefiles, launch.json and config files, with the conflict and
   'unknown — ask' notes status prints.
-ccVersion: 2.1.308
+ccVersion: 2.1.310
 -->
 
 
@@ -15,9 +15,59 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { RC_FILE, reallyInsideDir, insideDir, SECRET_FILE, plainPath, checkoutRootOf } from './config.mjs';
+import { RC_FILE, reallyInsideDir, insideDir, SECRET_FILE, plainPath, checkoutRootOf, shown, commandLineClean } from './config.mjs';
 
 export function readJson(p) { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return null; } }
+
+
+export function projectFileText(dir, f) {
+  let p; try { p = path.join(dir, f); if (!fs.lstatSync(p).isFile() || !reallyInsideDir(fs.realpathSync(p), dir)) return null; } catch { return null; }
+  let fd; try { fd = fs.openSync(p, fs.constants.O_RDONLY | (process.platform === 'win32' ? 0 : fs.constants.O_NOFOLLOW | fs.constants.O_NONBLOCK)); if (!fs.fstatSync(fd).isFile()) return null; const b = Buffer.alloc(65536); const n = fs.readSync(fd, b, 0, b.length, 0); return b.subarray(0, n).toString('utf8'); } catch { return null; } finally { if (fd !== undefined) try { fs.closeSync(fd); } catch {              } }
+}
+
+function projectJson(dir, f) { const text = projectFileText(dir, f); if (text === null) return null; try { return JSON.parse(text); } catch { return null; } }
+
+
+
+export function frameworkOf(dir) {
+  const pkg = projectJson(dir, 'package.json'); if (!pkg || typeof pkg !== 'object') return null;
+  const deps = { ...(pkg.dependencies && typeof pkg.dependencies === 'object' ? pkg.dependencies : {}), ...(pkg.devDependencies && typeof pkg.devDependencies === 'object' ? pkg.devDependencies : {}) };
+  const has = (name) => Object.hasOwn(deps, name);
+  if (has('next')) return 'Next.js';
+  if (has('@remix-run/react') || has('@remix-run/dev')) return 'Remix';
+  if (has('@sveltejs/kit')) return 'SvelteKit';
+  if (has('nuxt')) return 'Nuxt';
+  if (has('astro')) return 'Astro';
+  if (has('@angular/core')) return 'Angular';
+  if (has('gatsby')) return 'Gatsby';
+  if (has('react-scripts')) return 'Create React App';
+  if (has('vite')) return has('react') ? 'Vite + React' : has('vue') ? 'Vite + Vue' : has('svelte') ? 'Vite + Svelte' : 'Vite';
+  if (has('react')) return 'React';
+  if (has('vue')) return 'Vue';
+  if (has('svelte')) return 'Svelte';
+  if (has('express')) return 'Express';
+  return null;
+}
+
+
+
+export function appNameOf(dir) {
+  const pkg = projectJson(dir, 'package.json'); const name = pkg && typeof pkg === 'object' ? pkg.name : null;
+  const npmName = typeof name === 'string' && name.length <= 214 && /^(?:@[a-z0-9-~][a-z0-9-._~]*\\/)?[a-z0-9-~][a-z0-9-._~]*$/.test(name) ? name : null;
+  const folder = path.basename(path.resolve(dir)); const folderName = folder.length <= 214 && /^[A-Za-z0-9][A-Za-z0-9-._~]*$/.test(folder) ? folder : null;
+  const words = (npmName || folderName || '').replace(/^@[^/]*\\//, '').replace(/[-._~]+/g, ' ').trim().slice(0, 30).trim();
+  const shownName = words.charAt(0).toUpperCase() + words.slice(1);
+  return /^[A-Za-z0-9][A-Za-z0-9 ]{0,29}$/.test(shownName) ? shownName : null;
+}
+
+
+
+
+
+
+export function cdTo(projectDir, cwd) { const dir = path.resolve(projectDir, cwd || '.'); const front = 'cd \\'' + dir + '\\' && '; return process.platform !== 'win32' && !/['"\\\\!\\u2018-\\u201F]/.test(dir) && (dir === projectDir || dir.startsWith(projectDir + path.sep)) && reallyInsideDir(dir, projectDir) && front.length <= 900 && shown(front, 2000) === front && commandLineClean(front) ? front : null; }
+
+export function cdAndStart(projectDir, cwd, command) { const front = cdTo(projectDir, cwd); return front && typeof command === 'string' && command && front.length + command.length <= 900 ? front + command : null; }
 
 
 export const COMMON_PORTS = [3000, 5173, 8080, 8000, 4200, 4321, 5000, 3001];
@@ -26,9 +76,11 @@ export const COMMON_PORTS = [3000, 5173, 8080, 8000, 4200, 4321, 5000, 3001];
 const MOST_FD_LINKS = 200000;
 
 
+
 const FORWARDERS = new Set(['docker-proxy', 'rootlessport', 'rootlesskit', 'slirp4netns', 'gvproxy', 'vpnkit', 'vpnkit-bridge', 'com.docker.backend', 'com.docker.vpnkit', 'ssh', 'kubectl', 'socat', 'limactl']);
 
-const isForwarder = (name) => FORWARDERS.has(name) || (name.length === 15 && [...FORWARDERS].some((f) => f.slice(0, 15) === name));
+
+const isForwarder = (program) => typeof program === 'string' && path.isAbsolute(program) && FORWARDERS.has(path.basename(program.replace(/ \\(deleted\\)$/, '')).replace(/[-.]?\\d+(?:\\.\\d+)*$/, ''));
 
 const MOST_TABLE_BYTES = 4 * 1024 * 1024; const MOST_CMDLINE_BYTES = 1024 * 1024;
 
@@ -85,25 +137,29 @@ export function portOwner(port, projectDir, look = {}) {
     if ([...inodes].some((i) => !holders.has(i))) return null;
     const mntOf = (p) => { try { return link(p); } catch { return null; } };
     const rootOf = look.rootId || ((p) => { const s = fs.statSync(p); return s.dev + ':' + s.ino; });
-    const myMnt = mntOf('/proc/self/ns/mnt');
-    let myRoot = null; try { myRoot = rootOf('/'); } catch {                   }
+
+    let myMnt; let myRoot;
+    const ownMnt = () => (myMnt === undefined ? (myMnt = mntOf('/proc/self/ns/mnt')) : myMnt);
+    const ownRoot = () => { if (myRoot === undefined) { try { myRoot = rootOf('/'); } catch { myRoot = null; } } return myRoot; };
     const ownerOf = (pid) => {
       let cwd; try { cwd = link('/proc/' + pid + '/cwd'); } catch { return null; }
-      if (within(cwd)) return 'this';
+
+
+
+      let contained = false;
+      const theirMnt = mntOf('/proc/' + pid + '/ns/mnt');
+      if (theirMnt && ownMnt() && theirMnt !== ownMnt() && ownRoot()) { let theirRoot = null; try { theirRoot = rootOf('/proc/' + pid + '/root'); } catch {                   } contained = !!theirRoot && theirRoot !== ownRoot(); }
+      const ours = contained ? null : 'this';
+      if (within(cwd)) return ours;
       let argv = []; try { argv = read('/proc/' + pid + '/cmdline').split('\\0').filter(Boolean).slice(0, 64); } catch (e) { if (e && e.code === 'TOO_BIG') return null;                                            }
       for (const arg of argv) {
         if (arg.startsWith('-') || !arg.includes('/')) continue;
         let p; try { p = real(path.resolve(cwd, arg)); } catch { continue; }
-        if (within(p)) return 'this';
+        if (within(p)) return ours;
       }
-
-
-
-
-      const theirMnt = mntOf('/proc/' + pid + '/ns/mnt');
-      if (myMnt && theirMnt && theirMnt !== myMnt && myRoot) { let theirRoot = null; try { theirRoot = rootOf('/proc/' + pid + '/root'); } catch {                   } if (theirRoot && theirRoot !== myRoot) { let here = true; try { real(cwd); } catch { here = false; } if (!here) return null; } }
-      let name = ''; try { name = read('/proc/' + pid + '/comm').trim(); } catch {                                         }
-      return isForwarder(name) || holdsProject(cwd) || inCheckout(cwd) ? null : 'other';
+      if (contained) { let here = true; try { real(cwd); } catch { here = false; } if (!here) return null; }
+      let program = null; try { program = link('/proc/' + pid + '/exe'); } catch {                                                 }
+      return isForwarder(program) || holdsProject(cwd) || inCheckout(cwd) ? null : 'other';
     };
     return verdict([...new Set([...holders.values()].flatMap((s) => [...s]))].map(ownerOf));
   }
@@ -112,15 +168,19 @@ export function portOwner(port, projectDir, look = {}) {
     let out; try { out = run('/usr/sbin/lsof', ['-nP', '-iTCP:' + port, '-sTCP:LISTEN', '-Fpn']); } catch { return null; }
     const pids = [...new Set(String(out).split('\\n').filter((l) => /^p\\d+$/.test(l)).map((l) => l.slice(1)))];
     return verdict(pids.map((pid) => {
-      let cwdOut; try { cwdOut = run('/usr/sbin/lsof', ['-a', '-p', pid, '-d', 'cwd', '+c', '0', '-Fcn']); } catch { return null; }
-      const lines = String(cwdOut).split('\\n');
-      const line = lines.find((l) => l.startsWith('n/'));
-      if (!line) return null;
-      let cwd; try { cwd = real(line.slice(1)); } catch { cwd = line.slice(1); }
+      let cwdOut; try { cwdOut = run('/usr/sbin/lsof', ['-a', '-p', pid, '-d', 'cwd,txt', '-Ffn']); } catch { return null; }
+
+      const files = []; let kind = null;
+      for (const l of String(cwdOut).split('\\n')) { if (l.startsWith('f')) kind = l.slice(1); else if (l.startsWith('n') && kind !== null) { files.push([kind, l.slice(1)]); kind = null; } }
+      const found = files.find(([k, n]) => k === 'cwd' && n.startsWith('/'));
+      if (!found) return null;
+      let cwd; try { cwd = real(found[1]); } catch { cwd = found[1]; }
 
 
-      const name = (lines.find((l) => l.startsWith('c')) || '').slice(1).trim();
-      return within(cwd) || isForwarder(name) || holdsProject(cwd) || inCheckout(cwd) ? null : 'other';
+      const program = (files.find(([k]) => k === 'txt') || [])[1] || null;
+
+      if (!program || !program.startsWith('/') || / \\(\\/dev\\/[^)]*\\)$/.test(program)) return null;
+      return within(cwd) || isForwarder(program) || holdsProject(cwd) || inCheckout(cwd) ? null : 'other';
     }));
   }
   return null;
@@ -181,28 +241,170 @@ function commandLinePort(line, readPrefixed) {
 
 const START_SHAPE = /^[A-Za-z0-9][A-Za-z0-9 :_./=@+-]{0,79}$/;
 
-const START_PROGRAM = /^(?:python3?|node|deno|bun|npm|pnpm|yarn|go|cargo|php|ruby|bin\\/rails|rails|bundle|flask|uvicorn|gunicorn|hypercorn|streamlit|dotnet|make|just|mix|hugo|jekyll)(?:\\s|$)/;
 
-
-const NOT_A_START = /(?:^|\\s|:|\\.)(?:install|uninstall|add|remove|rm|i|ci|update|upgrade|get|rebuild|test|build|lint|migrate|init|create|setup|clone|freeze|format|fmt|check|vet|publish|release|deploy|push|clean|drop|reset|delete|destroy|down|stop)(?:\\s|$|:)|^(?:npm|pnpm|yarn|bun)\\s(?:.*\\s)?up(?:\\s|$)|\\bpip3?\\b|\\bvenv\\b|^(?:yarn|bundle|pnpm|npm|bun)(?:\\s+-\\S*(?:\\s+[^-\\s]\\S*)?)*$/;
+const NOT_A_START = /(?:^|\\s|:|\\.)(?:install|uninstall|add|remove|rm|i|ci|update|upgrade|get|rebuild|test|build|lint|migrate|init|create|setup|clone|freeze|format|fmt|check|vet|publish|release|deploy|push|upload|yank|clean|drop|reset|delete|destroy|down|stop|flush|wipe)(?:\\s|$|:)|^(?:npm|pnpm|yarn|bun)\\s(?:.*\\s)?up(?:\\s|$)|\\bpip3?\\b|\\bvenv\\b|^(?:yarn|bundle|pnpm|npm|bun)(?:\\s+-\\S*(?:\\s+[^-\\s]\\S*)?)*$/;
 
 const PY_MAIN = /^if\\s+__name__\\s*==\\s*['"]__main__['"]\\s*:/m;
 const PY_SERVES = /\\b(?:http\\.server|HTTPServer|serve_forever|socketserver|wsgiref|make_server\\(|app\\.run\\(|uvicorn\\.run\\(|web\\.run_app\\()/;
 
 
-const FETCHES = /:\\/\\/|[^\\s=]@\\S|^(?:npm|deno|bun)\\s(?:.*\\s)?(?:exec|x)(?:\\s|$)|^(?:pnpm|yarn)\\s(?:.*\\s)?dlx(?:\\s|$)|(?:^|\\s)(?:npm|jsr):\\S|-m\\s+(?:pipx|uv)(?:\\s|$)/;
-const isStartLine = (c) => START_SHAPE.test(c) && START_PROGRAM.test(c) && !NOT_A_START.test(c) && !FETCHES.test(c);
+const START_WORD = /^(?:start|dev|serve|server|preview|watch|develop|up|web|app)(?:[:_-][A-Za-z0-9_.-]+)?$/;
+
+const PATH_OUT = /^\\/|(?:^|\\/)\\.\\.(?:\\/|$)/;
+
+
+const pathWord = (kind, test) => Object.assign(test, { kind });
+const relativeWord = (word) => /^(?:\\.\\/)?[A-Za-z0-9_][A-Za-z0-9_./-]*$/.test(word) && !PATH_OUT.test(word);
+const fileOf = (extensions) => pathWord('file', (word) => relativeWord(word) && extensions.test(word));
+const JS_FILE = fileOf(/\\.(?:[cm]?js|[cm]?ts|jsx|tsx)$/); const PY_FILE = fileOf(/\\.py$/); const RB_FILE = fileOf(/\\.rb$/); const GO_FILE = fileOf(/\\.go$/);
+const MANAGE_PY = pathWord('file', (word) => word === 'manage.py' || word === './manage.py'); const ARTISAN = pathWord('file', (word) => word === 'artisan');
+const DIR = pathWord('dir', relativeWord); const GO_PACKAGE = pathWord('dir', (word) => /^\\.\\/[A-Za-z0-9_]/.test(word) && relativeWord(word));
+
+const APP = /^[A-Za-z_][A-Za-z0-9_.]*:[A-Za-z_][A-Za-z0-9_]*$/; const MODULE = /^[A-Za-z_][A-Za-z0-9_.]*$/;
+const PORT = /^\\d{1,5}$/;
+
+const ADDRESS = /^(?:localhost|\\d{1,3}(?:\\.\\d{1,3}){3})(?::\\d{1,5})?$/;
+
+const SOURCE_FILE = /\\.(?:[cm]?[jt]sx?|py|rb|go)$/;
+
+const NAME = (word) => START_WORD.test(word) && !SOURCE_FILE.test(word);
+
+
+
+
+const SCRIPT_ARGS = { '--port': 'port', '-p': 'port', '--host': 'host?' };
+const START_SHAPES = {
+
+  bun: { shapes: [['run', JS_FILE], [JS_FILE]], flags: SCRIPT_ARGS, where: 'after' },
+  node: { shapes: [[JS_FILE]], flags: SCRIPT_ARGS, where: 'after' },
+  deno: { shapes: [['task', NAME], ['run', '-A', JS_FILE], ['run', '--allow-all', JS_FILE], ['run', '--allow-net', JS_FILE]], flags: SCRIPT_ARGS, where: 'after' },
+  python: { shapes: [[PY_FILE], ['-m', 'http.server'], ['-m', 'http.server', PORT], ['-m', 'flask', 'run'], ['-m', 'uvicorn', APP], [MANAGE_PY, 'runserver'], [MANAGE_PY, 'runserver', (word) => PORT.test(word) || ADDRESS.test(word)]], flags: { ...SCRIPT_ARGS, '--bind': 'host', '--reload': 'same' }, where: 'after' },
+  flask: { shapes: [['run'], ['--app', MODULE, 'run']], flags: { '--host': 'host', '-h': 'host', '--port': 'port', '-p': 'port', '--reload': 'same' }, where: 'after' },
+  uvicorn: { shapes: [[APP]], flags: { '--host': 'host', '--port': 'port', '--reload': 'same' }, where: 'anywhere' },
+  gunicorn: { shapes: [[APP]], flags: { '-b': 'host', '--bind': 'host' }, where: 'anywhere' }, hypercorn: { shapes: [[APP]], flags: { '-b': 'host', '--bind': 'host' }, where: 'anywhere' },
+  streamlit: { shapes: [['run', PY_FILE]], flags: {}, where: 'after' },
+  rails: { shapes: [['server'], ['s']], flags: { '-p': 'port', '--port': 'port', '-b': 'host', '--binding': 'host' }, where: 'after' },
+  'bin/rails': { shapes: [['server'], ['s']], flags: { '-p': 'port', '--port': 'port', '-b': 'host', '--binding': 'host' }, where: 'after' },
+  bundle: { shapes: [['exec', 'rails', 'server'], ['exec', 'rails', 's'], ['exec', 'puma'], ['exec', 'puma', '-C', RB_FILE], ['exec', 'jekyll', 'serve']], flags: { '-p': 'port', '--port': 'port', '-b': 'host', '--binding': 'host', '--host': 'host' }, where: 'after' },
+  ruby: { shapes: [[RB_FILE]], flags: SCRIPT_ARGS, where: 'after' },
+  go: { shapes: [['run', '.'], ['run', GO_PACKAGE], ['run', GO_FILE]], flags: SCRIPT_ARGS, where: 'after' },
+  cargo: { shapes: [['run']], flags: { '--release': 'same' }, where: 'after' },
+  dotnet: { shapes: [['run'], ['watch'], ['watch', 'run']], flags: {}, where: 'after' },
+  make: { shapes: [['run'], [NAME]], flags: {}, where: 'after' }, just: { shapes: [['run'], [NAME]], flags: {}, where: 'after' },
+  php: { shapes: [['-S', ADDRESS], ['-S', ADDRESS, '-t', DIR], [ARTISAN, 'serve']], flags: {}, where: 'after' },
+  hugo: { shapes: [['server'], ['serve']], flags: { '--port': 'port', '-p': 'port', '--bind': 'host' }, where: 'after' },
+  jekyll: { shapes: [['serve'], ['s']], flags: { '--port': 'port', '--host': 'host' }, where: 'after' },
+  mix: { shapes: [['phx.server']], flags: {}, where: 'after' },
+};
+START_SHAPES.python3 = START_SHAPES.python;
+
+
+
+const DEV_TOOLS = {
+  vite: [[], ['dev'], ['serve'], ['preview']], next: [['dev'], ['start']], nuxt: [['dev']], nuxi: [['dev']], astro: [['dev']], ng: [['serve']],
+  'react-scripts': [['start']], expo: [['start']], webpack: [['serve']], gatsby: [['develop']], 'vue-cli-service': [['serve']], 'svelte-kit': [['dev']],
+};
+const DEV_TOOL_FLAGS = { '--port': 'port', '-p': 'port', '--host': 'host?', '--hostname': 'host', '-H': 'host' };
+
+
+
+const NPM_FALLBACK_NAMES = new Set(['start', 'restart']);
+
+const shapeOf = (shapes, words) => shapes.find((shape) => shape.length === words.length && shape.every((part, at) => (typeof part === 'string' ? part === words[at] : typeof part === 'function' ? part(words[at]) : part.test(words[at]))));
+
+
+function withoutFlags(words, flags, where) {
+  const kept = []; let seenFlag = false;
+  for (let at = 0; at < words.length; at++) {
+    const word = words[at]; const [name, attached] = word.startsWith('-') && word.includes('=') ? [word.slice(0, word.indexOf('=')), word.slice(word.indexOf('=') + 1)] : [word, null];
+    const kind = Object.hasOwn(flags, name) ? flags[name] : undefined;
+    if (kind === undefined) { if (seenFlag && where === 'after') return null; kept.push(word); continue; }
+    seenFlag = true;
+    if (kind === 'same') { if (attached !== null) return null; continue; }
+    const value = attached ?? (words[at + 1] !== undefined && !words[at + 1].startsWith('-') ? words[++at] : null);
+    if (value === null ? kind !== 'host?' : !(kind === 'port' ? PORT : ADDRESS).test(value)) return null;
+  }
+  return kept;
+}
+
+
+
+function startShape(command, anyScript = false) {
+  if (!START_SHAPE.test(command) || NOT_A_START.test(command)) return null;
+  const [program, ...words] = command.split(/\\s+/);
+  const known = Object.hasOwn(START_SHAPES, program) ? START_SHAPES[program] : null;
+
+  const flags = program === 'bundle' && words[1] === 'jekyll' ? START_SHAPES.jekyll.flags : known && known.flags;
+  const rest = known ? withoutFlags(words, flags, known.where) : null;
+  const shape = rest && shapeOf(known.shapes, rest);
+
+  const programPath = program === 'bin/rails' ? [{ path: 'bin/rails', kind: 'file' }] : [];
+  if (shape) return { paths: [...programPath, ...rest.flatMap((word, at) => (typeof shape[at] === 'function' && shape[at].kind ? [{ path: word, kind: shape[at].kind }] : []))], bins: [] };
+
+
+
+
+
+  const cut = words.indexOf('--'); const passed = cut === -1 ? [] : withoutFlags(words.slice(cut + 1), SCRIPT_ARGS, 'after');
+  const plain = passed && passed.length === 0 ? withoutFlags(cut === -1 ? words : words.slice(0, cut), SCRIPT_ARGS, 'after') : null;
+  if (plain && /^(?:npm|pnpm|yarn|bun)$/.test(program)) {
+    const [verb, name] = plain.length === 1 && plain[0] === 'start' ? ['run', 'start'] : plain;
+
+
+    if (plain.length <= 2 && (verb === 'run' || (verb === 'run-script' && /^(?:npm|pnpm)$/.test(program))) && name !== 'env' && (anyScript ? /^[A-Za-z0-9][A-Za-z0-9:_.-]*$/.test(name || '') : NAME(name || ''))) {
+      return { paths: [], bins: [], ...(!anyScript || program === 'yarn' || program === 'bun' || NPM_FALLBACK_NAMES.has(name) ? { script: name } : {}) };
+    }
+  }
+  if (!anyScript) return null;
+  if (/^(?:make|just)$/.test(program) && words.length === 1 && /^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(words[0])) return { paths: [], bins: [] };
+
+  const skip = program === 'npx' || program === 'bunx' || (program === 'yarn' && words[0] !== 'dlx') ? 0 : program === 'pnpm' && words[0] === 'exec' ? 1 : -1;
+  if (skip === -1) return null;
+  const [tool, ...toolWords] = words.slice(skip); const toolRest = tool && withoutFlags(toolWords, DEV_TOOL_FLAGS, 'after');
+  if (tool && toolRest && Object.hasOwn(DEV_TOOLS, tool) && shapeOf(DEV_TOOLS[tool], toolRest)) return { paths: [], bins: [tool] };
+  return null;
+}
+
+function isYarnTool(command) { const [manager, tool] = String(command).trim().split(/\\s+/); return manager === 'yarn' && Object.hasOwn(DEV_TOOLS, tool || ''); }
+
+
+
+
+function asRunForm(command, keepTools = false) {
+  const match = String(command).match(/^(pnpm|yarn|bun)\\s+(?!(?:run|run-script|exec|dlx|x)(?:\\s|$))([A-Za-z0-9][A-Za-z0-9:_.-]*)((?:\\s.*)?)$/);
+  if (!match) return command;
+  const [, manager, name, tail] = match;
+  if ((keepTools && isYarnTool(command)) || SOURCE_FILE.test(name)) return command;
+  return manager + ' run ' + name + tail;
+}
+
+function projectFile(dir, relative) { try { const p = path.join(dir, relative); return fs.lstatSync(p).isFile() && reallyInsideDir(fs.realpathSync(p), dir) ? p : null; } catch { return null; } }
+
+
+function readProjectFile(dir, relative) { const p = projectFile(dir, relative); if (!p) return null; let fd; try { fd = fs.openSync(p, fs.constants.O_RDONLY | (process.platform === 'win32' ? 0 : fs.constants.O_NOFOLLOW | fs.constants.O_NONBLOCK)); if (!fs.fstatSync(fd).isFile()) return null; const b = Buffer.alloc(65536); const n = fs.readSync(fd, b, 0, b.length, 0); return b.subarray(0, n).toString('utf8'); } catch { return null; } finally { if (fd !== undefined) try { fs.closeSync(fd); } catch {              } } }
+
+
+
+
+function startProblem(command, anyScript = false, dir = null, cwd = '.') {
+  const shape = startShape(command, anyScript); if (!shape) return 'shape';
+  if (!dir) return shape.paths.length || shape.bins.length || shape.script ? 'missing' : null;
+  const there = (relative, kind) => { try { const p = path.join(dir, cwd, relative); const real = fs.realpathSync(p); const st = fs.statSync(real); return reallyInsideDir(real, dir) && (kind === 'dir' ? st.isDirectory() : st.isFile()); } catch { return false; } };
+
+
+  const hasScript = (name) => { let pkg = null; try { pkg = JSON.parse(readProjectFile(dir, path.join(cwd, 'package.json')) ?? 'null'); } catch {                } return !!(pkg && pkg.scripts && typeof pkg.scripts === 'object' && typeof pkg.scripts[name] === 'string' && pkg.scripts[name].trim() !== ''); };
+  return shape.paths.every(({ path: p, kind }) => there(p, kind)) && shape.bins.every((tool) => there(path.join('node_modules', '.bin', tool), 'file')) && (!shape.script || hasScript(shape.script)) ? null : 'missing';
+}
+const isStartLine = (command, anyScript = false, dir = null, cwd = '.') => startProblem(command, anyScript, dir, cwd) === null;
 
 
 
 export function fallbackStarts(dir) {
 
-  const inside = (f) => { try { const p = path.join(dir, f); return fs.lstatSync(p).isFile() && reallyInsideDir(fs.realpathSync(p), dir) ? p : null; } catch { return null; } };
-  const read = (f) => { const p = inside(f); if (!p) return null; let fd; try { fd = fs.openSync(p, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0) | (fs.constants.O_NONBLOCK || 0)); if (!fs.fstatSync(fd).isFile()) return null; const b = Buffer.alloc(65536); const n = fs.readSync(fd, b, 0, b.length, 0); return b.subarray(0, n).toString('utf8'); } catch { return null; } finally { if (fd !== undefined) try { fs.closeSync(fd); } catch {              } } };
-  const out = []; const add = (command, from) => { if (isStartLine(command) && !out.some((c) => c.command === command)) out.push({ command, from }); };
-  const proc = read('Procfile'); const web = proc && proc.match(/^web:[ \\t]*(.+?)[ \\t]*$/m); if (web) add(web[1], 'Procfile web');
+  const out = []; const add = (written, from) => { const command = asRunForm(written); if (isStartLine(command, false, dir) && !out.some((c) => c.command === command)) out.push({ command, from }); };
+  const proc = readProjectFile(dir, 'Procfile'); const web = proc && proc.match(/^web:[ \\t]*(.+?)[ \\t]*$/m); if (web) add(web[1], 'Procfile web');
   for (const name of ['README.md', 'readme.md', 'README.markdown', 'README']) {
-    const text = read(name); if (text === null) continue;
+    const text = readProjectFile(dir, name); if (text === null) continue;
     const lines = text.split(/\\r?\\n/); let heading = ''; let before = [];
     for (let i = 0; i < lines.length && out.length < 3; i++) {
       const l = lines[i];
@@ -216,13 +418,13 @@ export function fallbackStarts(dir) {
       const context = (heading + ' ' + before.join(' ')).toLowerCase(); before = [];
       if (commands.length !== 1) continue;
       const command = commands[0]; const file = command.split(/\\s+/)[1];
-      const runsOwnFile = !!file && !file.startsWith('-') && !file.includes('..') && !path.isAbsolute(file) && !!inside(file);
+      const runsOwnFile = !!file && !file.startsWith('-') && !file.includes('..') && !path.isAbsolute(file) && !!projectFile(dir, file);
       if (/\\b(?:run|runs|running|start|starts|serve|serves|launch)\\b/.test(context) || runsOwnFile) add(command, name + ' (a code block of one command)');
     }
     break;
   }
   if (out.length) return out;
-  for (const f of ['app.py', 'main.py', 'server.py', 'run.py']) { const t = read(f); if (t !== null && PY_MAIN.test(t) && PY_SERVES.test(t)) add('python3 ' + f, f + ' (serves when run)'); }
+  for (const f of ['app.py', 'main.py', 'server.py', 'run.py']) { const t = readProjectFile(dir, f); if (t !== null && PY_MAIN.test(t) && PY_SERVES.test(t)) add('python3 ' + f, f + ' (serves when run)'); }
   return out;
 }
 
@@ -292,17 +494,26 @@ export function discoverDevServer(cfg, { inSandbox = false } = {}) {
 
 
 
+
   const launchPort = cfg.launch && Number.isInteger(Number(cfg.launch.port)) && Number(cfg.launch.port) >= 1024 && Number(cfg.launch.port) <= 65535 ? Number(cfg.launch.port) : null;
   if (launchPort) { found.portHints = [launchPort, ...found.portHints.filter((p) => p !== launchPort)]; found.portHintsSource = '.claude/launch.json'; found.portHintFrom[launchPort] = '.claude/launch.json'; }
   if (cfg.launch && cfg.launch.command) {
-    const lc = cfg.launch.command.trim().replace(/^(yarn|pnpm|bun)\\s+(?!run\\b)([A-Za-z0-9:_.-]+)$/, '$1 run $2');
+
+    const lc = asRunForm(cfg.launch.command.trim(), true);
     const lcPm = (lc.match(/^(npm|yarn|pnpm|bun)\\b/) || [])[1] || null;
     const repoPms = pkg ? packageManagerSignals(dir, pkg) : { pm: null, signals: [], conflict: false };
     const cwdRel = cfg.launch.cwd && typeof cfg.launch.cwd === 'string' ? (path.relative(dir, path.resolve(dir, cfg.launch.cwd)) || '.') : null;
     const cwdOk = !cwdRel || (!cwdRel.startsWith('..') && !path.isAbsolute(cwdRel) && fs.existsSync(path.join(dir, cwdRel)) && reallyInsideDir(path.join(dir, cwdRel), dir));
     let lcUse = lc; let lcFrom = '.claude/launch.json';
-    if (lcPm && repoPms.pm && lcPm !== repoPms.pm && !repoPms.conflict) { lcUse = lc.replace(/^(npm|yarn|pnpm|bun)\\b/, repoPms.pm).replace(/^(yarn|pnpm|bun)\\s+(?!run\\b)([A-Za-z0-9:_.-]+)$/, '$1 run $2'); lcFrom = '.claude/launch.json (says ' + lcPm + '; the repo uses ' + repoPms.pm + ' per ' + repoPms.signals[0].from + ', so translated)'; found.launchIgnored = '.claude/launch.json runs "' + lcPm + '" but the repo uses ' + repoPms.pm + ' (' + repoPms.signals[0].from + ') — its command is listed translated to ' + repoPms.pm + ', not trusted as written'; }
+
+
+
+    if (lcPm && repoPms.pm && lcPm !== repoPms.pm && repoPms.pm !== 'bun' && !repoPms.conflict && !/^(?:pnpm|yarn)\\s+(?:dlx|exec)\\b/.test(lc)) { lcUse = isYarnTool(lc) ? lc.replace(/^yarn\\b/, repoPms.pm) : asRunForm(lc.replace(/^(npm|yarn|pnpm|bun)\\b/, repoPms.pm)); lcFrom = '.claude/launch.json (says ' + lcPm + '; the repo uses ' + repoPms.pm + ' per ' + repoPms.signals[0].from + ', so translated)'; found.launchIgnored = '.claude/launch.json runs "' + lcPm + '" but the repo uses ' + repoPms.pm + ' (' + repoPms.signals[0].from + ') — its command is listed translated to ' + repoPms.pm + ', not trusted as written'; }
     if (!cwdOk) found.launchIgnored = '.claude/launch.json names a working directory outside or missing from the project (' + String(cfg.launch.cwd).replace(/[^\\x20-\\x7e]/g, ' ').slice(0, 60) + ') and is ignored';
+
+    else if (startProblem(lcUse, true, dir, cwdRel || '.')) found.launchIgnored = startProblem(lcUse, true, dir, cwdRel || '.') === 'missing'
+      ? '.claude/launch.json names a file, a folder, a package.json script or an installed program (node_modules/.bin) that is not in the project, and is ignored. The start comes from the project\\'s other files, or the person is asked for it; installing the project\\'s packages makes an installed program count'
+      : '.claude/launch.json names a command that is not one of the start commands Claude Test knows (a plain start with a port or a host at most), and is ignored; the start comes from the project\\'s other files, or the person is asked for it';
     else if (/^[A-Za-z0-9][A-Za-z0-9 :_./=-]{0,80}$/.test(lcUse)) {
       candidates.push({ command: lcUse, from: lcFrom + (cwdRel && cwdRel !== '.' ? ' (cwd: ' + cwdRel + ')' : ''), cwd: cwdRel && cwdRel !== '.' ? cwdRel : null });
 

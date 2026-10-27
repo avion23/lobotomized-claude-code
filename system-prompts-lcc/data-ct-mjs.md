@@ -4,7 +4,7 @@ description: >-
   claude-test helper script (skills/run/scripts/ct.mjs) that the run skill has
   the model execute; its JSON output (status notes, needsInput questions,
   forClaude remedies, write-spec/file/finish errors) is read by the model.
-ccVersion: 2.1.308
+ccVersion: 2.1.310
 -->
 #!/usr/bin/env node
 
@@ -35,7 +35,7 @@ import http from 'node:http';
 import https from 'node:https';
 import net from 'node:net';
 import { fileURLToPath } from 'node:url';
-import { SECRET_FILE, loadConfig, commandLineClean, consentKey, localPortOf, readConsent, writeConsent, isLocalHost, reallyInsideDir, insideOpenedFolder, fromComment, listSpecs, ensureRunsDir, assertRunsDirInsideProject, parseSpec, mintSpecId, withSpecId, shown, shownDeep, shownText, draftTextFault, specNameOk, parseDotenv, resolveProjectDir, projectDirReason, projectsBelow, sessionRoot, specsDirProblem, appPointerInfo, rootConfiguresItself, sanitizeBrowserEnv, trackedClaudeTestSymlinks, RC_FILE, safeGit, gitOff, RUN_ID, joinWrappedCriteria, stemOk, withoutPrivateFolders, affectedPlan, fixPlan, touchedSince, reachesOnlyThisMachine, appRelative, RUN_PLACEHOLDER } from './lib/config.mjs';
+import { madeHereKey, madeHereMac, SECRET_FILE, loadConfig, commandLineClean, readStart, forgetStart, consentKey, localPortOf, readConsent, writeConsent, isLocalHost, reallyInsideDir, insideOpenedFolder, fromComment, listSpecs, ensureRunsDir, assertRunsDirInsideProject, parseSpec, mintSpecId, withSpecId, shown, shownDeep, shownText, draftTextFault, specNameOk, parseDotenv, resolveProjectDir, projectDirReason, projectsBelow, sessionRoot, specsDirProblem, appPointerInfo, rootConfiguresItself, sanitizeBrowserEnv, trackedClaudeTestSymlinks, RC_FILE, safeGit, gitOff, RUN_ID, joinWrappedCriteria, stemOk, withoutPrivateFolders, affectedPlan, fixPlan, touchedSince, reachesOnlyThisMachine, appRelative, RUN_PLACEHOLDER } from './lib/config.mjs';
 import { ALLOW_TOOL, UP_TOOL, SHOW_TOOL } from './lib/allow-tool.mjs';
 import { runFolders, runStart, writeInRunFolder, withinProject, writingIn as writingInFolder, keepsCreationTime, insideSomeCheckout, RUNNER_WORDS, LOG_MD_BYTES } from './lib/runs.mjs';
 import { livePageFile, livePagePlan, prefsPath, readPrefs, writePrefs, openByHand } from './lib/open-page.mjs';
@@ -43,8 +43,9 @@ import { pathToFileURL } from 'node:url';
 import { groupRefusedHosts, plainHostName, isBrowserServiceHost } from './lib/hosts.mjs';
 import { toolsDir, mcpCliPath, installTools, toolsInstallInfo, findInstalledBrowser, INSTALLED_BROWSER_NAMES, browserSelection, browsersDir, useOwnBrowsersIfPresent, toolsProblem, browserProblem, chromeSandboxProblem, downloadBrowser, testBrowserMissing, browserMissingLibraries, wantsHeaded } from './lib/tools.mjs';
 import { listSkills, authFileInfo, bypassHints } from './lib/signin.mjs';
-import { readJson, discoverDevServer, candidateList, COMMON_PORTS, portOwner, recentWorkFrom, RECENT_COMMITS, RECENT_BULK } from './lib/discover.mjs';
+import { readJson, discoverDevServer, candidateList, COMMON_PORTS, portOwner, cdTo, cdAndStart, recentWorkFrom, RECENT_COMMITS, RECENT_BULK } from './lib/discover.mjs';
 import { environmentReport } from './lib/envreport.mjs';
+import { writeReport } from './lib/live-page.mjs';
 
 const args = process.argv.slice(2);
 const projectDir = resolveProjectDir();
@@ -91,15 +92,10 @@ function getOnce(url, timeoutMs = 8000) {
   return new Promise((resolve) => {
     const lib = url.startsWith('https:') ? https : http;
     const req = lib.get(url, { timeout: timeoutMs, headers: { 'user-agent': 'claude-test/0.1' } }, (res) => {
-      let body = '';
-      res.setEncoding('utf8');
-      res.on('data', (c) => { if (body.length < 4096) body += c; });
-      res.on('end', () => {
 
-        const rawTitle = (body.match(/<title[^>]*>([^<]{0,200})<\\/title>/i) || [])[1] || null;
-        const title = rawTitle === null ? null : rawTitle.replace(/[\\u0000-\\u001f\\u007f]+/g, ' ').trim().slice(0, 100);
-        resolve({ up: true, status: res.statusCode, contentType: res.headers['content-type'] || null, title });
-      });
+
+      resolve({ up: true, status: res.statusCode });
+      res.destroy();
     });
     req.on('timeout', () => { req.destroy(); resolve({ up: null, error: 'timeout (no answer within ' + timeoutMs + ' ms) — unknown, not down; a dev server compiling its first page does this' }); });
     req.on('error', (e) => resolve(e.code !== 'ECONNREFUSED' || IN_SANDBOX ? { up: null, error: SANDBOX_CODES.has(e.code) || IN_SANDBOX ? 'blocked' : 'unknown', code: e.code, blocked: (SANDBOX_CODES.has(e.code) || IN_SANDBOX ? 'this process is not permitted to connect to ' + new URL(url).host + ' (' + e.code + ') — a sandbox (Claude Code\\'s, or the OS\\'s) is denying loopback connections' : 'connecting to ' + new URL(url).host + ' from the shell failed with ' + (e.code || e.message) + ', which is not a plain refusal') + '; the server may well be running — only the browser preflight decides' } : { up: false, error: 'refused (ECONNREFUSED) — nothing accepted the connection from the shell; still only advisory: the browser preflight decides' }));
@@ -141,14 +137,6 @@ function markedByClaudeTestDir(dir) { try { const ents = fs.readdirSync(path.joi
 
 
 function safeRel(rel) { return typeof rel === 'string' && rel.length > 0 && rel.length <= 80 && /^[\\w.@+ /-]+$/.test(rel) && !rel.split('/').includes('..') ? rel : null; }
-
-
-
-
-
-function cdTo(projectDir, cwd) { const dir = path.resolve(projectDir, cwd || '.'); const front = 'cd \\'' + dir + '\\' && '; return process.platform !== 'win32' && !/['"\\\\!\\u2018-\\u201F]/.test(dir) && (dir === projectDir || dir.startsWith(projectDir + path.sep)) && reallyInsideDir(dir, projectDir) && front.length <= 900 && shown(front, 2000) === front && commandLineClean(front) ? front : null; }
-
-function cdAndStart(projectDir, cwd, command) { const front = cdTo(projectDir, cwd); return front && typeof command === 'string' && command && front.length + command.length <= 900 ? front + command : null; }
 function hasDevScript(d) { const pkg = readJson(path.join(d, 'package.json')); return !!(pkg && pkg.scripts && ['dev', 'start'].some((s) => pkg.scripts[s] || Object.keys(pkg.scripts).some((k) => k.startsWith(s + ':')))); }
 function looksLikeApp(d) { const pkg = readJson(path.join(d, 'package.json')); return !!(pkg && pkg.scripts && ['dev', 'start', 'serve', 'preview'].some((s) => pkg.scripts[s] || Object.keys(pkg.scripts).some((k) => k.startsWith(s + ':')))) || ['manage.py', 'Gemfile', 'mix.exs', 'go.mod', 'Cargo.toml'].some((f) => fs.existsSync(path.join(d, f))); }
 function appFoldersBelow(dir) {
@@ -273,7 +261,7 @@ async function status() {
   const ptrRoot = appPointerInfo(sessionRoot());
   if (!(ptrRoot && ptrRoot.dir) && cfg.projectDir !== sessionRoot() && projectsBelow(sessionRoot()).length >= 2 && (cfg.rcFound || cfg.signInApplies)) cfg.warnings.unshift('NOTE — the browser server of this session was configured from the session root, which has several app folders and no "app:" line: this folder\\'s own allowedOrigins and sign-in material are NOT active in it (the fence is the union of the apps\\' origins, no saved session is loaded). To test this folder signed in, add "app: ' + path.relative(sessionRoot(), cfg.projectDir) + '" to ' + path.join(sessionRoot(), RC_FILE) + ' and run /mcp → reconnect (or open Claude Code in this folder).');
   if (ptrRoot && ptrRoot.dir && ptrRoot.dir !== cfg.projectDir) cfg.warnings.unshift('NOTE — the root ' + RC_FILE + ' points the browser server at ' + path.relative(sessionRoot(), ptrRoot.dir) + ', not at this folder (' + (path.relative(sessionRoot(), cfg.projectDir) || '.') + '): this folder\\'s allowedOrigins and sign-in are not active in this session, and its address may be refused by the fence (ERR_BLOCKED_BY_CLIENT). To test this folder, change that line to "app: ' + path.relative(sessionRoot(), cfg.projectDir) + '" (or open Claude Code here) and run again.');
-  const startCommandQuestion = !dev.startCommand && dev.startCommandCandidates && dev.startCommandCandidates.length > 1 ? { key: 'startCommand', question: 'Several ways to start this app were found; which one does this machine use?', choices: dev.startCommandCandidates.slice(0, 6).map((candidate) => { const line = cdAndStart(cfg.projectDir, candidate.cwd, candidate.command); return { answer: candidate.command + (candidate.cwd ? ' (in ' + candidate.cwd + ')' : ''), rcLine: 'startCommand: ' + candidate.command, file: path.join(cfg.projectDir, RC_FILE), ...(candidate.cwd ? { cwd: candidate.cwd } : {}), ...(line ? { line } : {}) }; }), thenRun: 'run status again and carry on (when the answer came in a later turn, the person types /claude-test:run again instead)' } : null;
+  const startCommandQuestion = !dev.startCommand && dev.startCommandCandidates && dev.startCommandCandidates.length > 1 ? { key: 'startCommand', question: 'Several ways to start this app were found; which one does this machine use?', choices: dev.startCommandCandidates.slice(0, 6).map((candidate) => { const line = cdAndStart(cfg.projectDir, candidate.cwd, candidate.command); return { answer: candidate.command + (candidate.cwd ? ' (in ' + candidate.cwd + ')' : ''), command: candidate.command, rcLine: 'startCommand: ' + candidate.command, file: path.join(cfg.projectDir, RC_FILE), ...(candidate.cwd ? { cwd: candidate.cwd } : {}), ...(line ? { line } : {}) }; }), thenRun: 'run status again and carry on (when the answer came in a later turn, the person types /claude-test:run again instead)' } : null;
 
 
   const toolsPresent = !!mcpCliPath({ report: true }); const toolsWhy = toolsPresent ? toolsProblem() : null; const browserWhy = browserProblem(cfg);
@@ -315,7 +303,7 @@ async function status() {
     devServer: { baseUrl, source: baseUrlSource, up: probe ? probe.up : null, check: { name: UP_TOOL, arguments: { project: cfg.projectDir, ...(!cfg.baseUrl && listeningBefore.length ? { listening: listeningBefore } : {}) } }, verdictBy: 'the browser helper\\'s own check (devServer.check; SKILL.md §3 step 2), then the runner\\'s first page load: this view is advisory and never a reason to report the app down', ...(IN_SANDBOX || (probe && probe.blocked) || sandboxDenied ? { sandboxed: true, note: 'the shell could not check localhost reliably (' + (SANDBOX_WHY || ('connect gave ' + ((probe && probe.code) || sandboxDenied) + ', not a plain refusal')) + ' — a sandbox (typically Claude Code\\'s) or a local proxy setup), so "up" is unknown — NOT "down". Ask the browser helper, which can check localhost (devServer.check), before any run is started' + (cfg.baseUrl ? '.' : ': the address is ' + (baseUrl ? 'only a GUESS (' + baseUrlSource + ')' : 'unknown') + ' and ports cannot be scanned from here, so the preflight tries candidateUrls in order; if none serves this project, tell the user "if your server is running, tell me where — baseUrl: http://localhost:PORT in ' + RC_FILE + '; otherwise start it" rather than claiming it is down.') + ' A dev server started from inside the sandbox could not be reached by the test browser: SKILL.md §3 step 2 says how it is started outside.' } : {}), ...(candidateUrls ? { candidateUrls: candidates.filter((c) => !otherPorts.includes(c.port) && (!candAllowed.length || candAllowed.includes(candKey(c)))).map((x) => x.url) } : {}), candidates, probe, startCommand: dev.startCommand, startCommandSource: dev.startCommandSource, ...(startLine ? { startLine } : {}), ...(cdPrefix ? { cdPrefix } : {}), ...(startCommandQuestion ? { startCommandQuestion } : {}), ...(dev.startCommandCwd ? { startCommandCwd: dev.startCommandCwd } : {}), ...(dev.launchIgnored ? { launchJsonIgnored: dev.launchIgnored } : {}), ...(dev.unreadable ? { unreadable: dev.unreadable } : {}), ...(dev.startCommandNote ? { startCommandNote: dev.startCommandNote, startCommandCandidates: dev.startCommandCandidates.map((k) => { const line = cdAndStart(cfg.projectDir, k.cwd, k.command); return line ? { ...k, line } : k; }) } : {}), recipes: dev.recipes },
     setupCommand: cfg.setupCommand ? { command: cfg.setupCommand, source: RC_FILE, ...(setupLine ? { line: setupLine } : {}), note: 'The person is asked before it runs, each time (SKILL.md §3 step 3). It runs after the server answers and before the first spec, and again in later runs, so it must be safe to run twice. With no line, the person runs it.' } : null,
     browser: { allowedOrigins: cfg.allowedOrigins, reachableHosts: cfg.reachableHosts || [], pendingOrigins: cfg.pendingOrigins, pendingHosts: cfg.pendingHosts, note: (cfg.baseUrl ? 'the bundled browser only loads these origins' : 'no baseUrl yet: the bundled browser can load ONLY the candidate addresses under devServer.candidates (and their 127.0.0.1 / [::1] twins) — a baseUrl line in ' + RC_FILE + ' pins it to your app') + '; every address, a candidate found on this machine included, is opened only after the person allows it (needsConsent), once per project on this machine' },
-    tools: { installed: !!mcpCliPath({ report: true }) && !toolsProblem(), dir: toolsDir(), ...(browserMissing ? { browser: { missing: true, ...(wantsHeaded() ? { forWindow: true } : {}), command: 'node ' + fileURLToPath(import.meta.url) + ' install chromium' + (wantsHeaded() ? ' --headed' : ''), note: 'no Google Chrome that Claude Test can use here or that this run chose, and no downloaded test browser of the kind it needs' + (wantsHeaded() ? ' (with CLAUDE_TEST_HEADED=1, the full build, for a window)' : '') + '. This one command installs the tooling when it is missing and downloads the test browser; claude_test_install downloads it only from a mirror the person names. The person runs it once, in their own terminal, not with ! at the Claude Code prompt, where Claude Code\\'s sandbox can keep the download from being saved' } } : installedUse(cfg)), ...(toolsInstallInfo() ? { pinned: !!toolsInstallInfo().pinned, install: toolsInstallInfo().mode } : mcpCliPath({ report: true }) ? { pinned: 'unknown', install: 'installed without a checksum record — run install once to pin it' } : {}), ...(mcpCliPath({ report: true }) && toolsProblem() ? { problem: 'the tools folder is not private: ' + toolsProblem() + ' — the browser server refuses to run from it until fixed' } : {}), note: mcpCliPath({ report: true }) ? (toolsProblem() ? 'browser tooling present but NOT usable (see problem)' : 'browser tooling present') : 'browser tooling NOT installed here: the bundled browser server offers only browser_setup_needed / claude_test_install until the user runs "node ' + fileURLToPath(import.meta.url) + ' install" (or approves claude_test_install); the running server then loads the tooling by itself and the next run has the browser tools — /mcp → Reconnect only if it does not' },
+    tools: { installed: !!mcpCliPath({ report: true }) && !toolsProblem(), dir: toolsDir(), ...(browserMissing ? { browser: { missing: true, ...(wantsHeaded() ? { forWindow: true } : {}), command: 'node ' + fileURLToPath(import.meta.url) + ' install chromium' + (wantsHeaded() ? ' --headed' : ''), note: 'no Google Chrome that Claude Test can use here or that this run chose, and no downloaded test browser of the kind it needs' + (wantsHeaded() ? ' (with CLAUDE_TEST_HEADED=1, the full build, for a window)' : '') + '. Where the browser helper offers its install dialog (onboarding.md, "Machine"), its Accept installs the test browser, the tooling too when it is missing. Else this one command installs the tooling when it is missing and downloads the test browser; claude_test_install downloads it only from a mirror the person names. The person runs it once, in their own terminal, not with ! at the Claude Code prompt, where Claude Code\\'s sandbox can keep the download from being saved' } } : installedUse(cfg)), ...(toolsInstallInfo() ? { pinned: !!toolsInstallInfo().pinned, install: toolsInstallInfo().mode } : mcpCliPath({ report: true }) ? { pinned: 'unknown', install: 'installed without a checksum record — run install once to pin it' } : {}), ...(mcpCliPath({ report: true }) && toolsProblem() ? { problem: 'the tools folder is not private: ' + toolsProblem() + ' — the browser server refuses to run from it until fixed' } : {}), note: mcpCliPath({ report: true }) ? (toolsProblem() ? 'browser tooling present but NOT usable (see problem)' : 'browser tooling present') : 'browser tooling NOT installed here: the bundled browser server offers only browser_setup_needed / claude_test_install until the user runs "node ' + fileURLToPath(import.meta.url) + ' install" (or approves claude_test_install); the running server then loads the tooling by itself and the next run has the browser tools — /mcp → Reconnect only if it does not' },
     signIn: {
       appliesToBaseUrl: cfg.signInApplies, note: cfg.signInNote,
       storageState: cfg.storageState.inUse ? { inUse: true, source: cfg.storageState.source, path: cfg.storageState.path, ...savedSessionFacts(cfg.storageState.path) } : { inUse: false, putItAt: cfg.storageState.defaultPath },
@@ -381,7 +369,7 @@ function newRun() {
   let folders = []; try { folders = runFolders(cfg); } catch {                                      } endOldPages(cfg, folders.filter((d) => d !== path.basename(runDir)));
   try { for (const old of folders.slice(0, -8)) { const fdir = path.join(cfg.runsDir, old, 'frames'); try { if (fs.lstatSync(fdir).isDirectory()) fs.rmSync(fdir, { recursive: true, force: true }); } catch {            } } } catch {                             }
   let saveKey = null; try { saveKey = randomBytes(16).toString('hex'); fs.writeFileSync(path.join(runDir, 'save-key.sha256'), createHash('sha256').update(saveKey).digest('hex') + '\\n', { flag: 'wx', mode: 0o600 }); } catch (e) { out({ error: 'could not write this run\\'s key into ' + path.relative(cfg.projectDir, runDir) + ' (' + shown(String(e && e.message || e), 160) + '): without it the run\\'s save step refuses, so no run folder was handed out' }); try { fs.rmSync(runDir, { recursive: true, force: true }); } catch {                } process.exit(1); }
-  let markNote = null; let markWarning = null; try { fs.writeFileSync(path.join(runDir, 'made-here'), 'Claude Test made this run folder on this machine.\\n', { flag: 'wx' }); fs.linkSync(path.join(runDir, 'made-here'), path.join(runDir, 'made-here.again')); } catch (e) { try { if (insideSomeCheckout(cfg.projectDir) && !keepsCreationTime(fs.lstatSync(runDir))) markNote = 'this disk keeps neither hard links nor creation times, so the background test agent\\'s tools will not serve this run folder: run the specs from a folder on another disk'; } catch {                                                       } if (!markNote && !['ENOTSUP', 'EOPNOTSUPP', 'ENOSYS'].includes(e && e.code) && fs.existsSync(path.join(runDir, 'made-here'))) markWarning = 'Claude Test could not make made-here.again, a hard link to this run folder\\'s made-here file (error: ' + shown(String((e && e.code) || e), 40) + ').' + (e && e.code === 'EPERM' ? ' If this disk keeps no hard links (FAT or exFAT, for example), nothing changes. If a command sandbox blocked it, Claude Test cannot write new or changed tests for this run' : ' If a command sandbox blocked it, Claude Test cannot write new or changed tests for this run. Please report it with /bug'); }
+  let markNote = null; let markWarning = null; try { const key = madeHereKey(); fs.writeFileSync(path.join(runDir, 'made-here'), 'Claude Test made this run folder on this machine.\\n' + (key ? 'mac: ' + madeHereMac(key, path.basename(runDir)) + '\\n' : ''), { flag: 'wx' }); fs.linkSync(path.join(runDir, 'made-here'), path.join(runDir, 'made-here.again')); } catch (e) { try { if (insideSomeCheckout(cfg.projectDir) && !keepsCreationTime(fs.lstatSync(runDir))) markNote = 'this disk keeps neither hard links nor creation times, so the background test agent\\'s tools will not serve this run folder: run the specs from a folder on another disk'; } catch {                                                       } if (!markNote && !['ENOTSUP', 'EOPNOTSUPP', 'ENOSYS'].includes(e && e.code) && fs.existsSync(path.join(runDir, 'made-here'))) markWarning = 'Claude Test could not make made-here.again, a hard link to this run folder\\'s made-here file (error: ' + shown(String((e && e.code) || e), 40) + ').' + (e && e.code === 'EPERM' ? ' If this disk keeps no hard links (FAT or exFAT, for example), nothing changes. If a command sandbox blocked it, Claude Test cannot write new or changed tests for this run' : ' If a command sandbox blocked it, Claude Test cannot write new or changed tests for this run. Please report it with /bug'); }
 
   try { const at = gitState(cfg.projectDir); if (at) fs.writeFileSync(path.join(runDir, 'git.json'), JSON.stringify(at) + '\\n', { flag: 'wx' }); } catch {                                                                            }
   out({ runId: path.basename(runDir), runDir: path.relative(cfg.projectDir, runDir), absolute: runDir, ...(saveKey ? { saveKey } : {}), ...(markNote ? { note: markNote } : {}), ...(markWarning ? { warning: markWarning } : {}), ...(() => { const page = livePageFile(cfg, path.basename(runDir)); return { livePage: pathToFileURL(page).href, ...(openByHand(page) ? { livePageByHand: openByHand(page) } : {}), ...(() => { const plan = livePagePlan(cfg); return plan.opens ? { livePageShow: { name: SHOW_TOOL, arguments: { project: cfg.projectDir, run: path.basename(runDir) } } } : { livePageLinkOnly: plan.why }; })() }; })(), gitignore: path.join(path.dirname(cfg.runsDir), '.gitignore') });
@@ -492,6 +480,7 @@ function writeSpecCmd() {
 const FM_ALLOWED = new Map([
   ['tags', (raw, v) => /^tags\\s*:\\s*\\[\\s*creates-data\\s*\\]$/.test(raw) && Array.isArray(v) && v.length === 1 && v[0] === 'creates-data' ? 'tags: [creates-data]' : null],
   ['allow_navigation', (raw, v) => /^allow_navigation\\s*:\\s*true$/.test(raw) && v === true ? 'allow_navigation: true' : null],
+  ['area', (raw, v) => { const m = /^area\\s*:\\s*([a-z][a-z0-9-]{0,23})$/.exec(raw); return m && v === m[1] ? 'area: ' + m[1] : null; }],
 ]);
 const FROM_SUM = /^(?:\\d{1,6}(?:-\\d{1,6})?|(?=.*=)(?!.*\\/\\/)[\\d\\s.$+=×x*\\/-]{1,60})$/;
 const DEFAULT_IGNORABLE = /\\p{Default_Ignorable_Code_Point}/gu;
@@ -630,7 +619,7 @@ function fileCmd() {
   if ((key === null || !/^[0-9a-f]{32}$/.test(key) || createHash('sha256').update(key).digest('hex') !== wantKey)) { out({ error: key === null ? 'the save needs this run\\'s key: add --key <the key from your arguments, copied exactly> (mode "look" is given none, and saves nothing)' : 'that is not this run\\'s key: copy the --key value from your arguments exactly', run: runId }); process.exit(1); }
 
   if (runId !== latestRunId(cfg)) { writeInRunFolder(runDir, 'used-folder', 'Claude Test did not save drafts here: a newer run folder had been made.\\n', 0o644, withinOf(cfg)); out({ error: 'drafts are saved only from the newest run folder (' + latestRunId(cfg) + '), and only before that run has started', run: runId }); process.exit(1); }
-  const begun = fs.readdirSync(runDir).filter((e) => !['proposed', 'replaced', 'decisions.json', 'live.html', 'live-data.js', 'live.html.tmp', 'live-data.js.tmp', 'refused-hosts.json', 'save-key.sha256', 'git.json', 'made-here', 'made-here.again', 'used-folder'].includes(e) && !/^look-\\d{1,2}\\.(png|jpe?g)$/.test(e));
+  const begun = fs.readdirSync(runDir).filter((e) => !['proposed', 'replaced', 'decisions.json', 'live.html', 'live-data.js', 'live.html.tmp', 'live-data.js.tmp', 'refused-hosts.json', 'save-key.sha256', 'git.json', 'made-here', 'made-here.again', 'used-folder', 'outline-asked.json', 'pane.json'].includes(e) && !/^look-\\d{1,2}\\.(png|jpe?g)$/.test(e));
   if (begun.length) { writeInRunFolder(runDir, 'used-folder', 'Claude Test did not save drafts here: a run had already started in this folder.\\n', 0o644, withinOf(cfg));                                    out({ error: 'this run has already started (its folder holds ' + shown(begun.slice(0, 3).join(', '), 120) + '): drafts are saved only before the first page is loaded', run: runId }); process.exit(1); }
   const dir = path.join(runDir, 'proposed');
 
@@ -764,7 +753,7 @@ function specsNotFiled(cfg, specs) {
   return list;
 }
 function pluginVersion() { for (const rel of ['../../../.claude-plugin/plugin.json', '../../../../.claude-plugin/plugin.json']) { const j = readJson(path.resolve(path.dirname(fileURLToPath(import.meta.url)), rel)); if (j && j.name === 'claude-test' && typeof j.version === 'string') return j.version; } return null; }
-
+function pluginDigest() { const m = /^\\d+\\.\\d+\\.\\d+-([0-9a-f]{12})$/.exec(path.basename(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..'))); return m ? m[1] : null; }
 
 function writeResults(cfg, runDir, results) {
   let reason = ''; if (writeInRunFolder(runDir, 'results.json', JSON.stringify(results, null, 2) + '\\n', 0o644, withinOf(cfg), (words) => { reason = words; })) return;
@@ -821,6 +810,10 @@ function rememberDue(cfg, runId) {
 }
 
 
+function reportAfter(cfg, runDir, results) {
+  try { writeReport(cfg, runDir, results, withinOf(cfg)); } catch {                 }
+}
+
 
 
 function finishCmd() {
@@ -840,8 +833,8 @@ function finishCmd() {
   const { refusedHosts, pageLeftAppFor, hostsRefused } = refusedTally(cfg, runDir);
   if (!rep.rows.length && !rep.blockedReason && rep.needsInput) {
     const missing = (logText.match(/^missing: (\\S+) in (.+)$/m) || []).slice(1, 3);
-    const results = { schema: 'claude-test-results/1', tool: 'claude-test', toolVersion: pluginVersion(), runId, startedAt: runStart(runId).toISOString(), finishedAt: finishedAt.toISOString(), runnerSeconds, hostsRefused, blockedWord: blockedWord(cfg, runDir, 'needs-input', null, whyGiven), git: gitFor(cfg, runId), baseUrl: null, outcome: 'needs-input', ...(missing.length ? { missing: { key: shown(missing[0], 60), file: shown(missing[1], 200) } } : {}), counts: { specs: 0, passed: 0, failed: 0, blocked: 0 }, specs: [] };
-    writeResults(cfg, runDir, results);
+    const results = { schema: 'claude-test-results/1', tool: 'claude-test', toolVersion: pluginVersion(), toolDigest: pluginDigest(), runId, startedAt: runStart(runId).toISOString(), finishedAt: finishedAt.toISOString(), runnerSeconds, hostsRefused, blockedWord: blockedWord(cfg, runDir, 'needs-input', null, whyGiven), git: gitFor(cfg, runId), baseUrl: null, outcome: 'needs-input', ...(missing.length ? { missing: { key: shown(missing[0], 60), file: shown(missing[1], 200) } } : {}), counts: { specs: 0, passed: 0, failed: 0, blocked: 0 }, specs: [] };
+    writeResults(cfg, runDir, results); reportAfter(cfg, runDir, results);
     out({ results: path.relative(cfg.projectDir, path.join(runDir, 'results.json')), outcome: 'needs-input', counts: results.counts }); return;
   }
   if (!rep.rows.length && !rep.blockedReason) { out({ error: 'log.md has no verdict table (| Spec | Verdict | Why | Screenshot | with one row per spec, each verdict cell holding PASS, FAIL or BLOCKED) and no "## Claude Test · BLOCKED · …" line — write the whole corrected log.md again, then finish again' }); process.exit(1); }
@@ -896,8 +889,8 @@ function finishCmd() {
 
   const full = rows.length > 0 && specs.filter((s) => !s.skipped && stemOk(path.basename(s.file, '.md'))).every((s) => rows.some((r) => r.file === s.file));
   const rememberOffer = outcome === 'passed' && rememberDue(cfg, runId);
-  const results = { schema: 'claude-test-results/1', tool: 'claude-test', toolVersion: pluginVersion(), runId, startedAt, finishedAt: finishedAt.toISOString(), runnerSeconds, hostsRefused, ...(word ? { blockedWord: word } : {}), ...(rememberOffer ? { rememberOffer: true } : {}), ...(full ? { full: true } : {}), ...(secondsPerSpec ? { secondsPerSpec } : {}), ...(refusedHosts ? { refusedHosts } : {}), ...(pageLeftAppFor ? { pageLeftAppFor } : {}), git: gitFor(cfg, runId), baseUrl: cfg.baseUrl || (rep.head && /^https?:\\/\\//.test(rep.head.baseUrl) ? rep.head.baseUrl : null), outcome, counts, ...(rep.blockedReason ? { blockedReason: rep.blockedReason } : {}), specs: rows };
-  writeResults(cfg, runDir, results);
+  const results = { schema: 'claude-test-results/1', tool: 'claude-test', toolVersion: pluginVersion(), toolDigest: pluginDigest(), runId, startedAt, finishedAt: finishedAt.toISOString(), runnerSeconds, hostsRefused, ...(word ? { blockedWord: word } : {}), ...(rememberOffer ? { rememberOffer: true } : {}), ...(full ? { full: true } : {}), ...(secondsPerSpec ? { secondsPerSpec } : {}), ...(refusedHosts ? { refusedHosts } : {}), ...(pageLeftAppFor ? { pageLeftAppFor } : {}), git: gitFor(cfg, runId), baseUrl: cfg.baseUrl || (rep.head && /^https?:\\/\\//.test(rep.head.baseUrl) ? rep.head.baseUrl : null), outcome, counts, ...(rep.blockedReason ? { blockedReason: rep.blockedReason } : {}), specs: rows };
+  writeResults(cfg, runDir, results); reportAfter(cfg, runDir, results);
   const notes = [];
   const unmatched = rows.filter((r) => !r.file).map((r) => r.name); if (unmatched.length) notes.push('rows whose Spec cell matches no spec file\\'s "# name" (file and id are null for them): ' + unmatched.join('; '));
   const files = rows.map((r) => r.file).filter(Boolean); const dup = [...new Set(files.filter((f, i) => files.indexOf(f) !== i))]; if (dup.length) notes.push('more than one row for the same spec file: ' + dup.join(', '));
@@ -971,8 +964,10 @@ function changedOf(git) { const c = git && git.changed; return Array.isArray(c) 
 
 function prefsCmd() {
   const cfg = loadConfig(projectDir);
-  if (args.length === 1) { const p = readPrefs(cfg); out({ prefs: { livePage: p.livePage === 'link' ? 'link' : 'open' }, file: prefsPath(cfg) }); return; }
-  if (args[1] !== 'live-page' || !['open', 'link'].includes(args[2]) || args.length !== 3) { out({ error: 'usage: ct.mjs prefs live-page open|link — open: a run opens its live page in your browser; link: it only prints the address' }); process.exit(2); }
+  if (args.length === 1) { const p = readPrefs(cfg); const st = readStart(cfg.projectDir); out({ prefs: { livePage: p.livePage === 'link' ? 'link' : 'open', start: st.start && typeof st.start.command === 'string' ? { command: shown(st.start.command, 400), folder: shown(String(st.start.folder), 400) } : null }, file: prefsPath(cfg), startFile: st.file, ...(st.refused ? { startProblem: st.refused } : {}) }); return; }
+
+  if (args[1] === 'start' && args[2] === 'forget' && args.length === 3) { const r = forgetStart(cfg.projectDir); if (r.why) { out({ error: shown(r.why, 600), file: r.file }); process.exit(1); } out({ ok: true, forgotten: r.removed, file: r.file, note: r.removed ? 'the next run asks again before it starts the app' : 'no start was remembered for this project on this machine' }); return; }
+  if (args[1] !== 'live-page' || !['open', 'link'].includes(args[2]) || args.length !== 3) { out({ error: 'usage: ct.mjs prefs live-page open|link — open: a run opens its live page in your browser; link: it only prints the address. ct.mjs prefs start forget \\u2014 forget the app start you accepted, so the next run asks again' }); process.exit(2); }
   const ok = writePrefs(cfg, { ...readPrefs(cfg), livePage: args[2] });
   if (!ok) { out({ error: 'could not write ' + prefsPath(cfg) }); process.exit(1); }
   out({ ok: true, livePage: args[2], file: prefsPath(cfg), note: args[2] === 'link' ? 'runs will print the live page\\'s address and open nothing' : 'a run will open its live page in your browser when it starts' });
@@ -1052,14 +1047,14 @@ async function progressCmd() {
   if (args.length === 1 || (args[1] === 'start' && args.length === 2) || startWithStems) {
     if (retried) { out({ error: 'usage: --retried goes with a verdict only: ct.mjs progress <spec file stem> PASS|FAIL|BLOCKED --retried' }); process.exit(2); }
     if (args[1] === 'start' && !startLine()) {
-      let specs = []; let names = {}; try {
-        const all = listSpecs(cfg).filter((x) => !x.skipped).map((x) => ({ stem: path.basename(x.file, '.md'), name: typeof x.name === 'string' && x.name.trim() ? x.name.trim().slice(0, 140) : null, last: Array.isArray(x.tags) && x.tags.includes('creates-data') })).filter((x) => listableStem(x.stem));
+      let specs = []; let names = {}; let areas = {}; let data = []; try {
+        const all = listSpecs(cfg).filter((x) => !x.skipped).map((x) => ({ stem: path.basename(x.file, '.md'), name: typeof x.name === 'string' && x.name.trim() ? x.name.trim().slice(0, 140) : null, area: typeof x.area === 'string' ? x.area : null, last: Array.isArray(x.tags) && x.tags.includes('creates-data') })).filter((x) => listableStem(x.stem));
         const want = startWithStems ? [...new Set(args.slice(2))] : null;
         const chosen = want ? want.map((w) => all.find((x) => x.stem === w) || { stem: w, last: false }) : all.sort((a, b) => a.stem < b.stem ? -1 : a.stem > b.stem ? 1 : 0);
         const ordered = [...chosen.filter((x) => !x.last), ...chosen.filter((x) => x.last)].slice(0, 500);
-        specs = ordered.map((x) => x.stem); names = Object.fromEntries(ordered.filter((x) => x.name).map((x) => [x.stem, x.name]));
+        specs = ordered.map((x) => x.stem); names = Object.fromEntries(ordered.filter((x) => x.name).map((x) => [x.stem, x.name])); areas = Object.fromEntries(ordered.filter((x) => x.area).map((x) => [x.stem, x.area])); data = ordered.filter((x) => x.last).map((x) => x.stem);
       } catch {                                                                       }
-      writeInRunFolder(path.join(cfg.runsDir, runId), 'names.json', JSON.stringify({ names }) + '\\n', 0o644, withinOf(cfg));
+      writeInRunFolder(path.join(cfg.runsDir, runId), 'names.json', JSON.stringify({ names, ...(Object.keys(areas).length ? { areas } : {}), ...(data.length ? { data } : {}) }) + '\\n', 0o644, withinOf(cfg));
       addLine({ event: 'start', at: new Date().toISOString(), ...(specs.length ? { specs } : {}) });
     }
     const sl = startLine(); out({ runId, file: path.relative(cfg.projectDir, file), absolute: file, ...(args[1] === 'start' && sl && Array.isArray(sl.specs) ? { order: sl.specs } : {}), ...summary(), ...(drop.length ? { drop } : {}) }); return;
@@ -1248,6 +1243,6 @@ switch (cmd) {
     process.stderr.write('ct.mjs browser is not available: specs run only through the Claude Test browser tools, which are held to the allowed addresses. Nothing was started.\\n');
     process.exit(2);
   default:
-    process.stderr.write('usage: ct.mjs status | new-run | allow [--remove <address>…] | prefs [live-page open|link] | write-spec <name…> | drafts | progress [start | <stem> <verdict> [--retried]] | changes | fix-plan | finish [--why <word>] | elapsed | install [browser]   (sign-in commands: ct-auth.mjs)\\n');
+    process.stderr.write('usage: ct.mjs status | new-run | allow [--remove <address>…] | prefs [live-page open|link | start forget] | write-spec <name…> | drafts | progress [start | <stem> <verdict> [--retried]] | changes | fix-plan | finish [--why <word>] | elapsed | install [browser]   (sign-in commands: ct-auth.mjs)\\n');
     process.exit(2);
 }

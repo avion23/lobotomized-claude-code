@@ -1,0 +1,11 @@
+<!--
+name: Bash output temp dir disk full low MB
+description: Note that the temp directory's volume has only a few MB free
+ccVersion: 2.1.310
+variables:
+  - TOOL_RESULT_BASH_OUTPUT_TEMP_DIR_DISK_FULL_LOW_MB_VAR_0
+  - TOOL_RESULT_BASH_OUTPUT_TEMP_DIR_DISK_FULL_LOW_MB_VAR_1
+  - TOOL_RESULT_BASH_OUTPUT_TEMP_DIR_DISK_FULL_LOW_MB_VAR_2
+  - TOOL_RESULT_BASH_OUTPUT_TEMP_DIR_DISK_FULL_LOW_MB_VAR_3
+-->
+Disk full: this computer's volume holding ${TOOL_RESULT_BASH_OUTPUT_TEMP_DIR_DISK_FULL_LOW_MB_VAR_0} (Claude Code's temporary directory) has ${TOOL_RESULT_BASH_OUTPUT_TEMP_DIR_DISK_FULL_LOW_MB_VAR_1} MB free, ${TOOL_RESULT_BASH_OUTPUT_TEMP_DIR_DISK_FULL_LOW_MB_VAR_2} ${TOOL_RESULT_BASH_OUTPUT_TEMP_DIR_DISK_FULL_LOW_MB_VAR_3}
