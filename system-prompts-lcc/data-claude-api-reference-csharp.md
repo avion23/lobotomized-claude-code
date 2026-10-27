@@ -4,7 +4,7 @@ description: >-
   claude-api skill reference file (Claude API reference — C#) inlined as <doc>
   or extracted for the model to Read when the skill's Reading Guide points to
   it.
-ccVersion: 2.1.296
+ccVersion: 2.1.311
 -->
 # Claude API - C#
 
@@ -17,7 +17,7 @@ Types are organized by namespace. Locate a type via this table before fetching S
 | \`using\` | Contains |
 |---|---|
 | \`Anthropic\` | \`AnthropicClient\`, top-level options |
-| \`Anthropic.Models.Messages\` | non-beta request/response types - \`MessageCreateParams\`, \`Model\`, \`Role\`, \`ContentBlock\`, \`TextBlock\`, \`ToolUseBlock\`, \`ToolResultBlockParam\`, \`Tool*\` (tool definition classes) |
+| \`Anthropic.Models.Messages\` | non-beta request/response types - \`MessageCreateParams\`, \`Model\`, \`UserMessageParam\`, \`AssistantMessageParam\`, \`ContentBlock\`, \`TextBlock\`, \`ToolUseBlock\`, \`ToolResultBlockParam\`, \`Tool*\` (tool definition classes) |
 | \`Anthropic.Models.Beta.Messages\` | beta-endpoint equivalents - \`MessageCreateParams\`, \`BetaMessage\`, \`BetaTool*\`, \`Speed\`, \`BetaRequestMcpServerUrlDefinition\`, context-editing/compaction configs |
 | \`Anthropic.Models.Beta\` | shared beta constants |
 | \`Anthropic.Models.Beta.Files\` | Files API types |
@@ -68,7 +68,7 @@ var message = await client.Messages.Create(new MessageCreateParams
 {
     Model = "{{OPUS_ID}}",
     MaxTokens = 1024,
-    Messages = [ new() { Role = Role.User, Content = "Hello, Claude" } ],
+    Messages = [ new UserMessageParam { Content = "Hello, Claude" } ],
 });
 
 Console.WriteLine(message);
@@ -88,7 +88,7 @@ var response = await client.Beta.Messages.Create(new MessageCreateParams
     Model = "{{OPUS_ID}}",
     MaxTokens = 4096,
     Betas = ["<beta-flag>"],
-    Messages = [ new() { Role = Role.User, Content = "..." } ],
+    Messages = [ new BetaUserMessageParam { Content = "..." } ],
     // Tools = new BetaToolUnion[] { new BetaSomeTool { ... } },   // for tool features
 });
 
@@ -133,7 +133,7 @@ var parameters = new MessageCreateParams
 {
     Model = "{{OPUS_ID}}",
     MaxTokens = 16000,
-    Messages = [new() { Role = Role.User, Content = "What is the capital of France?" }]
+    Messages = [new UserMessageParam { Content = "What is the capital of France?" }]
 };
 var response = await client.Messages.Create(parameters);
 
@@ -170,7 +170,7 @@ var response = await client.Messages.Create(new MessageCreateParams
     Thinking = new ThinkingConfigAdaptive { Display = Display.Summarized },
     Messages =
     [
-        new() { Role = Role.User, Content = "Solve: 27 * 453" },
+        new UserMessageParam { Content = "Solve: 27 * 453" },
     ],
 });
 
@@ -194,12 +194,12 @@ Alternative to \`TryPick*\`: \`.Select(b => b.Value).OfType<ThinkingBlock>()\` (
 
 ## Context Editing / Compaction (Beta)
 
-**Beta-namespace prefix is inconsistent** (source-verified against \`src/Anthropic/Models/Beta/Messages/*.cs\` @ 12.9.0). No prefix: \`MessageCreateParams\`, \`MessageCountTokensParams\`, \`Role\`, \`Speed\`. **Everything else has the \`Beta\` prefix**: \`BetaMessageParam\`, \`BetaMessage\`, \`BetaContentBlock\`, \`BetaToolUseBlock\`, all block param types. The unprefixed \`Role\` WILL collide with \`Anthropic.Models.Messages.Role\` if you import both namespaces (CS0104). Safest: import only Beta; if mixing, alias the beta \`Role\`:
+**Beta-namespace prefix is inconsistent** (Anthropic 13.1.0). No prefix: \`MessageCreateParams\`, \`MessageCountTokensParams\`, \`Speed\`, \`Display\`, \`Effort\`, and helper unions such as \`Tool\` and \`ContentBlock\` (a beta response's blocks are \`BetaContentBlock\`). Message and block types have it: \`BetaUserMessageParam\`, \`BetaMessage\`, \`BetaToolUseBlock\`, all block param types. Importing both namespaces makes the unprefixed names ambiguous (CS0104). Safest: import only Beta; if mixing, alias the non-beta namespace:
 
 \`\`\`csharp
 using Anthropic.Models.Beta.Messages;
 using NonBeta = Anthropic.Models.Messages;  // only if you also need non-beta types
-// Now: MessageCreateParams, BetaMessageParam, Role (beta's), NonBeta.Role (if needed)
+// Now: MessageCreateParams (beta's), NonBeta.MessageCreateParams (if needed)
 \`\`\`
 
 
@@ -237,7 +237,7 @@ if (resp.ContextManagement is { } ctx)
         Console.WriteLine($"cleared {edit.ClearedInputTokens} tokens");
 }
 
-// ROUND-TRIP: BetaMessageParam.Content is BetaMessageParamContent (a string|list
+// ROUND-TRIP: BetaAssistantMessageParam.Content is BetaMessageContentParam (a string|list
 // union). It implicit-converts from List<BetaContentBlockParam>, NOT from the
 // response's IReadOnlyList<BetaContentBlock>. Convert each block:
 List<BetaContentBlockParam> paramBlocks = [];
@@ -247,7 +247,7 @@ foreach (var b in resp.Content)
     else if (b.TryPickCompaction(out var c)) paramBlocks.Add(new BetaCompactionBlockParam { Content = c.Content });
     // ... other variants as needed
 }
-messages.Add(new BetaMessageParam { Role = Role.Assistant, Content = paramBlocks });
+messages.Add(new BetaAssistantMessageParam { Content = paramBlocks });
 \`\`\`
 
 All 15 \`BetaContentBlock.TryPick*\` variants: \`Text\`, \`Thinking\`, \`RedactedThinking\`, \`ToolUse\`, \`ServerToolUse\`, \`WebSearchToolResult\`, \`WebFetchToolResult\`, \`CodeExecutionToolResult\`, \`BashCodeExecutionToolResult\`, \`TextEditorCodeExecutionToolResult\`, \`ToolSearchToolResult\`, \`McpToolUse\`, \`McpToolResult\`, \`ContainerUpload\`, \`Compaction\`.
@@ -300,7 +300,7 @@ Verify hits via \`response.Usage.CacheCreationInputTokens\` / \`response.Usage.C
 \`\`\`csharp
 MessageTokensCount result = await client.Messages.CountTokens(new MessageCountTokensParams {
     Model = "{{OPUS_ID}}",
-    Messages = [new() { Role = Role.User, Content = "Hello" }],
+    Messages = [new UserMessageParam { Content = "Hello" }],
 });
 long tokens = result.InputTokens;
 \`\`\`
@@ -314,8 +314,7 @@ long tokens = result.InputTokens;
 \`DocumentBlockParam\` takes a \`DocumentBlockParamSource\` union: \`Base64PdfSource\` / \`UrlPdfSource\` / \`PlainTextSource\` / \`ContentBlockSource\`. \`Base64PdfSource\` auto-sets \`MediaType = "application/pdf"\` and \`Type = "base64"\`.
 
 \`\`\`csharp
-new MessageParam {
-    Role = Role.User,
+new UserMessageParam {
     Content = new List<ContentBlockParam> {
         new DocumentBlockParam { Source = new Base64PdfSource { Data = base64String } },
         new TextBlockParam { Text = "Summarize this PDF" },
@@ -348,7 +347,7 @@ var one = await client.Models.Retrieve("{{OPUS_ID}}");
 
 Set \`MaxTokens = 128000\` on \`client.Messages\` and use the streaming path (see \`streaming.md\`). On Claude 4+ models, 128k output is native - no \`output-128k-*\` beta header or beta namespace is needed.
 
-**Prefilling the assistant message** (putting a trailing \`Role.Assistant\` message in the input) is **not supported** on {{FABLE_NAME}}, {{OPUS_NAME}}, {{PREV_OPUS_NAME}}, Opus 4.8, Opus 4.7, Opus 4.6, Sonnet 4.6, and {{HAIKU_NAME}} - requests return a 400. Use \`OutputConfig.Format\` (structured outputs) instead.
+**Prefilling the assistant message** (putting a trailing \`AssistantMessageParam\` in the input) is **not supported** on {{FABLE_NAME}}, {{OPUS_NAME}}, {{PREV_OPUS_NAME}}, Opus 4.8, Opus 4.7, Opus 4.6, Sonnet 4.6, and {{HAIKU_NAME}} - requests return a 400. Use \`OutputConfig.Format\` (structured outputs) instead.
 
 ## Stop Details
 
@@ -362,7 +361,7 @@ if (response.StopReason == "refusal" && response.StopDetails is { } details)
 }
 \`\`\`
 
-**Refusal fallbacks ({{FABLE_NAME}}) - opt in by default.** Fallbacks are opt-in: without them a refused request simply stops. In \`{{FABLE_ID}}\` code, include \`Fallbacks = [new(Model.ClaudeOpus4_8)]\` plus the \`AnthropicBeta.ServerSideFallback2026_06_01\` beta on the beta messages call by default - a policy decline is re-served by the fallback model inside the same call. Not available on Amazon Bedrock, Vertex AI, or Microsoft Foundry - use the client-side handler there: \`new AnthropicClient { Handlers = [new BetaRefusalFallbackHandler { Fallbacks = [new(Model.ClaudeOpus4_8)] }] }\` (namespace \`Anthropic.Helpers\`), with per-conversation state via \`BetaFallbackState.Create()\` scoped with \`using (fallbackState.Use()) { ... }\`. Full semantics (billing, sticky routing, streaming) and a runnable example: \`shared/model-migration.md\` -> Migrating to {{FABLE_NAME}} -> \`refusal\` stop reason, and the C# SDK repo's \`examples/\` (WebFetch via \`shared/live-sources.md\`).
+**Refusal fallbacks ({{FABLE_NAME}}) - opt in by default.** Fallbacks are opt-in: without them a refused request simply stops. In \`{{FABLE_ID}}\` code, include \`Fallbacks = [new(Model.ClaudeOpus4_8)]\` plus the \`AnthropicBeta.ServerSideFallback2026_06_01\` beta on the beta messages call by default - a policy decline is re-served by the fallback model inside the same call. Not available on Amazon Bedrock, Vertex AI, or Microsoft Foundry - use the client-side handler there: \`new AnthropicClient { Handlers = [new BetaRefusalFallbackHandler { Fallbacks = [new(Model.ClaudeOpus4_8)] }] }\` (namespace \`Anthropic.Helpers\`), with per-conversation state via \`BetaFallbackState.Create()\` scoped with \`using (fallbackState.Use()) { ... }\`. Full semantics (billing, sticky routing, streaming) and a runnable example: \`shared/model-migration.md\` -> Migrating to {{FABLE_NAME}} -> \`refusal\` stop reason, and the C# SDK repo's \`examples/\` (fetch it from \`shared/live-sources.md\`).
 
 ---
 

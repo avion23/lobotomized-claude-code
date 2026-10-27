@@ -4,7 +4,7 @@ description: >-
   claude-api skill reference file (Claude API Python SDK Upgrade) inlined as
   <doc> or extracted for the model to Read when the skill's Reading Guide points
   to it.
-ccVersion: 2.1.308
+ccVersion: 2.1.311
 -->
 # Upgrading the \`anthropic\` Python SDK: 0.x -> 1.x
 
@@ -12,7 +12,7 @@ ccVersion: 2.1.308
 
 \`anthropic\` 1.x is deliberately a small step from the last 0.x release: no method was restructured and no new pattern is required. Long-deprecated surface was removed, the HTTP layer moved from \`httpx\` to its maintained fork \`httpx2\`, and the minimum Python version is now 3.10. Almost every required edit is mechanical, and a type checker flags nearly all of them once 1.x is installed - which makes \`pyright\` / \`mypy\` output a good cross-check for the inventory below.
 
-The SDK repository's \`MIGRATION.md\` is the authoritative change list - WebFetch it (URL in \`shared/live-sources.md\` -> SDK major-version upgrade guides) when you can, and if it disagrees with this file, follow \`MIGRATION.md\` and say so in your report. The other Python files in this skill may still show 0.x-era details; for a project on 1.x, this file takes precedence.
+The SDK repository's \`MIGRATION.md\` is the authoritative change list - fetch it (URL in \`shared/live-sources.md\` -> SDK major-version upgrade guides) when you can, and if it disagrees with this file, follow \`MIGRATION.md\` and say so in your report. The other Python files in this skill may still show 0.x-era details; for a project on 1.x, this file takes precedence.
 
 ---
 
@@ -22,7 +22,7 @@ The SDK repository's \`MIGRATION.md\` is the authoritative change list - WebFetc
 
 **Current version.** Read the declared requirement (\`anthropic...\` in the manifests above) and, if a project environment is available, the installed one (\`python -c "import anthropic; print(anthropic.__version__)"\`). If the project is already on 1.x, skip the dependency bump and treat this as a call-site cleanup. If nothing in scope declares the dependency (a bare scripts directory, or \`anthropic\` arrives transitively), don't invent a manifest - upgrade the code and put the install command in the report.
 
-**Target version.** Before writing any pin, confirm a 1.x release is actually published: \`pip index versions anthropic\` (or \`curl -s https://pypi.org/pypi/anthropic/json\` and read \`info.version\`). Use the newest 1.x you find. If no 1.x release exists yet, stop and tell the user - do not write an uninstallable requirement. If you cannot check (no network), proceed with \`>=1,<2\` and list the unverified pin in your report. If the target release is at or past the first one whose default API version is newer than the one the code sends now (\`shared/api-version-migration.md\` -> that version's Set the version table), and the code does not set \`anthropic-version\` itself, the upgrade also moves the API version: **[DECIDE]** pin the newest 1.x below that release (if every published 1.x already sends the newer version, say so; the only choice left is to apply that version's changes first), or follow that guide's Steps 1-4, with this SDK bump as its Step 3, and report as its Step 5 says.
+**Target version.** This file stops at 1.x, which sends API version \`2023-06-01\`; 2.x sends \`2026-10-21\` and is upgraded to through \`shared/api-version-migration.md\`, which sends a project back here when it stays on 1.x. Before writing any pin, confirm a 1.x release is actually published: \`pip index versions anthropic\` (or \`curl -s https://pypi.org/pypi/anthropic/json\` and read the \`releases\` keys). Use the newest 1.x you find. If no 1.x release exists yet, stop and tell the user - do not write an uninstallable requirement. If you cannot check (no network), proceed with \`>=1,<2\` and list the unverified pin in your report.
 
 If the scope is under git, check \`git status\` before editing - unexpected modifications mean a concurrent process; stop and investigate before proceeding.
 

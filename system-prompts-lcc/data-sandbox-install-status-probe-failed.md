@@ -1,11 +1,9 @@
 <!--
 name: 'Data: Sandbox install status probe failed'
-description: >-
-  Error message for /sandbox install when the post-install status probe could
-  not be read back; emitted as <local-command-stdout> command output the model
-  sees.
-ccVersion: 2.1.214
+description: Error when the installer ran but the sandbox status could not be read back
+ccVersion: 2.1.311
 variables:
   - DATA_SANDBOX_INSTALL_STATUS_PROBE_FAILED_VAR_0
+  - DATA_SANDBOX_INSTALL_STATUS_PROBE_FAILED_VAR_1
 -->
-The installer ran, but the sandbox status couldn't be read back afterwards: ${DATA_SANDBOX_INSTALL_STATUS_PROBE_FAILED_VAR_0}. Run /sandbox to check the current status.
+The installer ran, but the sandbox status couldn't be read back afterwards: ${DATA_SANDBOX_INSTALL_STATUS_PROBE_FAILED_VAR_0}. ${DATA_SANDBOX_INSTALL_STATUS_PROBE_FAILED_VAR_1.areSandboxSettingsLockedByPolicy()?"Restart Claude Code to check again.":"Run /sandbox to check the current status."}

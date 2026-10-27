@@ -4,7 +4,7 @@ description: >-
   claude-api skill reference file (Claude API reference — PHP) inlined as <doc>
   or extracted for the model to Read when the skill's Reading Guide points to
   it.
-ccVersion: 2.1.296
+ccVersion: 2.1.311
 -->
 # Claude API - PHP
 
@@ -21,8 +21,8 @@ composer require "anthropic-ai/sdk"
 \`\`\`php
 use Anthropic\\Client;
 
-// Using API key from environment variable
-$client = new Client(apiKey: getenv("ANTHROPIC_API_KEY"));
+// Reads ANTHROPIC_API_KEY from the environment, or another configured credential such as an \`ant auth login\` profile
+$client = new Client();
 \`\`\`
 
 ### Amazon Bedrock
@@ -35,6 +35,8 @@ $client = new MantleClient(awsRegion: 'us-east-1');
 \`\`\`
 
 Model IDs on Bedrock take an \`anthropic.\` prefix - e.g. \`model: 'anthropic.{{OPUS_ID}}'\`.
+
+For a model older than Claude 4.7, pin \`anthropic-ai/sdk\` to 0.x (\`composer require "anthropic-ai/sdk:^0.61"\`): 1.0.0 and later send API version \`2026-10-21\`, which Bedrock accepts only for Claude 4.7 and later (SKILL.md -> Amazon Bedrock).
 
 ### Google Vertex AI
 
@@ -54,8 +56,8 @@ $client = Vertex\\Client::fromEnvironment(
 use Anthropic\\Foundry;
 
 // Constructor is private. baseUrl or resource is required.
-$client = Foundry\\Client::withCredentials(
-    apiKey: getenv('ANTHROPIC_FOUNDRY_API_KEY'),
+// Reads the key from ANTHROPIC_FOUNDRY_API_KEY.
+$client = Foundry\\Client::fromEnvironment(
     baseUrl: 'https://<resource>.services.ai.azure.com/anthropic/v1',
 );
 \`\`\`
@@ -166,7 +168,7 @@ if ($message->stopReason === 'refusal' && $message->stopDetails !== null) {
 }
 \`\`\`
 
-**Refusal fallbacks ({{FABLE_NAME}}) - opt in by default.** Fallbacks are opt-in: without them a refused request simply stops. New \`{{FABLE_ID}}\` code should include the server-side \`fallbacks\` parameter (beta header \`server-side-fallback-2026-06-01\`, fallback model \`claude-opus-4-8\`, on the beta messages call) by default. The exact PHP binding (and the client-side middleware for providers without server-side support) is not documented here - WebFetch the PHP SDK repo's \`examples/\` from \`shared/live-sources.md\`; full semantics in \`shared/model-migration.md\` -> Migrating to {{FABLE_NAME}} -> \`refusal\` stop reason.
+**Refusal fallbacks ({{FABLE_NAME}}) - opt in by default.** Fallbacks are opt-in: without them a refused request simply stops. New \`{{FABLE_ID}}\` code should include the server-side \`fallbacks\` parameter (beta header \`server-side-fallback-2026-06-01\`, fallback model \`claude-opus-4-8\`, on the beta messages call) by default. The exact PHP binding (and the client-side middleware for providers without server-side support) is not documented here - fetch the PHP SDK repo's \`examples/\` from \`shared/live-sources.md\`; full semantics in \`shared/model-migration.md\` -> Migrating to {{FABLE_NAME}} -> \`refusal\` stop reason.
 
 ---
 

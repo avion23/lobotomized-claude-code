@@ -1,0 +1,12 @@
+<!--
+name: 'Tool Result: MCP server tool check retry'
+description: >-
+  Suffix telling the model to try the call again after the MCP tool check could
+  not reach the server
+ccVersion: 2.1.311
+variables:
+  - TOOL_RESULT_MCP_SERVER_TOOL_CHECK_RETRY_VAR_0
+  - TOOL_RESULT_MCP_SERVER_TOOL_CHECK_RETRY_VAR_1
+  - TOOL_RESULT_MCP_SERVER_TOOL_CHECK_RETRY_VAR_2
+-->
+${TOOL_RESULT_MCP_SERVER_TOOL_CHECK_RETRY_VAR_0(TOOL_RESULT_MCP_SERVER_TOOL_CHECK_RETRY_VAR_1,TOOL_RESULT_MCP_SERVER_TOOL_CHECK_RETRY_VAR_2)} Try the call again.

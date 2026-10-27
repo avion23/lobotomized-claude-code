@@ -3,7 +3,7 @@ name: 'Data: Streaming reference — C#'
 description: >-
   claude-api skill reference file (Streaming reference — C#) inlined as <doc> or
   extracted for the model to Read when the skill's Reading Guide points to it.
-ccVersion: 2.1.296
+ccVersion: 2.1.311
 -->
 # Streaming - C#
 
@@ -16,7 +16,7 @@ var parameters = new MessageCreateParams
 {
     Model = "{{OPUS_ID}}",
     MaxTokens = 64000,
-    Messages = [new() { Role = Role.User, Content = "Write a haiku" }]
+    Messages = [new UserMessageParam { Content = "Write a haiku" }]
 };
 
 await foreach (RawMessageStreamEvent streamEvent in client.Messages.CreateStreaming(parameters))
