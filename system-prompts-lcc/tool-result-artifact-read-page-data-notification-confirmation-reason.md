@@ -1,8 +1,12 @@
 <!--
-name: Artifact page-data notification confirmation reason
+name: Artifact notification-triggered database read confirmation reason
 description: >-
-  Decision reason for a notification-triggered page-data read ask; approval
-  covers one read.
-ccVersion: 2.1.296
+  Safety-check reason for a notification-triggered read of someone else's
+  artifact database: it needs confirmation and approval covers this one read
+  only.
+ccVersion: 2.1.312
+variables:
+  - TOOL_RESULT_ARTIFACT_READ_PAGE_DATA_NOTIFICATION_CONFIRMATION_REASON_VAR_0
+  - TOOL_RESULT_ARTIFACT_READ_PAGE_DATA_NOTIFICATION_CONFIRMATION_REASON_VAR_1
 -->
-Notification-triggered page-data read requires confirmation outside auto-allow channels — approval covers this one read only
+Notification-triggered read of ${TOOL_RESULT_ARTIFACT_READ_PAGE_DATA_NOTIFICATION_CONFIRMATION_REASON_VAR_0} requires confirmation — approval covers this one read only${TOOL_RESULT_ARTIFACT_READ_PAGE_DATA_NOTIFICATION_CONFIRMATION_REASON_VAR_1}
