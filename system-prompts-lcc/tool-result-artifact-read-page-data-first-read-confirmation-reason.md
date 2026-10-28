@@ -1,8 +1,12 @@
 <!--
-name: Artifact first page-data read confirmation reason
+name: Artifact first database read confirmation reason
 description: >-
-  Decision reason for the first page-data read ask; approval covers every
-  readable artifact for the rest of the session.
-ccVersion: 2.1.296
+  Safety-check reason for the first read of someone else's artifact database: it
+  needs confirmation, and says how far the approval reaches.
+ccVersion: 2.1.312
+variables:
+  - TOOL_RESULT_ARTIFACT_READ_PAGE_DATA_FIRST_READ_CONFIRMATION_REASON_VAR_0
+  - TOOL_RESULT_ARTIFACT_READ_PAGE_DATA_FIRST_READ_CONFIRMATION_REASON_VAR_1
+  - TOOL_RESULT_ARTIFACT_READ_PAGE_DATA_FIRST_READ_CONFIRMATION_REASON_VAR_2
 -->
-First page-data read requires confirmation — approving covers every readable artifact for the rest of this session, and validated entries can carry other collaborators' typed answers (third-party text entering the conversation)
+First read of ${TOOL_RESULT_ARTIFACT_READ_PAGE_DATA_FIRST_READ_CONFIRMATION_REASON_VAR_0} requires confirmation — ${TOOL_RESULT_ARTIFACT_READ_PAGE_DATA_FIRST_READ_CONFIRMATION_REASON_VAR_1}${TOOL_RESULT_ARTIFACT_READ_PAGE_DATA_FIRST_READ_CONFIRMATION_REASON_VAR_2}

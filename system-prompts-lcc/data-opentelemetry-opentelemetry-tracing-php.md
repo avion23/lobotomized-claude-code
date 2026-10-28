@@ -4,7 +4,7 @@ description: >-
   PHP code for registering a tracer provider and propagator, configuring the
   Anthropic SDK's OpenTelemetry options, and connecting API spans to your own
   traces.
-ccVersion: 2.1.300
+ccVersion: 2.1.310
 -->
 # OpenTelemetry Tracing - PHP
 
@@ -84,3 +84,5 @@ try {
 Without the SDK (raw HTTP or another client), inject the active span's trace context into the request headers:
 
 \`TraceContextPropagator::getInstance()->inject($headers)\`
+
+After the SDK setup, offer setting up Claude API tracing where \`shared/opentelemetry.md\` -> SDK tracing vs API tracing says to, if you didn't already.

@@ -1,13 +1,12 @@
 <!--
-name: 'Tool Hosts Correction: Ran But Output Not Delivered'
+name: 'System Reminder: Tool host correction — did run, output not delivered'
 description: >-
-  Late correction that the machine now reports the call did run and completed or
-  errored, but the output was recorded there and not delivered here.
-ccVersion: 2.1.280
+  Late correction telling Claude an attached machine reports a given-up call did
+  run and completed, with its output recorded there and not delivered here
+ccVersion: 2.1.310
 variables:
   - SYSTEM_REMINDER_TOOL_HOSTS_CORRECTION_DID_RUN_OUTPUT_NOT_DELIVERED_VAR_0
   - SYSTEM_REMINDER_TOOL_HOSTS_CORRECTION_DID_RUN_OUTPUT_NOT_DELIVERED_VAR_1
   - SYSTEM_REMINDER_TOOL_HOSTS_CORRECTION_DID_RUN_OUTPUT_NOT_DELIVERED_VAR_2
-  - SYSTEM_REMINDER_TOOL_HOSTS_CORRECTION_DID_RUN_OUTPUT_NOT_DELIVERED_VAR_3
 -->
-${SYSTEM_REMINDER_TOOL_HOSTS_CORRECTION_DID_RUN_OUTPUT_NOT_DELIVERED_VAR_0} That machine now reports it DID run and ${SYSTEM_REMINDER_TOOL_HOSTS_CORRECTION_DID_RUN_OUTPUT_NOT_DELIVERED_VAR_1.is_error?"ended with an error":"completed"} (its output was recorded there, not delivered here). ${SYSTEM_REMINDER_TOOL_HOSTS_CORRECTION_DID_RUN_OUTPUT_NOT_DELIVERED_VAR_2(SYSTEM_REMINDER_TOOL_HOSTS_CORRECTION_DID_RUN_OUTPUT_NOT_DELIVERED_VAR_3)}
+${SYSTEM_REMINDER_TOOL_HOSTS_CORRECTION_DID_RUN_OUTPUT_NOT_DELIVERED_VAR_0} That machine now reports it DID run and completed (its output was recorded there, not delivered here). ${SYSTEM_REMINDER_TOOL_HOSTS_CORRECTION_DID_RUN_OUTPUT_NOT_DELIVERED_VAR_1(SYSTEM_REMINDER_TOOL_HOSTS_CORRECTION_DID_RUN_OUTPUT_NOT_DELIVERED_VAR_2)}

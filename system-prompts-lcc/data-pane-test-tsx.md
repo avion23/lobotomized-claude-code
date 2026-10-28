@@ -4,7 +4,7 @@ description: >-
   Example plugin test file (pane.test.tsx) shipped in the plugin-authoring
   skill's examples folder, showing how a mod's Pane is mounted and checked on
   every surface with claude-code/testing.
-ccVersion: 2.1.304
+ccVersion: 2.1.310
 -->
 import { expect, test } from 'claude-code/testing'
 
@@ -41,6 +41,18 @@ test('the pane lists a tool call, on every surface', async ($, on) => {
     expect(row?.text).toBe('done Bash')
     await ui.unmount()
   }
+})
+
+test('a value an earlier version stored is declined', async ($, on) => {
+  // What the code before this edit wrote stays through the reload.
+  on('state.get', () => ({
+    value: { value: [{ tool: 'Bash' }], version: 1 },
+  }))
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'desktop' })
+
+  expect((await ui.find({ type: 'Text' }))?.text).toBe('No tool calls yet.')
+  await ui.unmount()
 })
 
 test('a drawing the mod leaves goes to the engine', async ($, on) => {

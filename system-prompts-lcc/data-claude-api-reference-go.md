@@ -4,7 +4,7 @@ description: >-
   claude-api skill reference file (Claude API reference — Go) inlined as <doc>
   or extracted for the model to Read when the skill's Reading Guide points to
   it.
-ccVersion: 2.1.296
+ccVersion: 2.1.311
 -->
 # Claude API - Go
 
@@ -13,15 +13,15 @@ ccVersion: 2.1.296
 ## Installation
 
 \`\`\`bash
-go get github.com/anthropics/anthropic-sdk-go
+go get github.com/anthropics/anthropic-sdk-go/v2
 \`\`\`
 
 ## Client Initialization
 
 \`\`\`go
 import (
-    "github.com/anthropics/anthropic-sdk-go"
-    "github.com/anthropics/anthropic-sdk-go/option"
+    "github.com/anthropics/anthropic-sdk-go/v2"
+    "github.com/anthropics/anthropic-sdk-go/v2/option"
 )
 
 // Default (uses ANTHROPIC_API_KEY env var)
@@ -141,7 +141,7 @@ if resp.StopReason == anthropic.StopReasonRefusal {
 }
 \`\`\`
 
-**Refusal fallbacks ({{FABLE_NAME}}) - opt in by default.** Fallbacks are opt-in: without them a refused request simply stops. In \`{{FABLE_ID}}\` code, include \`Fallbacks: []anthropic.BetaFallbackParam{{Model: "claude-opus-4-8"}}\` plus the \`anthropic.AnthropicBetaServerSideFallback2026_06_01\` beta on \`client.Beta.Messages.New\` by default - a policy decline is re-served by the fallback model inside the same call. Not available on Amazon Bedrock, Vertex AI, or Microsoft Foundry - register the client-side middleware there: \`option.WithMiddleware(betafallback.BetaRefusalFallbackMiddleware(...))\` from \`lib/betafallback\`, with per-conversation state via \`betafallback.WithBetaFallbackState(&betafallback.BetaFallbackState{})\`. Full semantics (billing, sticky routing, streaming) and a runnable example: \`shared/model-migration.md\` -> Migrating to {{FABLE_NAME}} -> \`refusal\` stop reason, and the Go SDK repo's \`examples/\` (WebFetch via \`shared/live-sources.md\`).
+**Refusal fallbacks ({{FABLE_NAME}}) - opt in by default.** Fallbacks are opt-in: without them a refused request simply stops. In \`{{FABLE_ID}}\` code, include \`Fallbacks: []anthropic.BetaFallbackParam{{Model: "claude-opus-4-8"}}\` plus the \`anthropic.AnthropicBetaServerSideFallback2026_06_01\` beta on \`client.Beta.Messages.New\` by default - a policy decline is re-served by the fallback model inside the same call. Not available on Amazon Bedrock, Vertex AI, or Microsoft Foundry - register the client-side middleware there: \`option.WithMiddleware(betafallback.BetaRefusalFallbackMiddleware(...))\` from \`lib/betafallback\`, with per-conversation state via \`betafallback.WithBetaFallbackState(&betafallback.BetaFallbackState{})\`. Full semantics (billing, sticky routing, streaming) and a runnable example: \`shared/model-migration.md\` -> Migrating to {{FABLE_NAME}} -> \`refusal\` stop reason, and the Go SDK repo's \`examples/\` (fetch it from \`shared/live-sources.md\`).
 
 ---
 

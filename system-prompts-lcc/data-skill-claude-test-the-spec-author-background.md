@@ -3,7 +3,7 @@ name: 'Data: SKILL (Claude Test — the spec author (background; nobody is watch
 description: >-
   Prompt body of the claude-test "draft" skill (spec-author background), loaded
   as skill text by we().
-ccVersion: 2.1.308
+ccVersion: 2.1.310
 -->
 ---
 description: Internal to Claude Test — drafts spec files in the background for a first run. Started only by the claude-test run skill.
@@ -24,6 +24,11 @@ disallowed-tools:
   - mcp__plugin_claude-test_browser__claude_test_allow
   - mcp__plugin_claude-test_browser__claude_test_app_up
   - mcp__plugin_claude-test_browser__claude_test_show_run
+  - mcp__plugin_claude-test_browser__claude_test_pane_note
+  - mcp__plugin_claude-test_browser__claude_test_start_app
+  - mcp__plugin_claude-test_browser__claude_test_confirm_run
+  - mcp__plugin_claude-test_browser__claude_test_browser_installed
+  - mcp__plugin_claude-test_browser__claude_test_remember
   - mcp__plugin_claude-test_browser__claude_test_install
   - mcp__plugin_claude-test_browser__claude_test_save
   - mcp__plugin_claude-test_browser__claude_test_status
@@ -216,6 +221,7 @@ is not watching.
 
 \`\`\`markdown
 ---
+area: recipes
 tags: [creates-data]
 ---
 # A saved recipe can be found by its name
@@ -230,9 +236,11 @@ that name and the ingredient "2 eggs". Then search the recipe list for "demo rec
 <!-- from: app/recipes/page.tsx:18-44 — data/seed.json -->
 \`\`\`
 
-- Front matter is optional and is only ever \`tags: [creates-data]\` (a spec whose steps add records) and / or \`allow_navigation: true\`
-  (only when the outline line says the journey starts deep in the app, with the starting path in the steps). Never \`id\`, \`timeout_ms\`
-  or any other key.
+- Front matter always holds \`area: <one lower-case word>\`: the part of the app the journey is about ("cart", "search", "sign-in"; a
+  letter first, then letters, digits or hyphens, at most 24 characters). Claude Test's panel groups tests by it, so drafts about the same
+  part share one word. It may also hold \`tags: [creates-data]\` (a spec whose steps add records) and / or \`allow_navigation: true\` (only
+  when the outline line says the journey starts deep in the app, with the starting path in the steps). Never \`id\`, \`timeout_ms\` or any
+  other key.
 - One \`# Title\` line: the test's name, shown in the results and in every question. Copy it word for word from the outline line: the
   words before the first colon, without a bracketed note such as "(adds an order)".
 - The steps: a short paragraph (three to ten lines) that says what to achieve and with which made-up values, not which buttons to

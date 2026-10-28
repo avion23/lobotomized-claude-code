@@ -4,7 +4,7 @@ description: >-
   claude-test shared library (skills/run/scripts/lib/config.mjs) whose config
   warnings, consent and sign-in notes surface in ct.mjs status JSON and the
   browser server's tool results that the model reads.
-ccVersion: 2.1.308
+ccVersion: 2.1.310
 -->
 
 
@@ -17,7 +17,7 @@ import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { execFileSync } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
 import { discoverDevServer, candidateList } from './discover.mjs';
 
 export const RC_FILE = '.claude-testrc';
@@ -596,6 +596,19 @@ export const CONSENT_FILE = 'allowed-origins.json';
 export function dataRoot() { return path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..', '..'); }
 
 
+
+export function madeHereKey() {
+  const file = path.join(dataRoot(), 'made-here.key');
+  try {
+    const st = fs.lstatSync(file);
+    if (!st.isFile() || st.size !== 64 || (process.platform !== 'win32' && (st.mode & 0o077) !== 0)) return null;
+    const key = fs.readFileSync(file, 'utf8'); return /^[0-9a-f]{64}$/.test(key) ? key : null;
+  } catch { return null; }
+}
+
+export function madeHereMac(key, runId) { return crypto.createHmac('sha256', key).update(runId).digest('hex'); }
+
+
 export function consentDir(projectDir) { return path.join(dataRoot(), 'consent', path.basename(privateDir(projectDir))); }
 
 export function liveDir(projectDir, runId) { if (!RUN_ID.test(runId)) throw new Error('not a run id'); let real = projectDir; try { real = fs.realpathSync(projectDir); } catch {                      } return path.join(dataRoot(), 'live', projectSlug(real), runId); }
@@ -609,42 +622,342 @@ export const START_TIE_SLACK_MS = 5000;
 
 export const isTaskOutput = (p) => typeof p === 'string' && p.length <= 4096 && path.isAbsolute(p) && path.normalize(p) === p && !/^[\\\\/]{2}/.test(p) && !/^\\/net\\//i.test(p) && !/^\\/network\\/servers\\//i.test(p) && /^[A-Za-z0-9_-]{1,80}\\.output$/.test(path.basename(p)) && path.basename(path.dirname(p)) === 'tasks';
 
+
+
+export function processStartOf(pid, timeoutMs = 5000) {
+  if (!Number.isInteger(pid) || pid <= 1 || process.platform === 'win32') return null;
+  if (process.platform === 'linux') { try { const stat = fs.readFileSync('/proc/' + pid + '/stat', 'utf8'); return stat.slice(stat.lastIndexOf(')') + 2).split(' ')[19] || null; } catch { return null; } }
+  try { return psStartText(execFileSync('/bin/ps', psStartArgs(pid), { encoding: 'utf8', timeout: timeoutMs, stdio: ['ignore', 'pipe', 'ignore'], env: psStartEnv() })); } catch { return null; }
+}
+
+export function processStartOfLater(pid, timeoutMs, done) {
+  if (!Number.isInteger(pid) || pid <= 1 || process.platform === 'win32' || process.platform === 'linux') { done(processStartOf(pid)); return; }
+  try { execFile('/bin/ps', psStartArgs(pid), { encoding: 'utf8', timeout: timeoutMs, env: psStartEnv() }, (e, text) => done(e ? null : psStartText(text))); } catch { done(null); }
+}
+
+const psStartArgs = (pid) => ['-o', 'lstart=', '-p', String(pid)];
+const psStartEnv = () => ({ ...process.env, TZ: 'UTC0', LC_ALL: 'C' });
+const psStartText = (text) => String(text).trim().split(/\\s+/).join(' ') || null;
+
+const startTimeOk = (t) => (typeof t === 'string' && t.length > 0 && t.length < 64 ? t : null);
+
+const START_TIE_KEEP_MS = 24 * 60 * 60 * 1000;
+
+const MOST_EARLIER_STARTS = 7;
+
+const MOST_START_TIE_BYTES = 16384;
+
+
+
+function sweepStartTies(dir, keepPid) {
+  const names = []; try { const d = fs.opendirSync(dir); try { for (let e = d.readSync(); e && names.length < 200; e = d.readSync()) names.push(e.name); } finally { d.closeSync(); } } catch { return; }
+  for (const name of names) {
+    const m = /^(\\d{1,10})\\.json(\\.\\d{1,10}\\.tmp)?$/.exec(name); if (!m) continue;
+    const tmp = !!m[2]; const claude = Number(m[1]);
+    if (!tmp && claude === keepPid) continue;
+    try { const st = fs.lstatSync(path.join(dir, name)); if (!st.isFile()) continue; const age = Date.now() - st.mtimeMs; if (tmp ? age > 60000 : age > START_TIE_KEEP_MS) fs.unlinkSync(path.join(dir, name)); } catch {                    }
+  }
+}
+
+
+
+
 export function writeStartTie(claudePid, group, output = null) {
   const file = startTieFile(claudePid); fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });
+  sweepStartTies(path.dirname(file), claudePid);
   const tmp = file + '.' + process.pid + '.tmp';
-  fs.writeFileSync(tmp, JSON.stringify({ group, at: Date.now(), ...(isTaskOutput(output) ? { output } : {}) }), { mode: 0o600, flag: 'wx' });
+
+  const start = startTimeOk(processStartOf(group, 1000));
+
+
+  const claudeStart = startTimeOk(processStartOf(claudePid, 1000)); const was = readStartTie(claudePid, 0, true);
+  let earlier = was && (was.claudeStart || null) === claudeStart ? [{ group: was.group, at: was.at, ...(was.start ? { start: was.start } : {}), ...(was.output ? { output: was.output } : {}) }, ...was.earlier].filter((e) => e.group !== group).slice(0, MOST_EARLIER_STARTS) : [];
+  const recordOf = () => JSON.stringify({ group, at: Date.now(), ...(start ? { start } : {}), ...(claudeStart ? { claudeStart } : {}), ...(isTaskOutput(output) ? { output } : {}), ...(earlier.length ? { earlier } : {}) });
+  while (earlier.length && Buffer.byteLength(recordOf()) > MOST_START_TIE_BYTES) earlier = earlier.slice(0, -1);
+  fs.writeFileSync(tmp, recordOf(), { mode: 0o600, flag: 'wx' });
   fs.renameSync(tmp, file);
 }
 
-export function readStartTie(claudePid, since) {
+
+function startEntryOf(j, anyTime = false) {
+  if (!j || typeof j !== 'object' || !Number.isInteger(j.group) || j.group <= 1 || typeof j.at !== 'number' || (!anyTime && j.at > Date.now() + START_TIE_SLACK_MS)) return null;
+  return { group: j.group, at: j.at, ...(startTimeOk(j.start) ? { start: j.start } : {}), ...(isTaskOutput(j.output) ? { output: j.output } : {}) };
+}
+
+
+
+export function readStartTie(claudePid, since, anyTime = false) {
   let fd;
   try {
-    fd = fs.openSync(startTieFile(claudePid), fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0) | (fs.constants.O_NONBLOCK || 0));
-    const st = fs.fstatSync(fd); if (!st.isFile() || st.size > 4096) return null;
+    fd = fs.openSync(startTieFile(claudePid), fs.constants.O_RDONLY | (process.platform === 'win32' ? 0 : fs.constants.O_NOFOLLOW | fs.constants.O_NONBLOCK));
+    const st = fs.fstatSync(fd); if (!st.isFile() || st.size > MOST_START_TIE_BYTES) return null;
     const b = Buffer.alloc(st.size); const n = fs.readSync(fd, b, 0, st.size, 0);
     const j = JSON.parse(b.subarray(0, n).toString('utf8'));
-    if (!j || typeof j !== 'object' || !Number.isInteger(j.group) || j.group <= 1 || typeof j.at !== 'number' || j.at < since - START_TIE_SLACK_MS) return null;
-    return { group: j.group, at: j.at, ...(isTaskOutput(j.output) ? { output: j.output } : {}) };
+    const newest = startEntryOf(j, anyTime); if (!newest || newest.at < since - START_TIE_SLACK_MS) return null;
+    return { ...newest, ...(startTimeOk(j.claudeStart) ? { claudeStart: j.claudeStart } : {}), earlier: (Array.isArray(j.earlier) ? j.earlier.slice(0, MOST_EARLIER_STARTS) : []).map((e) => startEntryOf(e, anyTime)).filter((e) => e && Date.now() - e.at < START_TIE_KEEP_MS) };
   } catch { return null; } finally { if (fd !== undefined) try { fs.closeSync(fd); } catch {              } }
 }
 
 export function localPortOf(o) { try { const u = new URL(/^https?:\\/\\//.test(String(o)) ? String(o) : 'http://' + o); return isLocalHost(u.hostname.replace(/^\\[|\\]$/g, '')) ? Number(u.port) || (u.protocol === 'https:' ? 443 : 80) : null; } catch { return null; } }
 
 export function consentKey(o) { const s = String(o).trim().toLowerCase(); const m = s.match(/^(https?:\\/\\/)?(\\[[0-9a-f:]+\\]|[^:/\\[\\]]+)(:\\d+)?$/); return m ? (m[1] || '') + (LOOPBACK_HOSTS.includes(m[2]) ? 'localhost' : m[2]) + (m[3] || '') : s; }
-export function readConsent(projectDir, warnings = []) {
-  const file = path.join(consentDir(projectDir), CONSENT_FILE); const dir = path.dirname(file);
-  const none = (why) => { if (why && !warnings.includes(why)) warnings.push(why); return { file, origins: new Set(), hosts: new Set(), ...(why ? { refused: why } : {}) }; };
+const isLink = (p) => { try { return fs.lstatSync(p).isSymbolicLink(); } catch { return false; } };
+
+
+function readRecord(projectDir, name, words) {
+  const file = path.join(consentDir(projectDir), name); const dir = path.dirname(file);
+  const none = (why) => (why ? { file, refused: why } : { file });
   if (!fs.existsSync(dir)) return none(null);
-  const dp = dirNotPrivateProblem(dir); if (dp) return none(CONSENT_FILE + ': ' + dp + ' — allowed addresses are not read from that folder until it is private again (chmod 700)');
-  const isLink = (p) => { try { return fs.lstatSync(p).isSymbolicLink(); } catch { return false; } };
-  if ([file, dir, path.dirname(dir)].some(isLink)) return none(file + ' (or its folder, or that folder\\'s parent) is a symbolic link, so the record of allowed addresses is ignored — replace the link with a real folder or file');
+  const dp = dirNotPrivateProblem(dir); if (dp) return none(name + ': ' + dp + ' — ' + words.what + ' are not read from that folder until it is private again (chmod 700)');
+  if ([file, dir, path.dirname(dir)].some(isLink)) return none(file + ' (or its folder, or that folder\\'s parent) is a symbolic link, so the record of ' + words.what + ' is ignored — replace the link with a real folder or file');
   let st; try { st = fs.lstatSync(file); } catch { return none(null); }
-  if (!st.isFile() || st.nlink > 1 || st.size > 65536) return none(file + ' is not a plain file of sane size (a hard link to another file counts) and is ignored — delete it and allow the address again');
-  if (insideProjectReally(file)) return none(file + ' resolves inside the folder Claude Code opened, so it is ignored — allowed addresses are recorded outside the project (if Claude Code was opened in your home folder, open it in the project\\'s folder instead)');
-  let j; try { j = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return none(file + ' is not valid JSON and is ignored — delete it and allow the address again'); }
-  const foreign = wrongProject(j, projectDir); if (foreign) return none(file + ' ' + foreign + ', so it is ignored — delete it and allow the address again');
+  if (!st.isFile() || st.nlink > 1 || st.size > 65536) return none(file + ' is not a plain file of sane size (a hard link to another file counts) and is ignored — delete it and ' + words.again);
+  if (insideProjectReally(file)) return none(file + ' resolves inside the folder Claude Code opened, so it is ignored — ' + words.what + ' are recorded outside the project (if Claude Code was opened in your home folder, open it in the project\\'s folder instead)');
+  let j; try { j = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return none(file + ' is not valid JSON and is ignored — delete it and ' + words.again); }
+  const foreign = wrongProject(j, projectDir); if (foreign) return none(file + ' ' + foreign + ', so it is ignored — delete it and ' + words.again);
+  return { file, j };
+}
+const CONSENT_WORDS = { what: 'allowed addresses', again: 'allow the address again' };
+export function readConsent(projectDir, warnings = []) {
+  const r = readRecord(projectDir, CONSENT_FILE, CONSENT_WORDS);
+  if (r.refused && !warnings.includes(r.refused)) warnings.push(r.refused);
+  if (!r.j) return { file: r.file, origins: new Set(), hosts: new Set(), ...(r.refused ? { refused: r.refused } : {}) };
   const keys = (o) => (o && typeof o === 'object' && !Array.isArray(o) ? Object.keys(o).filter((k) => k.length <= 300) : []);
-  return { file, origins: new Set(keys(j.origins).map(consentKey)), hosts: new Set(keys(j.hosts).map((h) => h.trim().toLowerCase())) };
+  return { file: r.file, origins: new Set(keys(r.j.origins).map(consentKey)), hosts: new Set(keys(r.j.hosts).map((h) => h.trim().toLowerCase())) };
+}
+
+
+
+
+export const START_FILE = 'allowed-starts.json';
+const START_WORDS = { what: 'remembered app starts', again: 'accept the app start again when Claude asks' };
+const START_KEYS = ['realPath', 'folder', 'command', 'line', 'runs'];
+
+const START_RUNS_MAX_BYTES = 4 * 1024 * 1024;
+
+const START_RUNS_MAX_DEPTH = 3;
+const SCRIPT_RUNNERS = new Set(['npm', 'pnpm', 'yarn', 'bun']);
+
+
+const RUNNER_OWN = {
+  pnpm: new Set(['add', 'audit', 'bin', 'config', 'create', 'dedupe', 'deploy', 'dlx', 'env', 'exec', 'fetch', 'i', 'import', 'init', 'install', 'link', 'list', 'ls', 'outdated', 'pack', 'patch', 'prune', 'publish', 'rebuild', 'remove', 'rm', 'root', 'server', 'setup', 'store', 'unlink', 'up', 'update', 'why', 'x']),
+  yarn: new Set(['add', 'audit', 'autoclean', 'bin', 'cache', 'check', 'config', 'create', 'dlx', 'exec', 'explain', 'generate-lock-entry', 'global', 'import', 'info', 'init', 'install', 'licenses', 'link', 'list', 'login', 'logout', 'node', 'npm', 'outdated', 'owner', 'pack', 'patch', 'plugin', 'policies', 'publish', 'rebuild', 'remove', 'set', 'stage', 'tag', 'team', 'unlink', 'unplug', 'up', 'upgrade', 'version', 'why', 'workspace', 'workspaces']),
+  bun: new Set(['add', 'audit', 'build', 'create', 'exec', 'i', 'info', 'init', 'install', 'link', 'outdated', 'patch', 'pm', 'publish', 'remove', 'repl', 'rm', 'test', 'unlink', 'update', 'upgrade', 'why', 'x']),
+};
+
+const FILE_RUNNER = /^(node|nodejs|python|pypy|ruby|php|deno|tsx|ts-node|go)[0-9.]*$/;
+
+
+const RUNS_OTHERS = new Set(['make', 'gmake', 'foreman', 'honcho', 'overmind', 'env', 'turbo', 'nx', 'lerna', 'wireit', 'run-p', 'run-s', 'npm-run-all', 'npm-run-all2', 'concurrently', 'just', 'task']);
+
+const START_SAFE_VARS = new Set(['PORT', 'HOST', 'HOSTNAME', 'NODE_ENV', 'RAILS_ENV', 'RACK_ENV', 'APP_ENV', 'FLASK_ENV', 'FLASK_DEBUG', 'DEBUG', 'CI', 'FORCE_COLOR', 'NO_COLOR']);
+
+
+const RUNNER_SETTINGS = ['.npmrc', '.yarnrc', '.yarnrc.yml', '.pnpmfile.cjs', 'pnpm-workspace.yaml', 'bunfig.toml', '.pnp.cjs', '.pnp.loader.mjs', '.pnp.data.json', '.env.yarn', '.corepack.env'];
+
+
+
+const NPMRC_KEY = /^(registry|@[a-z0-9_.-]+:registry|\\/\\/[^\\s=[\\]]+:(_authtoken|_auth|username|_password|email|always-auth)|save-exact|save-prefix|engine-strict|fund|audit|package-lock|legacy-peer-deps|strict-peer-deps|auto-install-peers|node-linker|shamefully-hoist|link-workspace-packages|prefer-workspace-packages|loglevel|progress|update-notifier|lockfile|resolution-mode|strict-ssl|always-auth|email|dedupe-peer-dependents|save-workspace-protocol|prefer-offline|prefer-frozen-lockfile|strict-peer-dependencies|public-hoist-pattern\\[\\]|hoist-pattern\\[\\]|ignore-workspace-root-check)$/;
+const YARNRC_KEY = /^(registry|@[a-z0-9_.-]+:registry|network-timeout|save-prefix|disable-self-update-check|ignore-engines|lastupdatecheck|strict-ssl|email|username|always-auth|save-exact|ignore-optional|prefer-offline)$/;
+const YAML_TOP = {
+  '.yarnrc.yml': /^(nodelinker|npmregistryserver|npmscopes|npmauthtoken|npmalwaysauth|npmpublishregistry|enabletelemetry|enableglobalcache|enableimmutableinstalls|enableinlinebuilds|enableprogressbars|enablecolors|enablehyperlinks|checksumbehavior|compressionlevel|defaultsemverrangeprefix|pnpmode|enablescripts|nmmode|nmhoistinglimits|enablemirror|enablestrictssl|httptimeout|httpretry|logfilters|supportedarchitectures|cachefolder|globalfolder|enablenetwork|preferinteractive)$/,
+  'pnpm-workspace.yaml': /^(packages|catalog|catalogs|onlybuiltdependencies|neverbuiltdependencies|ignoredbuiltdependencies|overrides|linkworkspacepackages|preferworkspacepackages|sharedworkspacelockfile|nodelinker|shamefullyhoist|publichoistpattern|hoistpattern|autoinstallpeers|strictpeerdependencies|dedupepeerdependents|saveexact|saveprefix|enginestrict)$/,
+};
+
+const YAML_NESTED_OK = /^(npmscopes|logfilters|supportedarchitectures|packages|catalog|catalogs|onlybuiltdependencies|neverbuiltdependencies|ignoredbuiltdependencies|overrides|publichoistpattern|hoistpattern)$/;
+const BUNFIG_TABLE = /^\\[(install|install\\.cache|install\\.scopes)\\]$/;
+const BUNFIG_KEY = /^(registry|exact|frozenlockfile|savetextlockfile|production|optional|dev|peer|auto|linker|dir|disable|disablemanifest|telemetry|"?@[a-z0-9_.-]+"?)$/;
+
+function settingsPlain(name, text) {
+  if (name === '.env.yarn' || name === '.corepack.env') return false;
+  text = text.replace(/^\\uFEFF/, '');
+  if (!(name in { '.npmrc': 1, '.yarnrc': 1, '.yarnrc.yml': 1, 'pnpm-workspace.yaml': 1, 'bunfig.toml': 1 })) return true;
+  if (/\\\\/.test(text) || /\\r(?!\\n)/.test(text)) return false;
+  let top = null;
+  for (const raw of text.split(/\\r?\\n/)) {
+    const line = raw.replace(/\\s+$/, ''); const t = line.trim();
+    if (!t || t.startsWith('#') || (t.startsWith(';') && !name.endsWith('.yml') && !name.endsWith('.yaml') && name !== 'bunfig.toml')) continue;
+    const low = t.toLowerCase();
+    if (name === '.npmrc') { if (/["']/.test(t)) return false; const m = /^([^=\\s]+)\\s*=/.exec(low); if (!m || !NPMRC_KEY.test(m[1])) return false; continue; }
+    if (name === '.yarnrc') { const m = /^(?:"([^"]+)"|([a-z@][a-z0-9@:._-]*?)):?[ \\t]+(?:"[^"]*"|[0-9]+|true|false)(?:[ \\t]+#.*)?$/.exec(low); if (!m || !YARNRC_KEY.test(m[1] || m[2])) return false; continue; }
+    if (name === 'bunfig.toml') { if (/[{["']/.test(t.replace(/^\\[[^\\]]*\\]$/, '').replace(/^"?@[a-z0-9_.-]+"?\\s*=/i, '').replace(/"[^"]*"\\s*$/, ''))) return false; if (t.startsWith('[')) { if (!BUNFIG_TABLE.test(low)) return false; continue; } const m = /^([^=\\s]+)\\s*=/.exec(low); if (!m || !BUNFIG_KEY.test(m[1])) return false; continue; }
+
+    if (/^ *[^\\S ]/.test(line)) return false;
+    if (/^\\s*(-\\s+)?[!&*?{]/.test(line) || /[{]/.test(t.replace(/\\$\\{[A-Za-z0-9_]+(:-[^{}]*)?\\}/g, ''))) return false;
+    if (!/^\\s/.test(line)) {
+      const m = /^["']?([a-z0-9_-]+)["']?\\s*:/.exec(low); if (!m || !YAML_TOP[name].test(m[1])) return false; top = m[1];
+      const rest = low.slice(m[0].length).replace(/ +#.*$/, '');
+      if (!/^(?: +(?:"[^"]*"|'[^']*'|[^\\s"'#][^"']*))?$/.test(rest) || /:( |$)/.test(rest.replace(/"[^"]*"|'[^']*'/g, ''))) return false;
+      continue;
+    }
+    if (!top || !YAML_NESTED_OK.test(top)) return false;
+  }
+  return true;
+}
+
+const START_RUNS_BUDGET = { words: 400, files: 64, bytes: 32 * 1024 * 1024 };
+let startBudget = null;
+
+const spend = (what, n) => { if (!startBudget) return true; startBudget[what] += n; return startBudget[what] <= START_RUNS_BUDGET[what]; };
+const sha256Of = (b) => crypto.createHash('sha256').update(b).digest('hex');
+
+function smallFileBytes(p) {
+  let fd;
+  try {
+    fd = fs.openSync(p, fs.constants.O_RDONLY | (fs.constants.O_NONBLOCK || 0));
+    const st = fs.fstatSync(fd); if (!st.isFile() || st.size > START_RUNS_MAX_BYTES) return null;
+    const b = Buffer.alloc(st.size); let n = 0; while (n < st.size) { const k = fs.readSync(fd, b, n, st.size - n, n); if (!k) break; n += k; }
+    return b.subarray(0, n);
+  } catch { return null; } finally { if (fd !== undefined) try { fs.closeSync(fd); } catch {              } }
+}
+
+function startFile(projectDir, folder, rel) {
+  try {
+    const p = path.resolve(folder, rel); if (!reallyInsideDir(p, projectDir)) return null;
+    const b = smallFileBytes(p); if (!b || !spend('files', 1) || !spend('bytes', b.length)) return null;
+    return { path: path.relative(fs.realpathSync(projectDir), fs.realpathSync(p)), sha256: sha256Of(b) };
+  } catch { return null; }
+}
+
+
+function runnerSettings(projectDir, folder) {
+  const out = []; let root; try { root = fs.realpathSync(checkoutRootOf(projectDir) || projectDir); if (!reallyInsideDir(projectDir, root)) root = fs.realpathSync(projectDir); } catch { return null; }
+  for (let dir = folder; ; dir = path.dirname(dir)) {
+    for (const name of RUNNER_SETTINGS) {
+      const p = path.join(dir, name); try { fs.lstatSync(p); } catch { continue; }
+      if (!reallyInsideDir(p, root)) return null;
+      const b = smallFileBytes(p); if (!b || !spend('files', 1) || !spend('bytes', b.length)) return null;
+      if (!settingsPlain(name, b.toString('utf8'))) return null;
+      out.push({ path: path.relative(root, fs.realpathSync(p)), sha256: sha256Of(b) });
+    }
+    if (dir === root || !reallyInsideDir(path.dirname(dir), root) || path.dirname(dir) === dir) break;
+  }
+  return out;
+}
+
+
+
+
+function startRuns(projectDir, folder, command, depth, seen) {
+  if (typeof command !== 'string' || !/^[A-Za-z0-9_./:@=+,-]+( [A-Za-z0-9_./:@=+,-]+)*$/.test(command.trim())) return null;
+  const words = command.trim().split(' '); if (!spend('words', words.length)) return null;
+  while (words.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(words[0])) { if (!START_SAFE_VARS.has(words[0].slice(0, words[0].indexOf('=')))) return null; words.shift(); }
+  const [prog, ...args] = words; if (!prog) return null;
+  const end = args.indexOf('--'); const opts = end < 0 ? args : args.slice(0, end);
+  const one = (f) => (f ? { parts: [f] } : null);
+  if (SCRIPT_RUNNERS.has(prog)) {
+    if (depth >= START_RUNS_MAX_DEPTH) return null;
+    const a0 = opts[0]; let name = null; let rest = [];
+    if (a0 === 'run' || a0 === 'run-script') { name = opts[1]; rest = opts.slice(2); }
+    else if (prog === 'npm') { name = a0 === 'start' || a0 === 'test' ? a0 : null; rest = opts.slice(1); }
+    else if (a0 && !RUNNER_OWN[prog].has(a0)) { name = a0; rest = opts.slice(1); }
+    if (!name || name.startsWith('-') || (prog === 'npm' && rest.some((a) => a.startsWith('-')))) return null;
+    const pkgFile = path.join(folder, 'package.json'); let pkg = null;
+    try { const b = reallyInsideDir(pkgFile, projectDir) ? smallFileBytes(pkgFile) : null; pkg = b ? JSON.parse(b.toString('utf8')) : null; } catch { pkg = null; }
+    const scripts = pkg && pkg.scripts && typeof pkg.scripts === 'object' && !Array.isArray(pkg.scripts) ? pkg.scripts : {};
+    const text = Object.prototype.hasOwnProperty.call(scripts, name) && typeof scripts[name] === 'string' ? scripts[name] : null;
+    if (text === null) {
+      if (prog !== 'bun' || a0 !== 'run') return null;
+      const f = startFile(projectDir, folder, name); const s = f && runnerSettings(projectDir, folder); const more = s && namedFiles(projectDir, folder, [...rest, ...(end < 0 ? [] : args.slice(end + 1))]);
+      return more ? { parts: [f, ...s, ...more] } : null;
+    }
+    if (seen.has(name)) return null; const chain = new Set([...seen, name]);
+    const settings = runnerSettings(projectDir, folder); if (!settings) return null;
+    const passed = namedFiles(projectDir, folder, [...rest, ...(end < 0 ? [] : args.slice(end + 1))]); if (!passed) return null;
+    const parts = [{ script: name, text }, { packageManager: pkg.packageManager ?? null, workspaces: pkg.workspaces ?? null }, ...settings, ...passed];
+    for (const n of ['pre' + name, name, 'post' + name]) {
+      const t = n === name ? text : Object.prototype.hasOwnProperty.call(scripts, n) && typeof scripts[n] === 'string' ? scripts[n] : null; if (t === null) continue;
+      if (n !== name) parts.push({ script: n, text: t });
+      const inner = startRuns(projectDir, folder, t, depth + 1, chain); if (!inner) return null;
+      if (inner.parts) parts.push(...inner.parts);
+    }
+    return { parts };
+  }
+  if (RUNS_OTHERS.has(prog)) return null;
+  if (FILE_RUNNER.test(prog)) {
+    const rest = /^(deno|go)/.test(prog) ? (args[0] === 'run' ? args.slice(1) : null) : args;
+    if (!rest || !rest.length || rest[0].startsWith('-') || (prog === 'tsx' && rest[0] === 'watch')) return null;
+    const f = startFile(projectDir, folder, rest[0]); const more = namedFiles(projectDir, folder, rest.slice(1));
+    return f && more ? { parts: [f, ...more] } : null;
+  }
+  if (prog.includes('/')) { const f = startFile(projectDir, folder, prog); const more = namedFiles(projectDir, folder, args); return f && more ? { parts: [f, ...more] } : null; }
+  const more = namedFiles(projectDir, folder, args); if (!more) return null;
+  return more.length ? { parts: more } : { unknown: true };
+}
+
+
+const RESOLVED_ENDINGS = ['.js', '.cjs', '.mjs', '.ts', '.mts', '.cts', '.tsx', '.jsx', '.json', '.node', '.py', '.rb'];
+
+
+
+function namedFiles(projectDir, folder, words) {
+  const out = [];
+  for (const w of words) {
+    const parts = w.split('='); const cands = [];
+    if (parts.length > 1) { for (const v of parts.slice(1)) if (v && !v.startsWith('-')) cands.push(v); }
+    else if (!w.startsWith('-')) cands.push(w);
+    else if (/^-[A-Za-z]./.test(w)) cands.push(w.slice(2));
+    let root; try { root = fs.realpathSync(projectDir); } catch { return null; }
+    if (cands.some((c) => /^file:/i.test(c))) return null;
+    for (const v of cands.filter((c) => !/^[a-z][a-z0-9+.-]*:\\/\\//i.test(c)).flatMap((c) => c.split(/[:;]/)).filter(Boolean)) {
+      const p = path.resolve(folder, v);
+      if (path.isAbsolute(v) || /^[\\\\/]{2}/.test(v) || !(p === root || p.startsWith(root + path.sep))) return null;
+      const dotted = /^[A-Za-z_][\\w.]*$/.test(v) && v.includes('.') ? [v.replace(/\\./g, '/') + '.py', v.replace(/\\./g, '/') + '/__init__.py'] : [];
+      const there = [v, ...RESOLVED_ENDINGS.map((e) => v + e), ...dotted].filter((c) => { try { fs.lstatSync(path.resolve(folder, c)); return true; } catch { return false; } });
+      for (const c of there) { const f = startFile(projectDir, folder, c); if (!f) return null; if (!out.some((o) => o.path === f.path)) out.push(f); }
+    }
+  }
+  return out;
+}
+
+
+
+
+export function startRunsDigest(projectDir, folder, command) {
+  startBudget = { words: 0, files: 0, bytes: 0 };
+  try { const r = startRuns(projectDir, folder, command, 0, new Set()); return r && r.parts && r.parts.length ? sha256Of(JSON.stringify(r.parts)) : null; } finally { startBudget = null; }
+}
+
+
+
+export function startFacts(projectDir, cwd, command, line, source, outside) {
+  try { const folder = fs.realpathSync(path.resolve(projectDir, cwd || '.')); return { realPath: fs.realpathSync(projectDir), folder, command, line, runs: startRunsDigest(projectDir, folder, command), source: typeof source === 'string' ? source : null, outside: !!outside }; } catch { return null; }
+}
+
+export function readStart(projectDir) {
+  const r = readRecord(projectDir, START_FILE, START_WORDS);
+  const s = r.j && r.j.start && typeof r.j.start === 'object' && !Array.isArray(r.j.start) ? r.j.start : null;
+  return { file: r.file, start: s, ...(r.refused ? { refused: r.refused } : {}) };
+}
+
+export function startMatches(projectDir, facts) {
+  if (!facts) return false;
+  const rec = readStart(projectDir); const s = rec.start;
+  return !rec.refused && !!s && START_KEYS.every((k) => typeof s[k] === 'string' && typeof facts[k] === 'string' && s[k] === facts[k]) && (s.source ?? null) === facts.source && s.outside === facts.outside;
+}
+
+export function writeStart(projectDir, facts) {
+  const cur = readStart(projectDir); if (cur.refused) return cur.refused;
+  if (!facts || typeof facts.runs !== 'string') { forgetStart(projectDir); return 'Claude Test did not remember this start: it could not tell which of the project\\'s files this command runs, so it could not notice if they change. It will ask again next time.'; }
+  if (!START_KEYS.every((k) => typeof facts[k] === 'string' && facts[k])) { forgetStart(projectDir); return 'the start could not be described exactly, so nothing was remembered'; }
+  try {
+    fs.mkdirSync(path.dirname(cur.file), { recursive: true, mode: 0o700 });
+    const existed = fs.existsSync(cur.file);
+    const j = { project: projectIdentityPath(projectDir), start: { realPath: facts.realPath, folder: facts.folder, command: facts.command, line: facts.line, runs: facts.runs, source: facts.source, outside: !!facts.outside, at: new Date().toISOString() } };
+    const tmp = cur.file + '.' + process.pid + '.tmp'; try { fs.unlinkSync(tmp); } catch {            }
+    fs.writeFileSync(tmp, JSON.stringify(j, null, 1) + '\\n', { mode: 0o600, flag: 'wx' }); fs.renameSync(tmp, cur.file);
+    const back = readStart(projectDir);
+    if (back.refused && !existed) { try { fs.unlinkSync(cur.file); } catch {            } }
+    return back.refused ? back.refused + ' \\u2014 nothing was remembered' : null;
+  } catch (e) { return 'could not write ' + cur.file + ': ' + e.message + (['EPERM', 'EACCES', 'EROFS'].includes(e.code) ? ' \\u2014 a sandboxed shell (Claude Code\\'s, typically) may not write there' : ''); }
+}
+
+export function forgetStart(projectDir) {
+  const file = path.join(consentDir(projectDir), START_FILE); const dir = path.dirname(file);
+  if ([dir, path.dirname(dir)].some(isLink)) return { removed: false, file, why: 'the remembered app start was not removed: the folder that holds ' + file + ', or its parent, is a symbolic link. Delete ' + file + ' yourself' };
+  let st; try { st = fs.lstatSync(file); } catch { return { removed: false, file }; }
+  if (st.isDirectory()) return { removed: false, file, why: 'the remembered app start was not removed: ' + file + ' is a folder, not the record. Delete it yourself' };
+  try { fs.unlinkSync(file); return { removed: true, file }; } catch (e) { return { removed: false, file, why: 'could not remove ' + file + ': ' + e.message + (['EPERM', 'EACCES', 'EROFS'].includes(e.code) ? ' \\u2014 a sandboxed shell (Claude Code\\'s, typically) may not write there' : '') }; }
 }
 
 export function writeConsent(projectDir, { origins = [], hosts = [], remove = false }) {
@@ -1128,7 +1441,7 @@ export function listSpecs(cfg) {
 
 
       try { if (!fs.lstatSync(p).isFile()) return { file: path.relative(cfg.projectDir, p), name: null, skipped: true, warnings: ['not a regular file (a symlink?) — skipped; copy the spec here instead'] }; } catch {                                      }
-      try { const s = parseSpec(fs.readFileSync(p, 'utf8'), path.relative(cfg.projectDir, p)); return { file: s.file, id: typeof s.frontMatter.id === 'string' && /^ct_[a-z2-7]{8}$/.test(s.frontMatter.id) ? s.frontMatter.id : null, name: s.name, allow_navigation: s.frontMatter.allow_navigation, timeout_ms: s.frontMatter.timeout_ms, tags: Array.isArray(s.frontMatter.tags) ? s.frontMatter.tags : undefined, must: s.must.length, mustNot: s.mustNot.length, warnings: s.warnings }; }
+      try { const s = parseSpec(fs.readFileSync(p, 'utf8'), path.relative(cfg.projectDir, p)); return { file: s.file, id: typeof s.frontMatter.id === 'string' && /^ct_[a-z2-7]{8}$/.test(s.frontMatter.id) ? s.frontMatter.id : null, name: s.name, allow_navigation: s.frontMatter.allow_navigation, timeout_ms: s.frontMatter.timeout_ms, area: typeof s.frontMatter.area === 'string' && /^[a-z][a-z0-9-]{0,23}$/.test(s.frontMatter.area) ? s.frontMatter.area : undefined, tags: Array.isArray(s.frontMatter.tags) ? s.frontMatter.tags : undefined, must: s.must.length, mustNot: s.mustNot.length, warnings: s.warnings }; }
       catch (e) { return { file: path.relative(cfg.projectDir, p), name: null, warnings: ['unreadable: ' + e.message] }; }
     });
 }

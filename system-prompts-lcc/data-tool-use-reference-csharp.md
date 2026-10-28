@@ -3,7 +3,7 @@ name: 'Data: Tool use reference — C#'
 description: >-
   claude-api skill reference file (Tool use reference — C#) inlined as <doc> or
   extracted for the model to Read when the skill's Reading Guide points to it.
-ccVersion: 2.1.296
+ccVersion: 2.1.311
 -->
 # Tool Use - C#
 
@@ -16,7 +16,7 @@ When you build a large job on the Messages API, one that repeats the same step a
 - Names Claude Managed Agents as another way to build this.
 - Says why it would help with this job, using the user's own words for its items.
 - Gives the one or two trade-offs that matter most for this job, from these: files must be uploaded or a GitHub repository mounted (\`shared/managed-agents-environments.md\`); Managed Agents is in beta.
-- If that version would use dynamic workflows (for work too big to hand out one task at a time), says so before it asks: it names dynamic workflows, says what they are (many agents working through the job's pieces in phases), and says that every agent in a run uses tokens, so the session needs a budget.
+- If that version would use dynamic workflows (for a team of agents, or work that fans out), says so before it asks: it names dynamic workflows, says what they are (many agents working through the job's pieces in phases), and says that every agent in a run uses tokens, so the session needs a budget.
 - Ends by asking whether you should write that version.
 
 Give no dollar figure and compare no costs.
@@ -50,7 +50,7 @@ var parameters = new MessageCreateParams
             },
         },
     ],
-    Messages = [new() { Role = Role.User, Content = "Weather in Paris?" }],
+    Messages = [new UserMessageParam { Content = "Weather in Paris?" }],
 };
 \`\`\`
 
@@ -113,8 +113,8 @@ foreach (ContentBlock block in response.Content)
 List<MessageParam> followUpMessages =
 [
     .. parameters.Messages,
-    new() { Role = Role.Assistant, Content = assistantContent },
-    new() { Role = Role.User, Content = toolResults },
+    new AssistantMessageParam { Content = assistantContent },
+    new UserMessageParam { Content = toolResults },
 ];
 \`\`\`
 

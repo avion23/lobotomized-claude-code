@@ -1,14 +1,13 @@
 <!--
-name: 'Tool Result: Artifact Type File Path Outside Root'
-description: >-
-  jPv validation error returned to the model when a typed-artifact data file
-  does not live under `root` or the working directory.
-ccVersion: 2.1.276
+name: Artifact type file_path outside root
+description: Error that a data file must be inside root or the working directory
+ccVersion: 2.1.310
 variables:
   - TOOL_RESULT_ARTIFACT_TYPE_FILE_PATH_OUTSIDE_ROOT_VAR_0
   - TOOL_RESULT_ARTIFACT_TYPE_FILE_PATH_OUTSIDE_ROOT_VAR_1
   - TOOL_RESULT_ARTIFACT_TYPE_FILE_PATH_OUTSIDE_ROOT_VAR_2
   - TOOL_RESULT_ARTIFACT_TYPE_FILE_PATH_OUTSIDE_ROOT_VAR_3
   - TOOL_RESULT_ARTIFACT_TYPE_FILE_PATH_OUTSIDE_ROOT_VAR_4
+  - TOOL_RESULT_ARTIFACT_TYPE_FILE_PATH_OUTSIDE_ROOT_VAR_5
 -->
-file_path: a data file is served at its path relative to ${TOOL_RESULT_ARTIFACT_TYPE_FILE_PATH_OUTSIDE_ROOT_VAR_0?"`root`":"the working directory"}, so it must live inside it — ${TOOL_RESULT_ARTIFACT_TYPE_FILE_PATH_OUTSIDE_ROOT_VAR_1(TOOL_RESULT_ARTIFACT_TYPE_FILE_PATH_OUTSIDE_ROOT_VAR_2)} is not inside ${TOOL_RESULT_ARTIFACT_TYPE_FILE_PATH_OUTSIDE_ROOT_VAR_1(TOOL_RESULT_ARTIFACT_TYPE_FILE_PATH_OUTSIDE_ROOT_VAR_3)}${TOOL_RESULT_ARTIFACT_TYPE_FILE_PATH_OUTSIDE_ROOT_VAR_0?` (relative paths resolve against the working directory ${TOOL_RESULT_ARTIFACT_TYPE_FILE_PATH_OUTSIDE_ROOT_VAR_1(TOOL_RESULT_ARTIFACT_TYPE_FILE_PATH_OUTSIDE_ROOT_VAR_4)}); move it there or correct the paths`:"; move it there, or pass `files` with a `root` that contains it (a folder in one of the session's working directories or your scratchpad directory)"}
+file_path: nothing was published. ${TOOL_RESULT_ARTIFACT_TYPE_FILE_PATH_OUTSIDE_ROOT_VAR_0!==void 0?"A data file":"With no `root`, a data file"} is served at its path relative to ${TOOL_RESULT_ARTIFACT_TYPE_FILE_PATH_OUTSIDE_ROOT_VAR_1.words}, and ${TOOL_RESULT_ARTIFACT_TYPE_FILE_PATH_OUTSIDE_ROOT_VAR_2(TOOL_RESULT_ARTIFACT_TYPE_FILE_PATH_OUTSIDE_ROOT_VAR_3)} is not inside ${TOOL_RESULT_ARTIFACT_TYPE_FILE_PATH_OUTSIDE_ROOT_VAR_2(TOOL_RESULT_ARTIFACT_TYPE_FILE_PATH_OUTSIDE_ROOT_VAR_1.dir)}${TOOL_RESULT_ARTIFACT_TYPE_FILE_PATH_OUTSIDE_ROOT_VAR_0!==void 0?` (a relative \`root\` resolves against the working directory ${TOOL_RESULT_ARTIFACT_TYPE_FILE_PATH_OUTSIDE_ROOT_VAR_2(TOOL_RESULT_ARTIFACT_TYPE_FILE_PATH_OUTSIDE_ROOT_VAR_4)})`:""}. ${TOOL_RESULT_ARTIFACT_TYPE_FILE_PATH_OUTSIDE_ROOT_VAR_5}

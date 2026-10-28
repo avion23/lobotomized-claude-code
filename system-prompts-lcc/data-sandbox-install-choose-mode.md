@@ -1,17 +1,6 @@
 <!--
-name: 'Data: sandbox install choose mode'
-description: >-
-  Install result telling the user to run /sandbox to choose a mode and turn it
-  on.
-ccVersion: 2.1.308
-variables:
-  - DATA_SANDBOX_INSTALL_CHOOSE_MODE_VAR_0
-  - DATA_SANDBOX_INSTALL_CHOOSE_MODE_VAR_1
-  - DATA_SANDBOX_INSTALL_CHOOSE_MODE_VAR_2
-  - DATA_SANDBOX_INSTALL_CHOOSE_MODE_VAR_3
-  - DATA_SANDBOX_INSTALL_CHOOSE_MODE_VAR_4
-  - DATA_SANDBOX_INSTALL_CHOOSE_MODE_VAR_5
-  - DATA_SANDBOX_INSTALL_CHOOSE_MODE_VAR_6
-  - DATA_SANDBOX_INSTALL_CHOOSE_MODE_VAR_7
+name: 'Data: Sandbox install choose mode'
+description: Tells to run /sandbox to choose a mode and turn it on
+ccVersion: 2.1.311
 -->
-${DATA_SANDBOX_INSTALL_CHOOSE_MODE_VAR_0}. Run /sandbox to choose a sandbox mode and turn it on.${DATA_SANDBOX_INSTALL_CHOOSE_MODE_VAR_1()}${DATA_SANDBOX_INSTALL_CHOOSE_MODE_VAR_2(DATA_SANDBOX_INSTALL_CHOOSE_MODE_VAR_3,DATA_SANDBOX_INSTALL_CHOOSE_MODE_VAR_4)}${DATA_SANDBOX_INSTALL_CHOOSE_MODE_VAR_5(DATA_SANDBOX_INSTALL_CHOOSE_MODE_VAR_6.profileGrant)}${DATA_SANDBOX_INSTALL_CHOOSE_MODE_VAR_7}
+Run /sandbox to choose a sandbox mode and turn it on.

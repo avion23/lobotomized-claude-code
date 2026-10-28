@@ -4,7 +4,7 @@ description: >-
   claude-api skill reference file (Claude Platform on AWS reference) inlined as
   <doc> or extracted for the model to Read when the skill's Reading Guide points
   to it.
-ccVersion: 2.1.304
+ccVersion: 2.1.311
 -->
 # Claude Platform on AWS
 
@@ -20,7 +20,7 @@ ccVersion: 2.1.304
 |---|---|---|
 | Python | \`pip install -U "anthropic[aws]"\` | \`from anthropic import AnthropicAWS\` -> \`AnthropicAWS()\` |
 | TypeScript | \`npm install @anthropic-ai/aws-sdk\` | \`import AnthropicAws from "@anthropic-ai/aws-sdk"\` -> \`new AnthropicAws()\` |
-| Go | \`go get github.com/anthropics/anthropic-sdk-go\` | \`import anthropicaws "github.com/anthropics/anthropic-sdk-go/aws"\` -> \`anthropicaws.NewClient(ctx, anthropicaws.ClientConfig{})\` |
+| Go | \`go get github.com/anthropics/anthropic-sdk-go/v2\` | \`import anthropicaws "github.com/anthropics/anthropic-sdk-go/v2/aws"\` -> \`anthropicaws.NewClient(ctx, anthropicaws.ClientConfig{})\` |
 | C# | \`dotnet add package Anthropic.Aws\` | \`new AnthropicAwsClient()\` |
 | Java | See SDK repo in \`shared/live-sources.md\` | See SDK repo in \`shared/live-sources.md\` |
 | Ruby | \`gem install anthropic aws-sdk-core\` | See SDK repo in \`shared/live-sources.md\` |
@@ -57,7 +57,7 @@ Endpoint pattern: \`https://aws-external-anthropic.{region}.api.aws/v1/...\`. Re
 
 The client resolves AWS credentials via the standard precedence chain: explicit constructor args -> environment (\`AWS_ACCESS_KEY_ID\`/\`AWS_SECRET_ACCESS_KEY\`/\`AWS_SESSION_TOKEN\`) -> shared profile -> assumed role / instance metadata.
 
-**Short-term API keys** are also supported for cases where SigV4 isn't practical (e.g., browser, simple scripts). Mint one with the per-language token-generator package; pass it as \`api_key\` on the client. Lifetime is the **lesser of** the requested duration, the underlying credential's expiry, and **12 hours**. For package names and IAM details, WebFetch the Claude Platform on AWS page in \`shared/live-sources.md\`.
+**Short-term API keys** are also supported for cases where SigV4 isn't practical (e.g., browser, simple scripts). Mint one with the per-language token-generator package; pass it as \`api_key\` on the client. Lifetime is the **lesser of** the requested duration, the underlying credential's expiry, and **12 hours**. For package names and IAM details, fetch the Claude Platform on AWS page in \`shared/live-sources.md\`.
 
 ---
 

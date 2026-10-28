@@ -1,0 +1,10 @@
+<!--
+name: Plugin mod failed when ran
+description: 'Notice that a plugin dev mod failed when it ran, with the error'
+ccVersion: 2.1.310
+variables:
+  - SYSTEM_REMINDER_PLUGIN_MOD_FAILED_WHEN_RAN_VAR_0
+  - SYSTEM_REMINDER_PLUGIN_MOD_FAILED_WHEN_RAN_VAR_1
+  - SYSTEM_REMINDER_PLUGIN_MOD_FAILED_WHEN_RAN_VAR_2
+-->
+Your mod failed when it ran: ${SYSTEM_REMINDER_PLUGIN_MOD_FAILED_WHEN_RAN_VAR_0(SYSTEM_REMINDER_PLUGIN_MOD_FAILED_WHEN_RAN_VAR_1)}: ${SYSTEM_REMINDER_PLUGIN_MOD_FAILED_WHEN_RAN_VAR_2}.

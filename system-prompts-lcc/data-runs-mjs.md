@@ -4,7 +4,7 @@ description: >-
   claude-test shared library (skills/run/scripts/lib/runs.mjs) for run folders
   and file placement; its refusal strings return through the helper's tool
   results and ct.mjs output to the model.
-ccVersion: 2.1.302
+ccVersion: 2.1.310
 -->
 
 
@@ -19,6 +19,8 @@ import crypto from 'node:crypto';
 import { safeGit, RUN_ID, gitOff } from './config.mjs';
 
 export { RUN_ID };
+
+export const REPORT_FILE = 'report.html';
 
 export const RUNNER_WORDS = Object.freeze(['server_unreachable', 'restart_needed', 'signin_needed', 'upload_unsupported', 'blank_page', 'assets_blocked']);
 

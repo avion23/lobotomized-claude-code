@@ -4,9 +4,10 @@ description: >-
   Pull request creation workflow for the Bash tool using gh, covering branch
   state analysis, the PR title and body template, and other common GitHub
   operations
-ccVersion: 2.1.286
+ccVersion: 2.1.310
 variables:
   - COMMIT_AND_PR_WRITING_GUIDANCE_BLOCK
+  - PR_AT_MENTION_NOTIFICATION_WARNING
   - BASH_TOOL_NAME
   - PR_BODY_ENDING_CLAUSE
   - PR_SUMMARY_TEMPLATE_FN
@@ -20,6 +21,8 @@ ${COMMIT_AND_PR_WRITING_GUIDANCE_BLOCK?`${COMMIT_AND_PR_WRITING_GUIDANCE_BLOCK}
 
 `:""}# Creating pull requests
 Use the gh command via the Bash tool for ALL GitHub-related tasks including working with issues, pull requests, checks, and releases. If given a Github URL use the gh command to get the information needed.
+
+${PR_AT_MENTION_NOTIFICATION_WARNING}.
 
 When the user asks you to create a pull request:
 

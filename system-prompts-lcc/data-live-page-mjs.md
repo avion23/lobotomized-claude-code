@@ -3,7 +3,7 @@ name: 'Data: live-page.mjs'
 description: >-
   Claude Test live-page.mjs: builds and keeps the run's live HTML page and the
   folder checks (notOwnWay/plainWay) the show tool reports.
-ccVersion: 2.1.304
+ccVersion: 2.1.310
 -->
 
 
@@ -27,8 +27,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
-import { runFolders, runIdOrder, runStart, writeInRunFolder, RUN_ID } from './runs.mjs';
-import { assertRunsDirInsideProject, dataRoot, dirNotPrivateProblem, liveDir, originAllowed, shown, stemOk } from './config.mjs';
+import { runFolders, runIdOrder, runStart, writeInRunFolder, writingIn, RUN_ID, REPORT_FILE } from './runs.mjs';
+import { assertRunsDirInsideProject, dataRoot, dirNotPrivateProblem, liveDir, originAllowed, shown, stemOk, parseSpec, reallyInsideDir, fillRun } from './config.mjs';
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const json = (o) => JSON.stringify(o).replace(/</g, '\\\\u003c').replace(/[\\u2028\\u2029]/g, (c) => c === '\\u2028' ? '\\\\u2028' : '\\\\u2029');
@@ -165,6 +165,128 @@ export function renderLivePage(data) {
     '<script type="application/json" id="state">' + json(data) + '</script>\\n<script>' + PAGE_SCRIPT + '</script>\\n</main></body></html>\\n';
 }
 
+const LIGHT = '--bg:#f7f6f2;--fg:#1c1b19;--mut:#6d695f;--line:#e5e1d7;--card:#fff;--pass:#1d7a4c;--fail:#b4271f;--blk:#8d6200';
+const DARK = '--bg:#141413;--fg:#ecebe5;--mut:#a29d92;--line:#2c2b27;--card:#1c1c1a;--pass:#5cc290;--fail:#f0847c;--blk:#e2b45a';
+
+
+export const REPORT_CSP = "default-src 'none'; img-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'";
+
+export const REPORT_PICTURE_BYTES = 4 * 1024 * 1024; export const REPORT_PICTURES_BYTES = 16 * 1024 * 1024;
+const REPORT_MOST_ROWS = 500; const REPORT_MOST_CHECKS = 20;
+
+const REPORT_SPEC_BYTES = 64 * 1024;
+const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+const SHOT_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,119}\\.png$/;
+const REPORT_STYLE = [
+  ':root{color-scheme:light dark;' + LIGHT + ';--r:12px}', '@media (prefers-color-scheme:dark){:root{' + DARK + '}}',
+  '*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif}',
+  'main{max-width:1080px;margin:0 auto;padding:20px 16px 48px}h1{font-size:18px;margin:0}.sub{color:var(--mut);font-size:12.5px;margin:2px 0 14px;overflow-wrap:anywhere}',
+  '.summary{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--pass);border-radius:var(--r);padding:14px 16px;margin-bottom:16px}.summary.fail{border-left-color:var(--fail)}.summary.blk{border-left-color:var(--blk)}',
+  '.head{font-size:17px;font-weight:620;margin:0 0 6px}.tiles{display:flex;flex-wrap:wrap;gap:8px 20px;margin:0}.tile b{display:block;font-size:22px;line-height:1.1}.tile span{color:var(--mut);font-size:12px}',
+  '.tile.pass b{color:var(--pass)}.tile.fail b{color:var(--fail)}.tile.blk b{color:var(--blk)}.note{margin:8px 0 0;color:var(--mut)}',
+  'h2{font-size:12px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;margin:18px 0 8px}',
+  'ol.tests{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}',
+  '.test{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}.test.fail{border-color:var(--fail)}.test.blocked{border-color:var(--blk)}',
+  '.th{display:flex;gap:10px;align-items:baseline}.v{font-size:12px;font-weight:700;min-width:5.6em}.v.pass{color:var(--pass)}.v.fail{color:var(--fail)}.v.blocked{color:var(--blk)}',
+  '.nm{font-weight:600;overflow-wrap:anywhere}.file{color:var(--mut);font-size:12px;font-family:ui-monospace,Menlo,Consolas,monospace;overflow-wrap:anywhere}',
+  '.why{margin:6px 0 0;overflow-wrap:anywhere}.lab{color:var(--mut)}ul.checks{margin:6px 0 0;padding-left:18px}ul.checks li{margin:2px 0;overflow-wrap:anywhere}',
+  'figure{margin:10px 0 0}figure img{display:block;max-width:100%;height:auto;border:1px solid var(--line);border-radius:6px}figcaption,.missing{color:var(--mut);font-size:12px;margin-top:4px}',
+  'footer{color:var(--mut);font-size:12px;margin-top:22px}',
+].join('\\n');
+
+const line = (v, most = 400) => esc(shown(String(v == null ? '' : v), most));
+const reportVerdictOf = (x) => (['PASS', 'FAIL', 'BLOCKED'].includes(x.verdict) ? x.verdict : null);
+
+
+function reportRowsOf(r) {
+  const order = { FAIL: 0, BLOCKED: 1, PASS: 2 };
+  const rows = (Array.isArray(r && r.specs) ? r.specs : []).map((x, i) => ({ x: x && typeof x === 'object' ? x : {}, i }));
+  return rows.sort((a, b) => (order[reportVerdictOf(a.x)] ?? 3) - (order[reportVerdictOf(b.x)] ?? 3) || a.i - b.i).slice(0, REPORT_MOST_ROWS);
+}
+
+
+
+export function renderReport({ results, checks = [], pictures = [], runFolder = null }) {
+  const r = results && typeof results === 'object' && !Array.isArray(results) ? results : {};
+  const c = r.counts && typeof r.counts === 'object' ? r.counts : {};
+  const n = (v) => (Number.isInteger(v) && v >= 0 ? v : 0);
+  const rows = reportRowsOf(r); const notListed = (Array.isArray(r.specs) ? r.specs.length : 0) - rows.length;
+  const outcome = ['passed', 'failed', 'blocked', 'needs-input'].includes(r.outcome) ? r.outcome : null;
+  const tone = n(c.failed) ? 'fail' : n(c.blocked) || outcome === 'blocked' || outcome === 'needs-input' ? 'blk' : 'pass';
+  const head = outcome === 'needs-input' ? 'The run stopped before any test ran: it needs an answer from you in the Claude Code conversation' : n(c.specs) === 0 ? 'No test ran' : n(c.failed) || n(c.blocked) ? [n(c.failed) ? n(c.failed) + ' failed' : null, n(c.blocked) ? n(c.blocked) + ' blocked' : null, n(c.passed) + ' passed'].filter(Boolean).join(' · ') : n(c.passed) === 1 ? 'The test passed' : n(c.passed) === 2 ? 'Both tests passed' : 'All ' + n(c.passed) + ' tests passed';
+  const secs = Number.isInteger(r.runnerSeconds) && r.runnerSeconds >= 0 && r.runnerSeconds <= 86400 ? r.runnerSeconds : null;
+  const took = secs === null ? null : secs >= 60 ? Math.floor(secs / 60) + 'm ' + (secs % 60) + 's' : secs + 's';
+  const runId = typeof r.runId === 'string' && RUN_ID.test(r.runId) ? r.runId : null;
+  const filled = (m) => (runId ? fillRun(m, runId) : m);
+  const finishedAt = typeof r.finishedAt === 'string' && /^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,3})?Z$/.test(r.finishedAt) ? r.finishedAt : null;
+  const sub = [r.baseUrl ? line(r.baseUrl, 300) : null, runId ? 'Run ' + esc(runId) : null, finishedAt ? 'finished ' + esc(finishedAt.replace('T', ' ').replace(/\\.\\d+Z$|Z$/, ' UTC')) : null, took ? 'took ' + esc(took) : null].filter(Boolean).join(' · ');
+  const tile = (k, cls, word) => '<div class="tile ' + cls + '"><b>' + n(k) + '</b><span>' + word + '</span></div>';
+  const test = ({ x, i }) => {
+    const v = reportVerdictOf(x); const cls = v ? v.toLowerCase() : 'none';
+    const own = (Array.isArray(checks[i]) ? checks[i] : []).slice(0, REPORT_MOST_CHECKS).filter((m) => typeof m === 'string' && m.trim()).map(filled);
+    const pic = pictures[i] && typeof pictures[i] === 'object' ? pictures[i] : null;
+    const name = line(x.name, 160) || 'A test';
+    return '<li class="test ' + cls + '"><div class="th"><span class="v ' + cls + '">' + (v || 'NO VERDICT') + '</span><span class="nm">' + name + '</span></div>' +
+      (typeof x.file === 'string' && x.file ? '<div class="file">' + line(x.file, 200) + '</div>' : '') +
+      (x.why ? '<p class="why"><span class="lab">' + (v === 'PASS' ? 'Saw: ' : v === 'BLOCKED' ? 'Why it could not be tested: ' : 'Cause: ') + '</span>' + line(x.why, 1200) + '</p>' : '') +
+      (x.retried === true ? '<p class="why"><span class="lab">Judged on its second try.</span></p>' : '') +
+      (own.length ? '<ul class="checks" aria-label="What it checked">' + own.map((m) => '<li>' + esc(shown(m, 400).replace(/^\\s*[-*]\\s*/, '')) + '</li>').join('') + '</ul>' : '') +
+      (pic && typeof pic.data === 'string' && /^data:image\\/png;base64,[A-Za-z0-9+/=]+$/.test(pic.data) ? '<figure><img src="' + pic.data + '" alt="' + esc('Screenshot: ' + shown(String(x.name || 'a test'), 160)) + '"><figcaption>The app\\'s screen when the verdict was given</figcaption></figure>'
+        : pic && typeof pic.file === 'string' && SHOT_NAME.test(pic.file) ? '<p class="missing">Screenshot: ' + esc(pic.file) + ', in the run folder (left out to keep this page small)</p>' : '') + '</li>';
+  };
+  return '<!doctype html>\\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><meta name="referrer" content="no-referrer">' +
+    '<meta http-equiv="Content-Security-Policy" content="' + REPORT_CSP + '"><title>Claude Test report' + (runId ? ' · ' + esc(runId) : '') + '</title>\\n<style>' + REPORT_STYLE + '</style></head><body><main>\\n' +
+    '<header><h1>Claude Test report</h1><p class="sub">' + sub + '</p></header>\\n' +
+    '<section class="summary ' + tone + '" aria-label="Summary"><p class="head">' + esc(head) + (took && tone === 'pass' && n(c.specs) ? ' in ' + esc(took) : '') + '</p><div class="tiles">' + tile(c.passed, 'pass', 'passed') + tile(c.failed, 'fail', 'failed') + tile(c.blocked, 'blk', 'blocked') + '</div>' +
+    (r.blockedReason ? '<p class="note"><span class="lab">Why it stopped: </span>' + line(r.blockedReason, 400) + '</p>' : '') + '</section>\\n' +
+    (rows.length ? '<h2>Tests</h2><ol class="tests">' + rows.map(test).join('\\n') + '</ol>\\n' : '') +
+    (notListed > 0 ? '<p class="note">' + notListed + (notListed === 1 ? ' more test is' : ' more tests are') + ' not listed here. Tests that failed or were blocked are listed first. log.md and results.json in the run folder list every test.</p>\\n' : '') +
+    '<footer>Written by Claude Test' + (typeof r.toolVersion === 'string' && /^\\d+\\.\\d+\\.\\d+$/.test(r.toolVersion) ? ' ' + esc(r.toolVersion) : '') + ' when the run finished. The run\\'s full log (log.md) and its results as data (results.json) are in ' + (typeof runFolder === 'string' && runFolder ? 'the run folder ' + line(runFolder, 300) + ' in your project' : 'its run folder') + '.</footer>\\n</main></body></html>\\n';
+}
+
+
+
+function reportPicture(at, name, left) {
+  if (typeof name !== 'string' || !SHOT_NAME.test(name)) return null;
+  const most = Math.min(REPORT_PICTURE_BYTES, Math.max(0, left));
+  const seen = {}; const bytes = readPlainBytes(at(name), most, seen);
+  if (bytes === null) return seen.isFile === true && seen.nlink === 1 && seen.size > most ? { file: name } : null;
+  if (!bytes || bytes.length < 8 || !bytes.subarray(0, 8).equals(PNG_SIGNATURE)) return null;
+  return { data: 'data:image/png;base64,' + bytes.toString('base64'), size: bytes.length };
+}
+
+
+function reportChecks(cfg, name, within) {
+  try {
+    const bytes = writingIn(within, cfg.projectDir, cfg.specsDir, (at) => readPlainBytes(at(name), REPORT_SPEC_BYTES)); if (!bytes) return [];
+    const sp = parseSpec(bytes.toString('utf8'), name); return [...sp.must.map((m) => 'Must: ' + m), ...sp.mustNot.map((m) => 'Must not: ' + m)];
+  } catch { return []; }
+}
+
+
+
+
+export function writeReport(cfg, runDir, results, within = null) {
+  const rows = reportRowsOf(results);
+  const specs = new Map(); const checks = []; const pictures = [];
+  for (const { x, i } of rows) {
+    if (typeof x.file !== 'string' || !cfg || typeof cfg.specsDir !== 'string') continue;
+    const file = path.join(cfg.projectDir, x.file);
+    if (path.dirname(path.resolve(file)) !== path.resolve(cfg.specsDir) || !stemOk(path.basename(file, '.md')) || !reallyInsideDir(file, cfg.specsDir)) continue;
+    const name = path.basename(file);
+    if (!specs.has(name)) specs.set(name, reportChecks(cfg, name, within));
+    checks[i] = specs.get(name);
+  }
+
+  try {
+    writingIn(within, cfg.projectDir, runDir, (at) => { let left = REPORT_PICTURES_BYTES; for (const { x, i } of rows) { const p = reportPicture(at, x.screenshot, left); if (p && p.data) left -= p.size; pictures[i] = p; } });
+  } catch { pictures.length = 0; }
+  const dir = liveDir(cfg.projectDir, path.basename(runDir)); if (!ownFolder(dir) || !plainWay(dir)) return false;
+  const runFolder = path.relative(cfg.projectDir, runDir).split(path.sep).join('/');
+  return writeInRunFolder(dir, REPORT_FILE, renderReport({ results, checks, pictures, runFolder }));
+}
+
 
 
 export function writeLivePage(dir, state) {
@@ -182,16 +304,19 @@ const KEEP_RUNS = 8; const QUIET_MS = 45 * 60 * 1000; const RECENT_MS = 12 * 360
 
 
 
-function readPlain(file) {
+function readPlain(file) { const b = readPlainBytes(file, MAX_BYTES); return b ? b.toString('utf8') : b; }
+
+function readPlainBytes(file, most, seen = null) {
   let fd = null;
   try {
     if (process.platform === 'win32' && !fs.lstatSync(file).isFile()) return null;
     fd = fs.openSync(file, fs.constants.O_RDONLY | (process.platform === 'win32' ? 0 : fs.constants.O_NOFOLLOW | fs.constants.O_NONBLOCK));
     const st = fs.fstatSync(fd);
-    if (!st.isFile() || st.nlink !== 1 || st.size > MAX_BYTES) return null;
+    if (seen) { seen.isFile = st.isFile(); seen.nlink = st.nlink; seen.size = st.size; }
+    if (!st.isFile() || st.nlink !== 1 || st.size > most) return null;
     const bytes = Buffer.alloc(st.size); let got = 0;
     while (got < st.size) { const n = fs.readSync(fd, bytes, got, st.size - got, got); if (!n) break; got += n; }
-    return bytes.toString('utf8', 0, got);
+    return bytes.subarray(0, got);
   } catch (e) { return e && e.code === 'ENOENT' ? undefined : null; }
   finally { if (fd !== null) { try { fs.closeSync(fd); } catch {              } } }
 }

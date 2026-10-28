@@ -1,9 +1,9 @@
 <!--
-name: 'Tool Result: Artifact read_page_data Notification-Triggered Permission Ask'
+name: Artifact read notification-triggered permission ask
 description: >-
-  Permission ask, or no-consent deny, for a read_page_data call prompted by the
-  new-comments notification. It notes that the page data comes from viewers.
-ccVersion: 2.1.282
+  Permission ask for an Artifact read prompted by the new-comments notification,
+  naming the artifact and noting who wrote its content.
+ccVersion: 2.1.312
 variables:
   - >-
     TOOL_RESULT_ARTIFACT_READ_PAGE_DATA_NOTIFICATION_TRIGGERED_PERMISSION_ASK_VAR_0
@@ -11,5 +11,7 @@ variables:
     TOOL_RESULT_ARTIFACT_READ_PAGE_DATA_NOTIFICATION_TRIGGERED_PERMISSION_ASK_VAR_1
   - >-
     TOOL_RESULT_ARTIFACT_READ_PAGE_DATA_NOTIFICATION_TRIGGERED_PERMISSION_ASK_VAR_2
+  - >-
+    TOOL_RESULT_ARTIFACT_READ_PAGE_DATA_NOTIFICATION_TRIGGERED_PERMISSION_ASK_VAR_3
 -->
-Claude wants to read the structured page data of ${TOOL_RESULT_ARTIFACT_READ_PAGE_DATA_NOTIFICATION_TRIGGERED_PERMISSION_ASK_VAR_0(TOOL_RESULT_ARTIFACT_READ_PAGE_DATA_NOTIFICATION_TRIGGERED_PERMISSION_ASK_VAR_1)} — prompted by the new-comments notification; ${TOOL_RESULT_ARTIFACT_READ_PAGE_DATA_NOTIFICATION_TRIGGERED_PERMISSION_ASK_VAR_2}
+Claude wants to read ${TOOL_RESULT_ARTIFACT_READ_PAGE_DATA_NOTIFICATION_TRIGGERED_PERMISSION_ASK_VAR_0(TOOL_RESULT_ARTIFACT_READ_PAGE_DATA_NOTIFICATION_TRIGGERED_PERMISSION_ASK_VAR_1)} — prompted by the new-comments notification${TOOL_RESULT_ARTIFACT_READ_PAGE_DATA_NOTIFICATION_TRIGGERED_PERMISSION_ASK_VAR_2(TOOL_RESULT_ARTIFACT_READ_PAGE_DATA_NOTIFICATION_TRIGGERED_PERMISSION_ASK_VAR_3)}
